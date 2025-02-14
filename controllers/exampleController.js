@@ -1,7 +1,7 @@
 export const getExample = (req, res) => {
-  res.send("Hello, world!");
+  res.json({ message: "Hello, world!" });
 };
 
 export const getExample2 = (req, res) => {
-  res.send("Hello, world 2!");
+  res.json({ message: "Hello, world!" });
 };

@@ -1,8 +1,9 @@
 import express from "express";
-import exampleController from "../controllers/exampleController.js";
+import { getExample, getExample2 } from "../controllers/exampleController.js";
 
 const router = express.Router();
 
-router.get("/", exampleController.getExample);
+router.get("/", getExample);
+router.get("/example2", getExample2);
 
 export default router;
