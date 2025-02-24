@@ -20,11 +20,11 @@
   "homepage": "https://github.com/kriyahr/suitelifer-backend#readme",
   "description": "",
   "dependencies": {
-    "axios": "^1.7.9",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.12.0",
     "nodemon": "^3.1.9"
