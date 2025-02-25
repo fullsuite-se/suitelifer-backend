@@ -40,9 +40,23 @@ export const login = (req, res) => {
 };
 
 export const logout = (req, res) => {
-  res.clearCookie("accessToken");
-  res.clearCookie("refreshToken");
-  res.json({ message: "Logged out successfully" });
+  res.cookie("accessToken", "", {
+    httpOnly: true,
+    secure: false, // Change this to true if using HTTPS
+    sameSite: "Strict",
+    path: "/",
+    expires: new Date(0), // Expire immediately
+  });
+
+  res.cookie("refreshToken", "", {
+    httpOnly: true,
+    secure: false, // Change this to true if using HTTPS
+    sameSite: "Strict",
+    path: "/",
+    expires: new Date(0),
+  });
+
+  res.json({ message: "Logged out successfully", isLoggedOut: true });
 };
 
 export const userInfo = (req, res) => {
