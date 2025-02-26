@@ -143,5 +143,5 @@ export const getSpotifyToken = async code => {
   window.location.href = authUrl.toString();
 
   const urlParams = new URLSearchParams(window.location.search);
-  let code = urlParams.get('code');
+  var code = urlParams.get('code');
 }
