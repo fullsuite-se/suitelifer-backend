@@ -95,53 +95,53 @@ export const refreshToken = (req, res) => {
 };
 
 // EXPERIMENTAL API
-export const getSpotifyToken = async code => {
-  // CODE VERIFIER
-  const generateRandomString = (length) => {
-    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    const values = crypto.getRandomValues(new Uint8Array(length));
-    return values.reduce((acc, x) => acc + possible[x % possible.length], "");
-  }
+// export const getSpotifyToken = async code => {
+//   // CODE VERIFIER
+//   const generateRandomString = (length) => {
+//     const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+//     const values = crypto.getRandomValues(new Uint8Array(length));
+//     return values.reduce((acc, x) => acc + possible[x % possible.length], "");
+//   }
 
-  const codeVerifier = generateRandomString(64);
+//   const codeVerifier = generateRandomString(64);
 
-  // CODE CHALLENGE
-  const sha256 = async (plain) => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(plain);
-    return window.crypto.subtle.digest("SHA-256", data);
-  }
+//   // CODE CHALLENGE
+//   const sha256 = async (plain) => {
+//     const encoder = new TextEncoder();
+//     const data = encoder.encode(plain);
+//     return window.crypto.subtle.digest("SHA-256", data);
+//   }
 
-  const base64encode = (input) => {
-    return btoa(String.fromCharCode(...new Uint8Array(input)))
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-  }
+//   const base64encode = (input) => {
+//     return btoa(String.fromCharCode(...new Uint8Array(input)))
+//     .replace(/=/g, '')
+//     .replace(/\+/g, '-')
+//     .replace(/\//g, '_');
+//   }
 
-  const hashed = await sha256(codeVerifier);
-  const codeChallenge = base64encode(hashed);
+//   const hashed = await sha256(codeVerifier);
+//   const codeChallenge = base64encode(hashed);
 
-  const clientId = process.env.SPOTIFY_CLIENT_ID;
-  const redirectUri = "http://localhost:5173";
+//   const clientId = process.env.SPOTIFY_CLIENT_ID;
+//   const redirectUri = "http://localhost:5173";
 
-  const scope = "user-read-private user-read-email";
-  const authUrl = new URL("https://accounts.spotify.com/authorize");
+//   const scope = "user-read-private user-read-email";
+//   const authUrl = new URL("https://accounts.spotify.com/authorize");
 
-  window.localStorage.setItem('code_verifier', codeVerifier);
+//   window.localStorage.setItem('code_verifier', codeVerifier);
 
-  const params = {
-    response_type: "code",
-    client_id: clientId,
-    scope,
-    code_challenge_method: "256",
-    code_challenge: codeChallenge,
-    redirectUri: redirectUri,
-  }
+//   const params = {
+//     response_type: "code",
+//     client_id: clientId,
+//     scope,
+//     code_challenge_method: "256",
+//     code_challenge: codeChallenge,
+//     redirectUri: redirectUri,
+//   }
 
-  authUrl.search = new URLSearchParams(params).toString();
-  window.location.href = authUrl.toString();
+//   authUrl.search = new URLSearchParams(params).toString();
+//   window.location.href = authUrl.toString();
 
-  const urlParams = new URLSearchParams(window.location.search);
-  var code = urlParams.get('code');
-}
+//   const urlParams = new URLSearchParams(window.location.search);
+//   var code = urlParams.get('code');
+// }
