@@ -8,4 +8,5 @@ export const SpotifyEpisode = {
   addEpisode: async (episode_id, userId) => {
     await db("sl_spotify_episodes").insert(uuidv4(), episode_id, Date.now(), userId);
   },
+  // hello
 };
