@@ -3,7 +3,7 @@ import { SpotifyEpisode } from "../models/spotifyEpisodeModel.js";
 export const getEpisodes = async (req, res) => {
   try {
     const episodes = await SpotifyEpisode.getAllEpisodes();
-    res.json(episodes);
+    res.status(200).json(episodes);
   } catch (err) {
     console.log(err);
   }
@@ -12,7 +12,6 @@ export const getEpisodes = async (req, res) => {
 export const insertEpisode = async (req, res) => {
   try {
     console.log(req.body);
-    // hello
     const { url, userId } = req.body;
 
     if (!url || !userId) {
