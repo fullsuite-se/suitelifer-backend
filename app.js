@@ -26,6 +26,7 @@ app.use(
 app.use("/api", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", spotifyRoutes);
+// hello
 
 // Example of a protected route
 app.get("/api/protected", verifyJWT, (req, res) => {
