@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import spotifyRoutes from "./routes/spotifyRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -25,6 +26,7 @@ app.use(
 
 app.use("/api", authRoutes);
 app.use("/api", userRoutes);
+app.use("/api", spotifyRoutes);
 app.use("/api", eventRoutes);
 
 // Example of a protected route
