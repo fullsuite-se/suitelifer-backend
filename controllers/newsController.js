@@ -1,4 +1,4 @@
-import { News } from "../models/newsModel";
+import { News } from "../models/newsModel.js";
 
 export const getAllNews = async (req, res) => {
   try {
