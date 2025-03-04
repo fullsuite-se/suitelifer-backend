@@ -6,6 +6,7 @@ import {
   userInfo,
 } from "../controllers/authController.js";
 import verifyJWT from "../middlewares/verifyJWT.js";
+import { getUsers } from "../controllers/userController.js";
 
 const router = express.Router();
 
@@ -20,5 +21,7 @@ router.get("/refresh-token", refreshToken);
 router.get("/profile", verifyJWT, (req, res) => {
   return res.json({ message: "Profile data", user: req.user });
 });
+
+router.get("/users", getUsers);
 
 export default router;
