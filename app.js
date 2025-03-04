@@ -14,6 +14,7 @@ import spotifyRoutes from "./routes/spotifyRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import newsRoutes from "./routes/newsRoutes.js";
+import jobRoutes from "./routes/jobRoutes.js";
 
 const app = express();
 dotenv.config();
@@ -36,6 +37,7 @@ app.use("/api", spotifyRoutes);
 app.use("/api", eventRoutes);
 app.use("/api", blogRoutes);
 app.use("/api", newsRoutes);
+app.use("/api", jobRoutes);
 
 // Example of a protected route
 app.get("/api/protected", verifyJWT, (req, res) => {
