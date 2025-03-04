@@ -4,6 +4,7 @@ import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import spotifyRoutes from "./routes/spotifyRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
+import blogRoutes from "./routes/blogRoutes.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import verifyJWT from "./middlewares/verifyJWT.js";
@@ -28,6 +29,7 @@ app.use("/api", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", spotifyRoutes);
 app.use("/api", eventRoutes);
+app.use("/api", blogRoutes);
 
 // Example of a protected route
 app.get("/api/protected", verifyJWT, (req, res) => {
