@@ -1,15 +1,19 @@
 import express from "express";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import helmet from "helmet";
+
+// Middlewares
+import verifyJWT from "./middlewares/verifyJWT.js";
+
+// Routes
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import spotifyRoutes from "./routes/spotifyRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import newsRoutes from "./routes/newsRoutes.js";
-import cookieParser from "cookie-parser";
-import cors from "cors";
-import verifyJWT from "./middlewares/verifyJWT.js";
-import helmet from "helmet";
 
 const app = express();
 dotenv.config();
