@@ -5,6 +5,7 @@ import userRoutes from "./routes/userRoutes.js";
 import spotifyRoutes from "./routes/spotifyRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
+import newsRoutes from "./routes/newsRoutes.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import verifyJWT from "./middlewares/verifyJWT.js";
@@ -30,6 +31,7 @@ app.use("/api", userRoutes);
 app.use("/api", spotifyRoutes);
 app.use("/api", eventRoutes);
 app.use("/api", blogRoutes);
+app.use("/api", newsRoutes);
 
 // Example of a protected route
 app.get("/api/protected", verifyJWT, (req, res) => {
