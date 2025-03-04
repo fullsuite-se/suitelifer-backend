@@ -1,6 +1,6 @@
 import mysql from "mysql2";
-import { knex }from "knex";
-import { knexconfig } from "./knexconfig";
+import knex from "knex";
+import { knexconfig } from "./knexconfig.js";
 
 import dotenv from "dotenv";
 dotenv.config();
