@@ -1,3 +1,11 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
+const DB_HOST = process.env.DB_HOST;
+const DB_USER = process.env.DB_USER;
+const DB_PASSWORD = process.env.DB_PASSWORD;
+const DB_DATABASE = process.env.DB_DATABASE;
+
 export const knexconfig = {
   client: "mysql2",
   connection: {
