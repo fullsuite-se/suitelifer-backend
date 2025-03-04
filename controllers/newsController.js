@@ -9,3 +9,15 @@ export const getAllNews = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+export const getNewsArticle = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const newsArticle = await News.getNewsArticle(id);
+
+    res.status(200).json(newsArticle);
+  } catch (err) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
