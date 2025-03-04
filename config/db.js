@@ -1,5 +1,6 @@
 import mysql from "mysql2";
-import knex from "knex";
+import { knex }from "knex";
+import { knexconfig } from "./knexconfig";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -18,15 +19,4 @@ export const pool = mysql.createPool({
 
 console.log(process.env.PORT);
 
-export const db = knex({
-  client: "mysql2",
-  connection: {
-    host: DB_HOST,
-    port: 3306,
-    user: DB_USER,
-    password: DB_PASSWORD,
-    database: DB_DATABASE,
-    connectTimeout: 60000,
-  },
-  pool: { min: 2, max: 10 },
-});
+export const db = knex(knexconfig);
