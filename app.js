@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import spotifyRoutes from "./routes/spotifyRoutes.js";
+import eventRoutes from "./routes/eventRoutes.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import verifyJWT from "./middlewares/verifyJWT.js";
@@ -26,7 +27,7 @@ app.use(
 app.use("/api", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", spotifyRoutes);
-// hello
+app.use("/api", eventRoutes);
 
 // Example of a protected route
 app.get("/api/protected", verifyJWT, (req, res) => {
