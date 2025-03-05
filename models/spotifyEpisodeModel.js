@@ -1,7 +1,8 @@
+import knex from "knex";
 import { db } from "../config/db.js";
 import { v7 as uuidv7 } from "uuid";
 
-const table = db("sl_spotify_episodes");
+const table = () => db("sl_spotify_episodes");
 
 export const SpotifyEpisode = {
   getAllEpisodes: async () => {
@@ -15,18 +16,24 @@ export const SpotifyEpisode = {
         "hris_user_accounts.user_id": "hris_user_info.user_id",
       });
   },
-  addEpisode: async (episode_id, user_id) => {
-    await table.insert(uuidv7(), episode_id, Date.now(), user_id);
+  insertEpisode: async (id, user_id) => {
+    return await table().insert(
+      {
+        episode_id: uuidv7(),
+        id,
+        created_at: new Date().toISOString(),
+        created_by: user_id,
+      },
+      ["*"]
+    );
   },
   updateEpisode: async (episode_id, id, user_id) => {
-    await table
+    return await table()
       .where({ episode_id })
-      .update({ id, updated_at: Date.now(), updated_by: user_id }, [
-        "episode_id",
-        "id",
-      ]);
+      .update({ id })
+      .returning(["episode_id", "id"]);
   },
   deleteEpisode: async (episode_id) => {
-    await table.where("episode_id", episode_id).del();
+    return await table().where("episode_id", episode_id).del();
   },
 };
