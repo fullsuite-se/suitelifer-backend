@@ -56,7 +56,7 @@ export const updateSetup = async (req, res) => {
     // ATTEMPT TO UPDATE THE SETUP
     const updatedSetup = await Setup.updateSetup(setup_id, setup_name);
 
-    if (!updateSetup) {
+    if (!updatedSetup) {
       return res.status(404).json({
         success: false,
         message: "Job setup not found or not updated",
@@ -66,7 +66,7 @@ export const updateSetup = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Job setup updated successfully",
-      data: updateSetup,
+      data: updatedSetup,
     });
   } catch (err) {
     console.error("Error updating setup:", err.message);
