@@ -22,7 +22,9 @@ export const Job = {
     return await db
       .select("*")
       .from("sl_company_jobs")
-      .join("job_setup", { "sl_company_jobs.setup_id": "job_setup.setup_id" })
+      .join("sl_company_jobs_setups", {
+        "sl_company_jobs.setup_id": "sl_company_jobs_setups.setup_id",
+      })
       .join("sl_job_details", {
         "sl_company_jobs.job_id": "sl_job_details.job_id",
       })

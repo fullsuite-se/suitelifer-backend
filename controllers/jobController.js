@@ -47,6 +47,7 @@ export const insertJob = async (req, res) => {
       employment_type,
       setup_id,
       is_open,
+      is_shown,
       industry_id,
       user_id,
     } = req.body;
@@ -58,6 +59,7 @@ export const insertJob = async (req, res) => {
       !employment_type ||
       !setup_id ||
       !is_open ||
+      !is_shown ||
       !industry_id
     ) {
       return res.status(400).json({
@@ -72,6 +74,7 @@ export const insertJob = async (req, res) => {
       employment_type,
       setup_id,
       is_open,
+      is_shown,
       industry_id,
       user_id
     );
@@ -94,6 +97,7 @@ export const updateJob = async (req, res) => {
       employment_type,
       setup_id,
       is_open,
+      is_shown,
       industry_id,
       user_id,
     } = req.body;
@@ -105,6 +109,7 @@ export const updateJob = async (req, res) => {
       !employment_type ||
       !setup_id ||
       !is_open ||
+      !is_shown ||
       !industry_id
     ) {
       return res.status(400).json({
@@ -120,6 +125,7 @@ export const updateJob = async (req, res) => {
       employment_type,
       setup_id,
       is_open,
+      is_shown,
       industry_id,
       user_id
     );
