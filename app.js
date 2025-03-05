@@ -18,6 +18,7 @@ import jobRoutes from "./routes/jobRoutes.js";
 import contentRoutes from "./routes/contentRoutes.js";
 import salaryRangeRoutes from "./routes/salaryRangeRoutes.js";
 import setupRoutes from "./routes/setupRoutes.js";
+import fileRoutes from "./routes/fileRoutes.js";
 
 const app = express();
 dotenv.config();
@@ -44,6 +45,7 @@ app.use("/api", jobRoutes);
 app.use("/api", contentRoutes);
 app.use("/api", salaryRangeRoutes);
 app.use("/api", setupRoutes);
+app.use("/api", fileRoutes);
 
 // Example of a protected route
 app.get("/api/protected", verifyJWT, (req, res) => {
