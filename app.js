@@ -16,6 +16,8 @@ import blogRoutes from "./routes/blogRoutes.js";
 import newsRoutes from "./routes/newsRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import contentRoutes from "./routes/contentRoutes.js";
+import salaryRangeRoutes from "./routes/salaryRangeRoutes.js";
+import setupRoutes from "./routes/setupRoutes.js";
 import fileRoutes from "./routes/fileRoutes.js";
 
 const app = express();
@@ -41,6 +43,8 @@ app.use("/api", blogRoutes);
 app.use("/api", newsRoutes);
 app.use("/api", jobRoutes);
 app.use("/api", contentRoutes);
+app.use("/api", salaryRangeRoutes);
+app.use("/api", setupRoutes);
 app.use("/api", fileRoutes);
 
 // Example of a protected route
