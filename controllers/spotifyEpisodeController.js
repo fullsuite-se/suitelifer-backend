@@ -56,6 +56,7 @@ export const updateEpisode = async (req, res) => {
   try {
     const { episode_id, url, user_id } = req.body;
 
+    // VALIDATE REQUIRED FIELDS
     if (!episode_id || !url) {
       return res.status(400).json({
         success: false,
@@ -73,6 +74,7 @@ export const updateEpisode = async (req, res) => {
 
     const id = parts[1].split("?")[0];
 
+    // ATTEMPT TO UPDATE THE EPISODE
     const updatedEpisode = await SpotifyEpisode.updateEpisode(
       episode_id,
       id,
@@ -96,7 +98,6 @@ export const updateEpisode = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
-      error: err.message,
     });
   }
 };
@@ -109,7 +110,7 @@ export const deleteEpisode = async (req, res) => {
     if (!episode_id) {
       return res.status(400).json({
         success: false,
-        message: "Missing required parameter: episode_id",
+        message: "Missing: episode id",
       });
     }
 
@@ -132,7 +133,6 @@ export const deleteEpisode = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
-      error: err.message,
     });
   }
 };
