@@ -20,8 +20,8 @@ export const SpotifyEpisode = {
   },
   updateEpisode: async (episode_id, id, user_id) => {
     await table
-      .where({ episode_id: episode_id })
-      .update({ id: id, updated_at: Date.now(), updated_by: user_id }, [
+      .where({ episode_id })
+      .update({ id, updated_at: Date.now(), updated_by: user_id }, [
         "episode_id",
         "id",
       ]);

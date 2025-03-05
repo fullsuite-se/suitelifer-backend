@@ -71,13 +71,13 @@ export const Job = {
   ) => {
     await table.where({ job_id: job_id }).update(
       {
-        title: title,
-        description: description,
-        employment_type: employment_type,
-        setup_id: setup_id,
-        is_open: is_open,
-        industry_id: industry_id,
-        user_id: user_id,
+        title,
+        description,
+        employment_type,
+        setup_id,
+        is_open,
+        industry_id,
+        user_id,
       },
       ["job_id", "title"]
     );

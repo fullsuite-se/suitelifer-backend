@@ -13,7 +13,7 @@ export const Setup = {
   updateSetup: async (setup_id, setup_name) => {
     await table
       .where("setup_id", setup_id)
-      .update({ setup_name: setup_name }, ["setup_id", "setup_name"]);
+      .update({ setup_name }, ["setup_id", "setup_name"]);
   },
   deleteSetup: async (setup_id) => {
     await table.where("setup_id", setup_id).del();
