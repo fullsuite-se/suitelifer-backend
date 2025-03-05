@@ -1,10 +1,14 @@
 import express from 'express';
-import { getEpisodes, insertEpisode } from '../controllers/spotifyEpisodeController.js';
+import { deleteEpisode, getEpisodes, insertEpisode, updateEpisode } from '../controllers/spotifyEpisodeController.js';
 
 const router = express.Router();
 
-router.get("/episodes", getEpisodes);
+router.get("/all-episodes", getEpisodes);
 
-router.post("/episodes", insertEpisode);
+router.post("/add-episode", insertEpisode);
+
+router.post("/update-episode", updateEpisode);
+
+router.post("/delete-episode", deleteEpisode);
 
 export default router;
