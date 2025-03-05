@@ -2,7 +2,7 @@ import { company_id } from "../config/companyConfig.js";
 import { db } from "../config/db.js";
 import { v7 as uuidv7 } from "uuid";
 
-const table = db("sl_company_jobs");
+const table = () => db("sl_company_jobs");
 
 export const Job = {
   getAllJobs: async () => {
@@ -12,7 +12,7 @@ export const Job = {
       .join("job_setup", { "job_setup.setup_id": "sl_company_jobs.setup_id" });
   },
   getOpenJobs: async () => {
-    return db
+    return await db
       .select("*")
       .from("sl_company_jobs")
       .join("job_setup", { "job_setup.setup_id": "sl_company_jobs.setup_id" })
@@ -41,23 +41,25 @@ export const Job = {
     employment_type,
     setup_id,
     is_open,
+    is_shown,
     industry_id,
     user_id
   ) => {
-    await db.insert(
-      uuidv7(),
+    return await table().insert({
+      job_id: uuidv7(),
       company_id,
       title,
       description,
       employment_type,
       setup_id,
       is_open,
+      is_shown,
       industry_id,
-      Date.now(),
+      created_at: new Date().toISOString(),
       user_id,
-      null,
-      null
-    );
+      updated_at: null,
+      updated_by: null,
+    }, ["*"]);
   },
   updateJob: async (
     job_id,
@@ -66,23 +68,25 @@ export const Job = {
     employment_type,
     setup_id,
     is_open,
+    is_shown,
     industry_id,
     user_id
   ) => {
-    await table.where({ job_id: job_id }).update(
-      {
+    return await table()
+      .where({ job_id: job_id })
+      .update({
         title,
         description,
         employment_type,
         setup_id,
         is_open,
+        is_shown,
         industry_id,
         user_id,
-      },
-      ["job_id", "title"]
-    );
+      })
+      .returning(["job_id", "title"]);
   },
   deleteJob: async (job_id) => {
-    await table.where("job_id", job_id).del();
+    return await table().where("job_id", job_id).del();
   },
 };
