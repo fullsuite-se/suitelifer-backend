@@ -68,6 +68,7 @@ export const insertJob = async (req, res) => {
       });
     }
 
+    // INSERT JOB INTO THE DATABASE
     await Job.insertJob(
       title,
       description,
@@ -118,6 +119,7 @@ export const updateJob = async (req, res) => {
       });
     }
 
+    // ATTEMPT TO UPDATE THE JOB
     const updatedJob = await Job.updateJob(
       job_id,
       title,
