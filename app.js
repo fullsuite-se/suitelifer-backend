@@ -16,6 +16,7 @@ import blogRoutes from "./routes/blogRoutes.js";
 import newsRoutes from "./routes/newsRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import contentRoutes from "./routes/contentRoutes.js";
+import fileRoutes from "./routes/fileRoutes.js";
 
 const app = express();
 dotenv.config();
@@ -40,6 +41,7 @@ app.use("/api", blogRoutes);
 app.use("/api", newsRoutes);
 app.use("/api", jobRoutes);
 app.use("/api", contentRoutes);
+app.use("/api", fileRoutes);
 
 // Example of a protected route
 app.get("/api/protected", verifyJWT, (req, res) => {
