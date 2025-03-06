@@ -33,24 +33,10 @@ export const addBlog = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Blog added successfully!",
+      eblog_id: blog.eblog_id,
     });
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: "Internal Server Error" });
   }
-
-  return;
-
-  const imagesData = data.images.map((image) => {
-    return {
-      content_id: data.eblog_id,
-      image_url: image.url,
-    };
-  });
-
-  console.log(imagesData);
-  console.log(blog);
-  return;
-
-  return blog;
 };
