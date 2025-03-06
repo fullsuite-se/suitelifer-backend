@@ -4,6 +4,7 @@ import {
   getJobs,
   getOpenJobs,
   insertJob,
+  searchJob,
   updateJob,
 } from "../controllers/jobController.js";
 
@@ -18,5 +19,7 @@ router.post("/add-job", insertJob);
 router.post("/edit-job", updateJob);
 
 router.post("/delete-job", deleteJob);
+
+router.get("/search-job/:search_val", searchJob);
 
 export default router;
