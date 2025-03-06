@@ -32,10 +32,31 @@ export const getJobDetails = async (req, res) => {
   try {
     const { jobId } = req.params;
     const jobDetails = await Job.getJobDetails(jobId);
-    res.status(200).json(jobDetails);
+    res.status(200).json({ success: true, data: jobDetails });
   } catch (err) {
     console.log(err);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const searchJob = async (req, res) => {
+  try {
+    const { search_val } = req.params;
+    const searchResults = await Job.searchJob(search_val);
+    res.status(200).json({ success: true, data: searchResults });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const getJobsAdmin = async (req, res) => {
+  try {
+    const jobs = await Job.getAllJobsAdmin();
+    res.status(200).json({ success: true, data: jobs });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
@@ -141,10 +162,41 @@ export const updateJob = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Job updated successfully",
-      data: updateJob,
+      data: updatedJob,
     });
   } catch (err) {
     console.log("Error updating job:", err);
+    res.status(500).json({ success: false, error: "Internal Server Error" });
+  }
+};
+
+export const deleteJob = async (req, res) => {
+  try {
+    const { job_id } = req.body;
+
+    // VALIDATE REQUIRED FIELD
+    if (!job_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required field: job id",
+      });
+    }
+
+    const deletedJob = await Job.deleteJob(job_id);
+
+    if (!deleteJob) {
+      return res.status(404).json({
+        success: false,
+        message: "Job not found or already deleted",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Job deleted successfully",
+    });
+  } catch (err) {
+    console.log("Error deleting job:", err);
     res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 };

@@ -7,32 +7,142 @@ const table = () => db("sl_company_jobs");
 export const Job = {
   getAllJobs: async () => {
     return await db
-      .select("*")
+      .select(
+        "job_id AS jobId",
+        "title AS jobTitle",
+        "industry_name AS industryName",
+        "employment_type AS employmentType",
+        "setup_name AS setupName",
+        "description",
+        "salary_min AS salaryMin",
+        "salary_max AS salaryMax",
+        "responsibility",
+        "requirement",
+        "preferred_qualification AS preferredQualification",
+        "is_open AS isOpen"
+      )
       .from("sl_company_jobs")
-      .join("job_setup", { "job_setup.setup_id": "sl_company_jobs.setup_id" });
+      .join("sl_company_jobs_setups", {
+        "sl_company_jobs_setups.setup_id": "sl_company_jobs.setup_id",
+      })
+      .join("sl_job_industries", {
+        "sl_company_jobs.industry_id": "sl_job_industries.job_ind_id",
+      })
+      .where("is_shown", 1);
   },
   getOpenJobs: async () => {
     return await db
-      .select("*")
+      .select(
+        "job_id AS jobId",
+        "title AS jobTitle",
+        "industry_name AS industryName",
+        "employment_type AS employmentType",
+        "setup_name AS setupName",
+        "description",
+        "salary_min AS salaryMin",
+        "salary_max AS salaryMax",
+        "responsibility",
+        "requirement",
+        "preferred_qualification AS preferredQualification",
+        "is_open AS isOpen"
+      )
       .from("sl_company_jobs")
-      .join("job_setup", { "job_setup.setup_id": "sl_company_jobs.setup_id" })
-      .where({ is_open: true });
+      .join("sl_company_jobs_setups", {
+        "sl_company_jobs_setups.setup_id": "sl_company_jobs.setup_id",
+      })
+      .join("sl_job_industries", {
+        "sl_company_jobs.industry_id": "sl_job_industries.job_ind_id",
+      })
+      .where({ is_open: 1, is_shown: 1 });
   },
   getJobDetails: async (job_id) => {
     return await db
-      .select("*")
+      .select(
+        "job_id AS jobId",
+        "title AS jobTitle",
+        "industry_name AS industryName",
+        "employment_type AS employmentType",
+        "setup_name AS setupName",
+        "description",
+        "salary_min AS salaryMin",
+        "salary_max AS salaryMax",
+        "responsibility",
+        "requirement",
+        "preferred_qualification AS preferredQualification",
+        "is_open AS isOpen"
+      )
       .from("sl_company_jobs")
       .join("sl_company_jobs_setups", {
         "sl_company_jobs.setup_id": "sl_company_jobs_setups.setup_id",
       })
-      .join("sl_job_details", {
-        "sl_company_jobs.job_id": "sl_job_details.job_id",
-      })
-      .join("sl_salary_ranges", {
-        "sl_job_details.salary_range_id": "sl_salary_ranges.salary_range_id",
-      })
       .join("sl_job_industries", {
         "sl_company_jobs.industry_id": "sl_job_industries.job_ind_id",
+      })
+      .where({ is_shown: 1 })
+      .groupBy("industry_name");
+  },
+  searchJob: async (search_val) => {
+    return await db
+      .select(
+        "job_id AS jobId",
+        "title AS jobTitle",
+        "industry_name AS industryName",
+        "employment_type AS employmentType",
+        "setup_name AS setupName",
+        "description",
+        "salary_min AS salaryMin",
+        "salary_max AS salaryMax",
+        "responsibility",
+        "requirement",
+        "preferred_qualification AS preferredQualification",
+        "is_open AS isOpen"
+      )
+      .from("sl_company_jobs")
+      .innerJoin("sl_company_jobs_setups", {
+        "sl_company_jobs_setups.setup_id": "sl_company_jobs.setup_id",
+      })
+      .innerJoin("sl_job_industries", {
+        "sl_company_jobs.industry_id": "sl_job_industries.job_ind_id",
+      })
+      .where({ is_shown: 1 })
+      .whereILike("title", `%${search_val}%`)
+      .orWhereILike("industry_name", `%${search_val}%`)
+      .orWhereILike("employment_type", `%${search_val}%`)
+      .orWhereILike("setup_name", `%${search_val}%`);
+  },
+  // FOR ADMIN
+  getAllJobsAdmin: async () => {
+    return await db
+      .select(
+        "job_id AS jobId",
+        "title AS jobTitle",
+        "industry_id AS industryId",
+        "industry_name AS industryName",
+        "employment_type AS employmentType",
+        "sl_company_jobs.setup_id AS setupId",
+        "setup_name AS setupName",
+        "description",
+        "salary_min AS salaryMin",
+        "salary_max AS salaryMax",
+        "responsibility",
+        "requirement",
+        "preferred_qualification AS preferredQualification",
+        "is_open AS isOpen",
+        "is_shown AS isShown",
+        "sl_company_jobs.created_at AS createdAt",
+        db.raw(
+          "CONCAT(hris_user_infos.first_name, ' ', LEFT(hris_user_infos.middle_name, 1), '. ', hris_user_infos.last_name) AS createdBy"
+        )
+      )
+      .from("sl_company_jobs")
+      .innerJoin("sl_company_jobs_setups", {
+        "sl_company_jobs_setups.setup_id": "sl_company_jobs.setup_id",
+      })
+      .innerJoin("sl_job_industries", {
+        "sl_company_jobs.industry_id": "sl_job_industries.job_ind_id",
+      })
+      .innerJoin("hris_user_infos", {
+        "sl_company_jobs.created_by": "hris_user_infos.user_id",
       });
   },
   insertJob: async (
@@ -56,10 +166,10 @@ export const Job = {
       is_shown,
       industry_id,
       created_at: new Date().toISOString(),
-      user_id,
+      created_by: user_id,
       updated_at: null,
       updated_by: null,
-    }, ["*"]);
+    });
   },
   updateJob: async (
     job_id,
@@ -72,21 +182,19 @@ export const Job = {
     industry_id,
     user_id
   ) => {
-    return await table()
-      .where({ job_id: job_id })
-      .update({
-        title,
-        description,
-        employment_type,
-        setup_id,
-        is_open,
-        is_shown,
-        industry_id,
-        user_id,
-      })
-      .returning(["job_id", "title"]);
+    return await table().where({ job_id }).update({
+      title,
+      description,
+      employment_type,
+      setup_id,
+      is_open,
+      is_shown,
+      industry_id,
+      updated_at: new Date().toISOString(),
+      updated_by: user_id,
+    });
   },
   deleteJob: async (job_id) => {
-    return await table().where("job_id", job_id).del();
+    return await table().where({ job_id }).del();
   },
 };
