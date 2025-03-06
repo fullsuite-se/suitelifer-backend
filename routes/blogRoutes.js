@@ -1,8 +1,12 @@
 import express from "express";
-import { getAllBlogs } from "../controllers/blogController.js";
+import { addBlog, getAllBlogs } from "../controllers/blogController.js";
+import upload from "../utils/multer.js";
+import verifyJWT from "../middlewares/verifyJWT.js";
 
 const router = express.Router();
 
 router.get("/all-employee-blog", getAllBlogs);
+
+router.post("/add-employee-blog", verifyJWT, addBlog);
 
 export default router;
