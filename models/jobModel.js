@@ -56,10 +56,10 @@ export const Job = {
       is_shown,
       industry_id,
       created_at: new Date().toISOString(),
-      user_id,
+      created_by: user_id,
       updated_at: null,
       updated_by: null,
-    }, ["*"]);
+    });
   },
   updateJob: async (
     job_id,
@@ -72,19 +72,17 @@ export const Job = {
     industry_id,
     user_id
   ) => {
-    return await table()
-      .where({ job_id: job_id })
-      .update({
-        title,
-        description,
-        employment_type,
-        setup_id,
-        is_open,
-        is_shown,
-        industry_id,
-        user_id,
-      })
-      .returning(["job_id", "title"]);
+    return await table().where({ job_id: job_id }).update({
+      title,
+      description,
+      employment_type,
+      setup_id,
+      is_open,
+      is_shown,
+      industry_id,
+      updated_at: new Date().toISOString(),
+      updated_by: user_id,
+    });
   },
   deleteJob: async (job_id) => {
     return await table().where("job_id", job_id).del();
