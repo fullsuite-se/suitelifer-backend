@@ -13,13 +13,10 @@ export const Content = {
         "vision_slogan AS visionSlogan",
         "vision",
         "day_in_pod_url AS dayInPodUrl",
-        "created_at AS createdAt",
-        db.raw(
-          "CONCAT(hris_user_infos.first_name, ' ', LEFT(hris_user_infos.middle_name, 1), '. ', hris_user_infos.last_name) AS createdBy"
-        )
+        "sl_content.created_at AS createdAt",
       )
       .from("sl_content")
-      .orderBy("content_id", "desc")
+      .orderBy("created_at", "desc")
       .first();
   },
 };
