@@ -1,5 +1,5 @@
 import express from 'express';
-import { getLastSalaryRange, getSalaryRange, insertSalaryRange, updateSalaryRange } from '../controllers/salaryRangeController';
+import { getLastSalaryRange, getSalaryRange, insertSalaryRange, updateSalaryRange } from '../controllers/salaryRangeController.js';
 
 const router = express.Router();
 
