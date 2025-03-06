@@ -13,7 +13,6 @@ export const getAllBlogs = async (req, res) => {
 
 export const addBlog = async (req, res) => {
   const data = req.body;
-  const file = req.files;
   // TODO: DELETE THIS USER ID ON THE DATABASE WHEN IN PRODUCTION
   const userId = "0dbde766-f898-11ef-a725-0af0d960a833";
 
@@ -29,8 +28,12 @@ export const addBlog = async (req, res) => {
   console.dir(blog, { depth: null });
 
   try {
-    const events = await Blogs.addBlog(blog);
-    res.status(200).json(events);
+    // Creating records the eblog table
+    await Blogs.addBlog(blog);
+    res.status(200).json({
+      success: true,
+      message: "Blog added successfully!",
+    });
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: "Internal Server Error" });
