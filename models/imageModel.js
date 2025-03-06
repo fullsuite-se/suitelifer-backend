@@ -3,7 +3,7 @@ import { v7 as uuidv7 } from "uuid";
 
 const table = "sl_images";
 
-export const News = {
+export const Image = {
   getAllImages: async (id) => {
     return await db(table).where("content_id", id);
   },
