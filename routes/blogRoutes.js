@@ -7,11 +7,6 @@ const router = express.Router();
 
 router.get("/all-employee-blog", getAllBlogs);
 
-router.post(
-  "/add-employee-blog",
-  verifyJWT,
-  upload.array("images", 10),
-  addBlog
-);
+router.post("/add-employee-blog", verifyJWT, addBlog);
 
 export default router;
