@@ -148,3 +148,34 @@ export const updateJob = async (req, res) => {
     res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 };
+
+export const deleteJob = async (req, res) => {
+  try {
+    const { job_id } = req.body;
+
+    // VALIDATE REQUIRED FIELD
+    if (!job_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required field: job id",
+      });
+    }
+
+    const deletedJob = await Job.deleteJob(job_id);
+
+    if (!deleteJob) {
+      return res.status(404).json({
+        success: false,
+        message: "Job not found or already deleted",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Job deleted successfully",
+    });
+  } catch (err) {
+    console.log("Error deleting job:", err);
+    res.status(500).json({ success: false, error: "Internal Server Error" });
+  }
+};
