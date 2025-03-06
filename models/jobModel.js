@@ -7,9 +7,37 @@ const table = () => db("sl_company_jobs");
 export const Job = {
   getAllJobs: async () => {
     return await db
-      .select("*")
+      .select(
+        "job_id AS jobId",
+        "title AS jobTitle",
+        "industry_id AS industryId",
+        "industry_name AS industryName",
+        "employment_type AS employmentType",
+        "sl_company_jobs.setup_id AS setupId",
+        "setup_name AS setupName",
+        "description",
+        "salary_min AS salaryMin",
+        "salary_max AS salaryMax",
+        "responsibility",
+        "requirement",
+        "preferred_qualification AS preferredQualification",
+        "is_open AS isOpen",
+        "is_shown AS isShown",
+        "sl_company_jobs.created_at AS createdAt",
+        db.raw(
+          "CONCAT(hris_user_infos.first_name, ' ', LEFT(hris_user_infos.middle_name, 1), '. ', hris_user_infos.last_name) AS createdBy"
+        )
+      )
       .from("sl_company_jobs")
-      .join("job_setup", { "job_setup.setup_id": "sl_company_jobs.setup_id" });
+      .innerJoin("sl_company_jobs_setups", {
+        "sl_company_jobs_setups.setup_id": "sl_company_jobs.setup_id",
+      })
+      .innerJoin("sl_job_industries", {
+        "sl_company_jobs.industry_id": "sl_job_industries.job_ind_id",
+      })
+      .innerJoin("hris_user_infos", {
+        "sl_company_jobs.created_by": "hris_user_infos.user_id",
+      });
   },
   getOpenJobs: async () => {
     return await db
