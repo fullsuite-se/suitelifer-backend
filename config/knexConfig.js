@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+const PORT = process.env.PORT;
 const DB_HOST = process.env.DB_HOST;
 const DB_USER = process.env.DB_USER;
 const DB_PASSWORD = process.env.DB_PASSWORD;
@@ -10,10 +11,11 @@ export const knexconfig = {
   client: "mysql2",
   connection: {
     host: DB_HOST,
-    port: 3306,
+    port: PORT,
     user: DB_USER,
     password: DB_PASSWORD,
     database: DB_DATABASE,
+    ssl: { rejectUnauthorized: false },
     connectTimeout: 60000,
   },
   pool: { min: 2, max: 10 },
