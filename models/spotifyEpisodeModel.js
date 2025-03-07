@@ -1,10 +1,33 @@
 import knex from "knex";
 import { db } from "../config/db.js";
 import { v7 as uuidv7 } from "uuid";
+import { now } from "../utils/date.js";
 
 const table = () => db("sl_spotify_episodes");
 
 export const SpotifyEpisode = {
+  getLatestEpisode: async () => {
+    return await db
+      .select(
+        "episode_id AS episodeId",
+        "id AS spotifyId",
+        "created_at AS createdAt"
+      )
+      .from("sl_spotify_episodes")
+      .orderBy("created_at", "desc")
+      .first();
+  },
+  getLatestThreeEpisodes: async () => {
+    return await db
+      .select(
+        "episode_id AS episodeId",
+        "id AS spotifyId",
+        "created_at AS createdAt"
+      )
+      .from("sl_spotify_episodes")
+      .orderBy("created_at", "desc")
+      .limit(3);
+  },
   getAllEpisodes: async () => {
     return await db
       .select(
@@ -27,7 +50,7 @@ export const SpotifyEpisode = {
     return await table().insert({
       episode_id: uuidv7(),
       id,
-      created_at: new Date().toISOString(),
+      created_at: now(),
       created_by: user_id,
     });
   },

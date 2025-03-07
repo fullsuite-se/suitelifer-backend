@@ -1,5 +1,31 @@
 import { SpotifyEpisode } from "../models/spotifyEpisodeModel.js";
 
+export const getLatestEpisode = async (req, res) => {
+  try {
+    const latestEpisode = await SpotifyEpisode.getLatestEpisode();
+    res.status(200).json({ success: true, data: latestEpisode });
+  } catch (err) {
+    console.error("Error fetching latest episode:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const getLatestThreeEpisodes = async (req, res) => {
+  try {
+    const latestThreeEpisodes = await SpotifyEpisode.getLatestThreeEpisodes();
+    res.status(200).json({ success: true, data: latestThreeEpisodes });
+  } catch (err) {
+    console.error("Error fetching latest three episodes:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
 export const getEpisodes = async (req, res) => {
   try {
     const episodes = await SpotifyEpisode.getAllEpisodes();
