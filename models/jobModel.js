@@ -78,7 +78,7 @@ export const Job = {
       .join("sl_job_industries", {
         "sl_company_jobs.industry_id": "sl_job_industries.job_ind_id",
       })
-      .where({ is_shown: 1, job_id });
+      .where({ is_shown: 1, job_id }).first();
   },
   searchJob: async (search_val) => {
     return await db
