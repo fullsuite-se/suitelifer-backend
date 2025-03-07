@@ -1,4 +1,5 @@
 import { SpotifyEpisode } from "../models/spotifyEpisodeModel.js";
+import { now } from "../utils/date.js";
 
 export const getLatestEpisode = async (req, res) => {
   try {
@@ -62,8 +63,15 @@ export const insertEpisode = async (req, res) => {
 
     const id = parts[1].split("?")[0];
 
+    const newEpisode = {
+      episode_id: uuidv7(),
+      id,
+      created_at: now(),
+      created_by: user_id,
+    };
+
     // INSERT EPISODE INTO THE DATABASE
-    await SpotifyEpisode.addEpisode(id, user_id);
+    await SpotifyEpisode.addEpisode(newEpisode);
 
     res.status(201).json({
       success: true,
@@ -103,8 +111,7 @@ export const updateEpisode = async (req, res) => {
     // ATTEMPT TO UPDATE THE EPISODE
     const updatedEpisode = await SpotifyEpisode.updateEpisode(
       episode_id,
-      id,
-      user_id
+      id
     );
 
     if (!updatedEpisode) {

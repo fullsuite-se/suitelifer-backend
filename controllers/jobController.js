@@ -1,4 +1,6 @@
+import { company_id } from "../config/companyConfig.js";
 import { Job } from "../models/jobModel.js";
+import { now } from "../utils/date.js";
 
 export const getJobs = async (req, res) => {
   try {
@@ -89,8 +91,9 @@ export const insertJob = async (req, res) => {
       });
     }
 
-    // INSERT JOB INTO THE DATABASE
-    await Job.insertJob(
+    const newJob = {
+      job_id: uuidv7(),
+      company_id,
       title,
       description,
       employment_type,
@@ -98,8 +101,12 @@ export const insertJob = async (req, res) => {
       is_open,
       is_shown,
       industry_id,
-      user_id
-    );
+      created_at: now(),
+      created_by: user_id,
+    };
+
+    // INSERT JOB INTO THE DATABASE
+    await Job.insertJob(newJob);
 
     res
       .status(201)
@@ -150,10 +157,9 @@ export const updateJob = async (req, res) => {
       is_open,
       is_shown,
       industry_id,
-      user_id
     );
 
-    if (!updateJob) {
+    if (!updatedJob) {
       return res
         .status(404)
         .json({ success: false, message: "Job not found or not updated" });

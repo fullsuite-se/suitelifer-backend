@@ -1,4 +1,5 @@
 import { Setup } from "../models/setupModel.js";
+import { now } from "../utils/date.js";
 
 export const getSetups = async (req, res) => {
   try {
@@ -26,8 +27,15 @@ export const insertSetup = async (req, res) => {
       });
     }
 
+    const newSetup = {
+      setup_id: uuidv7(),
+      setup_name,
+      created_at: now(),
+      created_by: user_id,
+    };
+
     // INSERT SETUP INTO THE DATABASE
-    await Setup.insertSetup(setup_name, user_id);
+    await Setup.insertSetup(newSetup);
 
     res
       .status(201)

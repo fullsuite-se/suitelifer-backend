@@ -146,30 +146,9 @@ export const Job = {
       });
   },
   insertJob: async (
-    title,
-    description,
-    employment_type,
-    setup_id,
-    is_open,
-    is_shown,
-    industry_id,
-    user_id
+    newJob
   ) => {
-    return await table().insert({
-      job_id: uuidv7(),
-      company_id,
-      title,
-      description,
-      employment_type,
-      setup_id,
-      is_open,
-      is_shown,
-      industry_id,
-      created_at: new Date().toISOString(),
-      created_by: user_id,
-      updated_at: null,
-      updated_by: null,
-    });
+    return await table().insert(newJob);
   },
   updateJob: async (
     job_id,
@@ -180,7 +159,6 @@ export const Job = {
     is_open,
     is_shown,
     industry_id,
-    user_id
   ) => {
     return await table().where({ job_id }).update({
       title,
@@ -190,8 +168,6 @@ export const Job = {
       is_open,
       is_shown,
       industry_id,
-      updated_at: new Date().toISOString(),
-      updated_by: user_id,
     });
   },
   deleteJob: async (job_id) => {
