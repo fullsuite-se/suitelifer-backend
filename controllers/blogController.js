@@ -1,5 +1,6 @@
 import { Blogs } from "../models/blogModel.js";
 import { v7 as uuidv7 } from "uuid";
+import { now } from "../utils/date.js";
 
 export const getAllBlogs = async (req, res) => {
   try {
@@ -20,7 +21,7 @@ export const addBlog = async (req, res) => {
     eblog_id: uuidv7(),
     title: data.title,
     description: data.description,
-    created_at: new Date().toISOString(),
+    created_at: now(),
     created_by: userId,
     updated_by: userId,
   };

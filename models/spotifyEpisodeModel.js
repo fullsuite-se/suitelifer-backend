@@ -46,15 +46,10 @@ export const SpotifyEpisode = {
         "hris_user_accounts.user_id": "hris_user_infos.user_id",
       });
   },
-  insertEpisode: async (id, user_id) => {
-    return await table().insert({
-      episode_id: uuidv7(),
-      id,
-      created_at: now(),
-      created_by: user_id,
-    });
+  insertEpisode: async (newEpisode) => {
+    return await table().insert(newEpisode);
   },
-  updateEpisode: async (episode_id, id, user_id) => {
+  updateEpisode: async (episode_id, id) => {
     return await table().where({ episode_id }).update({ id });
   },
   deleteEpisode: async (episode_id) => {

@@ -1,5 +1,6 @@
 import { db } from "../config/db.js";
 import { v7 as uuidv7 } from "uuid";
+import { now } from "../utils/date.js";
 
 const table = () => db("sl_company_jobs_setups");
 
@@ -19,13 +20,8 @@ export const Setup = {
         "hris_user_infos.user_id": "sl_company_jobs_setups.created_by",
       });
   },
-  insertSetup: async (setup_name, user_id) => {
-    return await table().insert({
-      setup_id: uuidv7(),
-      setup_name,
-      created_at: new Date().toISOString(),
-      created_by: user_id,
-    });
+  insertSetup: async (newSetup) => {
+    return await table().insert(newSetup);
   },
   updateSetup: async (setup_id, setup_name) => {
     return await table().where("setup_id", setup_id).update({ setup_name });
