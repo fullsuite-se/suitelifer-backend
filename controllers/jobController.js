@@ -32,8 +32,8 @@ export const getOpenJobs = async (req, res) => {
 
 export const getJobDetails = async (req, res) => {
   try {
-    const { jobId } = req.params;
-    const jobDetails = await Job.getJobDetails(jobId);
+    const { id } = req.params;
+    const jobDetails = await Job.getJobDetails(id);
     res.status(200).json({ success: true, data: jobDetails });
   } catch (err) {
     console.log(err);
