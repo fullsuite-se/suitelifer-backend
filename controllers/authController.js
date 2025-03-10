@@ -1,26 +1,30 @@
 import jwt from "jsonwebtoken";
+import { Auth } from "../models/authModel.js";
+import bcrypt from "bcrypt";
 
-const users = [
-  { email: "hrtest@fullsuite.ph", password: "password", role: "admin" },
-  { email: "employee@example.com", password: "password", role: "employee" },
-];
-
-export const login = (req, res) => {
+export const login = async (req, res) => {
   const { email, password } = req.body;
-  const user = users.find((u) => u.email === email && u.password === password);
+
+  const user = await Auth.authenticate(email);
 
   if (!user) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
+  const isMatch = await bcrypt.compare(password, user.user_password);
+
+  if (!isMatch) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
   const accessToken = jwt.sign(
-    { email: user.email },
+    { email: user.user_email, id: user.user_id },
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: "5s" } // Change this to 1h for production
   );
+  console.log("Decoded Access Token:", jwt.decode(accessToken));
 
   const refreshToken = jwt.sign(
-    { email: user.email },
+    { email: user.user_email, id: user.user_id },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: "30s" } // Change this to 30d for production
   );
@@ -60,40 +64,42 @@ export const logout = (req, res) => {
 };
 
 export const userInfo = (req, res) => {
-  const user = req.user;
-  res.json({ user: user });
+  res.json({ user: req.user });
 };
 
-export const refreshToken = (req, res) => {
+export const refreshToken = async (req, res) => {
   const refreshToken = req.cookies?.refreshToken;
 
   if (!refreshToken) {
     return res.status(401).json({ message: "Refresh token missing" });
   }
 
-  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: "Invalid refresh token" });
+  jwt.verify(
+    refreshToken,
+    process.env.REFRESH_TOKEN_SECRET,
+    async (err, decoded) => {
+      if (err)
+        return res.status(403).json({ message: "Invalid refresh token" });
 
-    console.log(user);
+      if (!decoded || !decoded.email || !decoded.id) {
+        return res.status(403).json({ message: "Invalid refresh token data" });
+      }
 
-    if (!user) {
-      return res.status(403).json({ message: "Invalid refresh token data" });
+      const newAccessToken = jwt.sign(
+        { email: decoded.email, id: decoded.id },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: "5s" }
+      );
+
+      res.cookie("accessToken", newAccessToken, {
+        httpOnly: true,
+        secure: false, // Change this to true if using HTTPS
+        sameSite: "Strict",
+      });
+
+      res.json({ accessToken: newAccessToken });
     }
-
-    const newAccessToken = jwt.sign(
-      { email: user.email },
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "5s" } // Change this to 1h for production
-    );
-
-    res.cookie("accessToken", newAccessToken, {
-      httpOnly: true,
-      secure: false, // Change this to true if using HTTPS
-      sameSite: "Strict",
-    });
-
-    res.json({ accessToken: newAccessToken });
-  });
+  );
 };
 
 // EXPERIMENTAL API
