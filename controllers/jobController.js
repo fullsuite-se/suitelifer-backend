@@ -1,4 +1,5 @@
 import { company_id } from "../config/companyConfig.js";
+import { v7 as uuidv7 } from "uuid";
 import { Job } from "../models/jobModel.js";
 import { now } from "../utils/date.js";
 
@@ -156,7 +157,7 @@ export const updateJob = async (req, res) => {
       setup_id,
       is_open,
       is_shown,
-      industry_id,
+      industry_id
     );
 
     if (!updatedJob) {
