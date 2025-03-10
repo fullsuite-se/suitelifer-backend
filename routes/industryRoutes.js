@@ -6,7 +6,7 @@ import {
   getAllIndustriesPR,
   insertIndustry,
   updateIndustry,
-} from "../controllers/industryController";
+} from "../controllers/industryController.js";
 
 const router = express.Router();
 
