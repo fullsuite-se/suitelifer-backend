@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  getServices,
   login,
   logout,
   refreshToken,
@@ -14,6 +15,8 @@ router.post("/login", login);
 router.post("/logout", logout);
 
 router.get("/user-info", verifyJWT, userInfo);
+
+router.get("/get-services/:id", getServices);
 
 router.get("/refresh-token", refreshToken);
 
