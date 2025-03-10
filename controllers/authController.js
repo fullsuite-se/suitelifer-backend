@@ -19,14 +19,13 @@ export const login = async (req, res) => {
   const accessToken = jwt.sign(
     { email: user.user_email, id: user.user_id },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: "5s" } // Change this to 1h for production
+    { expiresIn: "1h" } // Change this to 1h for production
   );
-  console.log("Decoded Access Token:", jwt.decode(accessToken));
 
   const refreshToken = jwt.sign(
     { email: user.user_email, id: user.user_id },
     process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn: "30s" } // Change this to 30d for production
+    { expiresIn: "30d" } // Change this to 30d for production
   );
 
   res.cookie("accessToken", accessToken, {
@@ -88,7 +87,7 @@ export const refreshToken = async (req, res) => {
       const newAccessToken = jwt.sign(
         { email: decoded.email, id: decoded.id },
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "5s" }
+        { expiresIn: "1h" }
       );
 
       res.cookie("accessToken", newAccessToken, {
@@ -100,6 +99,31 @@ export const refreshToken = async (req, res) => {
       res.json({ accessToken: newAccessToken });
     }
   );
+};
+
+export const getServices = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    if (!id) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    const services = await Auth.getServices(id);
+
+    if (!services || services.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No services found for this user" });
+    }
+
+    return res.status(200).json({ message: "Services retrieved", services });
+  } catch (error) {
+    console.error("Error fetching services:", error);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
+  }
 };
 
 // EXPERIMENTAL API
