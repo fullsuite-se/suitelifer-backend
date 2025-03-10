@@ -55,7 +55,7 @@ export const insertIndustry = async (req, res) => {
     }
 
     const newIndustry = {
-      job_id_id: uuidv7(),
+      job_ind_id: uuidv7(),
       industry_name,
       company_id,
       image_url: null,
