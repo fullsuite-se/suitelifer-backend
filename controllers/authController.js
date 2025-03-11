@@ -1,25 +1,29 @@
 import jwt from "jsonwebtoken";
+import { Auth } from "../models/authModel.js";
+import bcrypt from "bcrypt";
 
-const users = [
-  { username: "admin", password: "password", role: "admin" },
-  { username: "employee", password: "password", role: "employee" },
-];
+export const login = async (req, res) => {
+  const { email, password } = req.body;
 
-export const login = (req, res) => {
-  const { username, password, role } = req.body;
-  const user = users.find(
-    (u) => u.username === username && u.password === password && u.role === role
-  );
-  if (!user) return res.status(401).json({ message: "Invalid credentials" });
+  const user = await Auth.authenticate(email);
 
+  if (!user) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
+  const isMatch = await bcrypt.compare(password, user.user_password);
+
+  if (!isMatch) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
   const accessToken = jwt.sign(
-    { username: user.username, role: user.role },
+    { email: user.user_email, id: user.user_id },
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: "1h" } // Change this to 1h for production
   );
 
   const refreshToken = jwt.sign(
-    { username: user.username, role: user.role },
+    { email: user.user_email, id: user.user_id },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: "30d" } // Change this to 30d for production
   );
@@ -38,7 +42,6 @@ export const login = (req, res) => {
 
   res.json({ accessToken });
 };
-
 export const logout = (req, res) => {
   res.cookie("accessToken", "", {
     httpOnly: true,
@@ -60,38 +63,67 @@ export const logout = (req, res) => {
 };
 
 export const userInfo = (req, res) => {
-  const user = req.user;
-  res.json({ user: user });
+  res.json({ user: req.user });
 };
 
-export const refreshToken = (req, res) => {
+export const refreshToken = async (req, res) => {
   const refreshToken = req.cookies?.refreshToken;
 
   if (!refreshToken) {
     return res.status(401).json({ message: "Refresh token missing" });
   }
 
-  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: "Invalid refresh token" });
+  jwt.verify(
+    refreshToken,
+    process.env.REFRESH_TOKEN_SECRET,
+    async (err, decoded) => {
+      if (err)
+        return res.status(403).json({ message: "Invalid refresh token" });
 
-    if (!user || !user.username) {
-      return res.status(403).json({ message: "Invalid refresh token data" });
+      if (!decoded || !decoded.email || !decoded.id) {
+        return res.status(403).json({ message: "Invalid refresh token data" });
+      }
+
+      const newAccessToken = jwt.sign(
+        { email: decoded.email, id: decoded.id },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: "1h" }
+      );
+
+      res.cookie("accessToken", newAccessToken, {
+        httpOnly: true,
+        secure: false, // Change this to true if using HTTPS
+        sameSite: "Strict",
+      });
+
+      res.json({ accessToken: newAccessToken });
+    }
+  );
+};
+
+export const getServices = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    if (!id) {
+      return res.status(400).json({ message: "User ID is required" });
     }
 
-    const newAccessToken = jwt.sign(
-      { username: user.username, role: user.role },
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "1h" } // Change this to 1h for production
-    );
+    const services = await Auth.getServices(id);
 
-    res.cookie("accessToken", newAccessToken, {
-      httpOnly: true,
-      secure: false, // Change this to true if using HTTPS
-      sameSite: "Strict",
-    });
+    if (!services || services.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No services found for this user" });
+    }
 
-    res.json({ accessToken: newAccessToken });
-  });
+    return res.status(200).json({ message: "Services retrieved", services });
+  } catch (error) {
+    console.error("Error fetching services:", error);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
+  }
 };
 
 // EXPERIMENTAL API
