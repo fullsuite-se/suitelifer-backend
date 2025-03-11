@@ -24,7 +24,7 @@ export const Industry = {
           "CONCAT(hris_user_infos.first_name, ' ', LEFT(hris_user_infos.middle_name, 1), '. ', hris_user_infos.last_name) AS createdBy"
         )
       )
-      .from("sl_job_industries");
+      .from("sl_job_industries").join("hris_user_infos", {"hris_user_infos.user_id": "sl_job_industries.created_by"});
   },
   getAllIndustriesPR: async () => {
     return db
