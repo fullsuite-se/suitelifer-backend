@@ -28,8 +28,8 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://suitelifer-frontend.vercel.app"],
-    // methods: ["GET", "POST"],
+    origin: [process.env.VITE_API_BASE_URL, process.env.LIVE_URL],
+    methods: ["GET", "POST"],
     credentials: true,
   })
 );
