@@ -18,7 +18,6 @@ import jobRoutes from "./routes/jobRoutes.js";
 import contentRoutes from "./routes/contentRoutes.js";
 import setupRoutes from "./routes/setupRoutes.js";
 import fileRoutes from "./routes/fileRoutes.js";
-import industryRoutes from "./routes/industryRoutes.js";
 
 const app = express();
 dotenv.config();
@@ -29,7 +28,10 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "https://suitelifer-frontend.vercel.app/",
+    ],
     methods: ["GET", "POST"],
     credentials: true,
   })
@@ -45,7 +47,6 @@ app.use("/api", jobRoutes);
 app.use("/api", contentRoutes);
 app.use("/api", setupRoutes);
 app.use("/api", fileRoutes);
-app.use("/api", industryRoutes);
 
 // Example of a protected route
 app.get("/api/protected", verifyJWT, (req, res) => {
