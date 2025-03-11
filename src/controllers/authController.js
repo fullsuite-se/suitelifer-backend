@@ -1,9 +1,11 @@
 import jwt from "jsonwebtoken";
-import { Auth } from "../models/authModel.js";
 import bcrypt from "bcrypt";
+import { Auth } from '../models/authModel.js';
+
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
+
 
   const user = await Auth.authenticate(email);
 
