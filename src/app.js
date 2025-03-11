@@ -35,15 +35,15 @@ app.use(
 );
 
 app.use("/api", authRoutes);
-// app.use("/api", userRoutes);
-// app.use("/api", spotifyRoutes);
-// app.use("/api", eventRoutes);
-// app.use("/api", blogRoutes);
-// app.use("/api", newsRoutes);
-// app.use("/api", jobRoutes);
-// app.use("/api", contentRoutes);
-// app.use("/api", setupRoutes);
-// app.use("/api", fileRoutes);
+app.use("/api", userRoutes);
+app.use("/api", spotifyRoutes);
+app.use("/api", eventRoutes);
+app.use("/api", blogRoutes);
+app.use("/api", newsRoutes);
+app.use("/api", jobRoutes);
+app.use("/api", contentRoutes);
+app.use("/api", setupRoutes);
+app.use("/api", fileRoutes);
 
 // Example of a protected route
 app.get("/api/protected", verifyJWT, (req, res) => {
