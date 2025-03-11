@@ -19,7 +19,8 @@ export const Job = {
         "responsibility",
         "requirement",
         "preferred_qualification AS preferredQualification",
-        "is_open AS isOpen"
+        "is_open AS isOpen",
+        "is_shown AS isShown"
       )
       .from("sl_company_jobs")
       .join("sl_company_jobs_setups", {
