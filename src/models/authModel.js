@@ -13,7 +13,9 @@ export const Auth = {
           `${userAccountTable}.user_email`,
           `${userAccountTable}.user_id`,
           `${userAccountTable}.user_password`,
-          `${userAccountTable}.user_key`
+          `${userAccountTable}.user_key`,
+          `${userInfos}.first_name`,
+          `${userInfos}.last_name`
         )
         .innerJoin(
           userInfos,
