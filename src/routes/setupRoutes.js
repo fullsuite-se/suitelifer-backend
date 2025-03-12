@@ -3,9 +3,9 @@ import { deleteSetup, getSetups as getAllSetups, insertSetup, updateSetup } from
 
 const router = express.Router();
 
-router.get("/all-setups", getAllSetups);
+router.get("/get-all-setups", getAllSetups);
 
-router.post("/insert-setup", insertSetup);
+router.post("/add-setup", insertSetup);
 
 router.post("/update-setup", updateSetup);
 
