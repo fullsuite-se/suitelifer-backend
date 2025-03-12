@@ -1,11 +1,9 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { Auth } from '../models/authModel.js';
-
+import { Auth } from "../models/authModel.js";
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
-
 
   const user = await Auth.authenticate(email);
 
@@ -19,13 +17,23 @@ export const login = async (req, res) => {
     return res.status(401).json({ message: "Invalid credentials" });
   }
   const accessToken = jwt.sign(
-    { email: user.user_email, id: user.user_id },
+    {
+      email: user.user_email,
+      id: user.user_id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+    },
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: "1h" } // Change this to 1h for production
   );
 
   const refreshToken = jwt.sign(
-    { email: user.user_email, id: user.user_id },
+    {
+      email: user.user_email,
+      id: user.user_id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+    },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: "30d" } // Change this to 30d for production
   );
@@ -87,7 +95,12 @@ export const refreshToken = async (req, res) => {
       }
 
       const newAccessToken = jwt.sign(
-        { email: decoded.email, id: decoded.id },
+        {
+          email: decoded.email,
+          id: decoded.id,
+          first_name: decoded.first_name,
+          last_name: decoded.last_name,
+        },
         process.env.ACCESS_TOKEN_SECRET,
         { expiresIn: "1h" }
       );
