@@ -133,14 +133,21 @@ export const updateJob = async (req, res) => {
     const {
       job_id,
       title,
-      description,
+      industry_id,
       employment_type,
       setup_id,
+      description,
+      salary_min,
+      salary_max,
+      responsibility,
+      requirement,
+      preferred_qualification,
       is_open,
       is_shown,
-      industry_id,
       user_id,
     } = req.body;
+
+    console.dir(req.body, { depth: null });
 
     // VALIDATE REQUIRED FIELDS
     if (
@@ -162,12 +169,17 @@ export const updateJob = async (req, res) => {
     const updatedJob = await Job.updateJob(
       job_id,
       title,
-      description,
+      industry_id,
       employment_type,
       setup_id,
+      description,
+      salary_min ?? 0,
+      salary_max ?? 0,
+      responsibility,
+      requirement,
+      preferred_qualification,
       is_open,
       is_shown,
-      industry_id
     );
 
     if (!updatedJob) {
