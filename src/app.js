@@ -30,7 +30,7 @@ app.use(helmet());
 app.use(
   cors({
     origin: [process.env.VITE_API_BASE_URL, process.env.LIVE_URL],
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
 );
