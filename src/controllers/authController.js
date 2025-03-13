@@ -40,14 +40,14 @@ export const login = async (req, res) => {
 
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    secure: true, // Change this to true if using HTTPS
-    sameSite: "Strict",
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
   });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: true, // Change this to true if using HTTPS
-    sameSite: "Strict",
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
   });
 
   res.json({ accessToken });
@@ -55,16 +55,16 @@ export const login = async (req, res) => {
 export const logout = (req, res) => {
   res.cookie("accessToken", "", {
     httpOnly: true,
-    secure: true, // Change this to true if using HTTPS
-    sameSite: "Strict",
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
     path: "/",
     expires: new Date(0), // Expire immediately
   });
 
   res.cookie("refreshToken", "", {
     httpOnly: true,
-    secure: true, // Change this to true if using HTTPS
-    sameSite: "Strict",
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
     path: "/",
     expires: new Date(0),
   });
@@ -107,8 +107,8 @@ export const refreshToken = async (req, res) => {
 
       res.cookie("accessToken", newAccessToken, {
         httpOnly: true,
-        secure: true, // Change this to true if using HTTPS
-        sameSite: "Strict",
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
       });
 
       res.json({ accessToken: newAccessToken });
