@@ -80,18 +80,21 @@ export const refreshToken = async (req, res) => {
   const refreshToken = req.cookies?.refreshToken;
 
   if (!refreshToken) {
-    return res.status(401).json({ message: "Refresh token missing" });
+    return res.status(400).json({ message: "No refresh token provided" });
   }
 
   jwt.verify(
     refreshToken,
     process.env.REFRESH_TOKEN_SECRET,
     async (err, decoded) => {
-      if (err)
-        return res.status(403).json({ message: "Invalid refresh token" });
+      if (err) {
+        return res
+          .status(401)
+          .json({ message: "Invalid or expired refresh token" });
+      }
 
       if (!decoded || !decoded.email || !decoded.id) {
-        return res.status(403).json({ message: "Invalid refresh token data" });
+        return res.status(401).json({ message: "Invalid refresh token data" });
       }
 
       const newAccessToken = jwt.sign(
