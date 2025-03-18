@@ -7,7 +7,7 @@ router.get("/get-all-setups", getAllSetups);
 
 router.post("/add-setup", insertSetup);
 
-router.post("/edit-setup", updateSetup);
+router.post("/update-setup", updateSetup);
 
 router.post("/delete-setup", deleteSetup);
 
