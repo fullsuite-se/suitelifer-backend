@@ -4,7 +4,7 @@ import {
   getAllCompanyBlogs,
   getAllEmployeeBlogs,
 } from "../controllers/blogController.js";
-import upload from "../utils/multer.js";
+
 import verifyJWT from "../middlewares/verifyJWT.js";
 
 const router = express.Router();
