@@ -81,9 +81,9 @@ export const insertIndustry = async (req, res) => {
 
 export const updateIndustry = async (req, res) => {
   try {
-    const { industry_id, industry_name, assessment_url, user_id } = req.body;
+    const { job_ind_id, industry_name, assessment_url, user_id } = req.body;
 
-    if (!industry_id || !industry_name || !assessment_url) {
+    if (!job_ind_id || !industry_name || !assessment_url) {
       res.status(400).json({
         success: false,
         message:
@@ -96,7 +96,7 @@ export const updateIndustry = async (req, res) => {
       assessment_url,
     };
 
-    const updatedIndustry = await Industry.updateIndustry(industry_id, updates);
+    const updatedIndustry = await Industry.updateIndustry(job_ind_id, updates);
 
     if (!updatedIndustry) {
       res

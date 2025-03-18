@@ -17,11 +17,57 @@ export const getJobs = async (req, res) => {
   }
 };
 
+export const getFilteredAllJobs = async (req, res) => {
+  try {
+    const { industry_id } = req.params;
+
+    if (!industry_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required field: industry id",
+      });
+    }
+
+    const filteredJobs = await Job.getFilteredAllJobs(industry_id);
+
+    res.status(200).json({ success: true, data: filteredJobs });
+  } catch (err) {
+    console.error("Error fetching open jobs:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+}
+
 export const getOpenJobs = async (req, res) => {
   try {
     const openJobs = await Job.getOpenJobs();
 
     res.status(200).json({ success: true, data: openJobs });
+  } catch (err) {
+    console.error("Error fetching open jobs:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const getFilteredOpenJobs = async (req, res) => {
+  try {
+    const { industry_id } = req.params;
+
+    if (!industry_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required field: industry id",
+      });
+    }
+
+    const filteredJobs = await Job.getFilteredOpenJobs(industry_id);
+
+    res.status(200).json({ success: true, data: filteredJobs });
   } catch (err) {
     console.error("Error fetching open jobs:", err.message);
     res.status(500).json({
@@ -179,7 +225,7 @@ export const updateJob = async (req, res) => {
       requirement,
       preferred_qualification,
       is_open,
-      is_shown,
+      is_shown
     );
 
     if (!updatedJob) {
