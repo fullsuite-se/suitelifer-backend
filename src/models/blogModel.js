@@ -4,7 +4,7 @@ import { db } from "../config/db.js";
 const table = "sl_employee_blogs";
 
 export const Blogs = {
-  getAllBlogs: async () => {
+  getAllEmployeeBlogs: async () => {
     return await db(table)
       .leftJoin(
         "sl_employee_blog_images",
@@ -17,7 +17,7 @@ export const Blogs = {
       )
       .groupBy("sl_employee_blogs.eblog_id");
   },
-  addBlog: async (blog) => {
+  addEmployeeBlog: async (blog) => {
     return await db(table).insert(blog);
   },
 };
