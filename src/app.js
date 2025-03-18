@@ -47,9 +47,4 @@ app.use("/api", setupRoutes);
 app.use("/api", fileRoutes);
 app.use("/api", industryRoutes);
 
-// Example of a protected route
-app.get("/api/protected", verifyJWT, (req, res) => {
-  res.json({ message: "This is a protected route", user: req.user });
-});
-
 export default app;
