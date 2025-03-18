@@ -15,7 +15,6 @@ router.get("/all-jobs", getJobs);
 
 router.get("/all-jobs/:industry_id", getFilteredAllJobs);
 
-
 router.get("/all-open-jobs", getOpenJobs);
 
 router.get("/get-job-details/:id", getJobDetails)
