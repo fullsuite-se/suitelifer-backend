@@ -57,7 +57,6 @@ export const Job = {
       })
       .where({ is_shown: 1, industry_id });
   },
-  
   getOpenJobs: async () => {
     return await db
       .select(
