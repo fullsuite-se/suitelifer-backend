@@ -1,23 +1,42 @@
 import knex from "knex";
 import { db } from "../config/db.js";
 
-const table = "sl_employee_blogs";
+const tableEmployee = "sl_employee_blogs";
+const tableEmployeeImages = "sl_employee_blog_images";
+
+const tableCompany = "sl_company_blogs";
+const tableCompanyImages = "sl_company_blog_images";
 
 export const Blogs = {
-  getAllBlogs: async () => {
-    return await db(table)
+  getAllEmployeeBlogs: async () => {
+    return await db(tableEmployee)
       .leftJoin(
-        "sl_employee_blog_images",
-        "sl_employee_blogs.eblog_id",
-        "sl_employee_blog_images.eblog_id"
+        tableEmployeeImages,
+        `${tableEmployee}.eblog_id`,
+        `${tableEmployeeImages}.eblog_id`
       )
       .select(
-        "sl_employee_blogs.*",
-        db.raw("JSON_ARRAYAGG(sl_employee_blog_images.image_url) AS images")
+        `${tableEmployee}.*`,
+        db.raw(`JSON_ARRAYAGG(${tableEmployeeImages}.image_url) AS images`)
       )
-      .groupBy("sl_employee_blogs.eblog_id");
+      .groupBy(`${tableEmployee}.eblog_id`);
   },
-  addBlog: async (blog) => {
-    return await db(table).insert(blog);
+
+  addEmployeeBlog: async (blog) => {
+    return await db(tableEmployee).insert(blog);
+  },
+
+  getAllCompanyBlogs: async () => {
+    return await db(tableCompany)
+      .leftJoin(
+        tableCompanyImages,
+        `${tableCompany}.eblog_id`,
+        `${tableCompanyImages}.eblog_id`
+      )
+      .select(
+        `${tableCompany}.*`,
+        db.raw(`JSON_ARRAYAGG(${tableCompanyImages}.image_url) AS images`)
+      )
+      .groupBy(`${tableCompany}.eblog_id`);
   },
 };
