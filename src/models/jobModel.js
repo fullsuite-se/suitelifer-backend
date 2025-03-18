@@ -32,6 +32,31 @@ export const Job = {
         "sl_company_jobs.industry_id": "sl_job_industries.job_ind_id",
       });
   },
+  getFilteredAllJobs: async (industry_id) => {
+    return await db
+      .select(
+        "job_id AS jobId",
+        "title AS jobTitle",
+        "industry_name AS industryName",
+        "employment_type AS employmentType",
+        "setup_name AS setupName",
+        "description",
+        "salary_min AS salaryMin",
+        "salary_max AS salaryMax",
+        "responsibility",
+        "requirement",
+        "preferred_qualification AS preferredQualification",
+        "is_open AS isOpen"
+      )
+      .from("sl_company_jobs")
+      .join("sl_company_jobs_setups", {
+        "sl_company_jobs_setups.setup_id": "sl_company_jobs.setup_id",
+      })
+      .join("sl_job_industries", {
+        "sl_company_jobs.industry_id": "sl_job_industries.job_ind_id",
+      })
+      .where({ is_shown: 1, industry_id });
+  },
   getOpenJobs: async () => {
     return await db
       .select(
