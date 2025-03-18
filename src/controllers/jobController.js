@@ -27,7 +27,6 @@ export const getFilteredAllJobs = async (req, res) => {
         message: "Missing required field: industry id",
       });
     }
-    
 
     const filteredJobs = await Job.getFilteredAllJobs(industry_id);
 
