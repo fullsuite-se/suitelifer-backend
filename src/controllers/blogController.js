@@ -2,9 +2,9 @@ import { Blogs } from "../models/blogModel.js";
 import { v7 as uuidv7 } from "uuid";
 import { now } from "../utils/date.js";
 
-export const getAllBlogs = async (req, res) => {
+export const getAllEmployeeBlogs = async (req, res) => {
   try {
-    const events = await Blogs.getAllBlogs();
+    const events = await Blogs.getAllEmployeeBlogs();
     res.status(200).json(events);
   } catch (err) {
     console.log(err);
@@ -12,7 +12,7 @@ export const getAllBlogs = async (req, res) => {
   }
 };
 
-export const addBlog = async (req, res) => {
+export const addEmployeeBlog = async (req, res) => {
   const data = req.body;
   // TODO: DELETE THIS USER ID ON THE DATABASE WHEN IN PRODUCTION
   const userId = "0dbde766-f898-11ef-a725-0af0d960a833";
@@ -30,7 +30,7 @@ export const addBlog = async (req, res) => {
 
   try {
     // Creating records the eblog table
-    await Blogs.addBlog(blog);
+    await Blogs.addEmployeeBlog(blog);
     res.status(200).json({
       success: true,
       message: "Blog added successfully!",
