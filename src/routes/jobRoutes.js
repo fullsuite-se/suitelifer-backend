@@ -1,7 +1,6 @@
 import express from "express";
 import {
   deleteJob,
-  getFilteredOpenJobs,
   getJobDetails,
   getJobs,
   getOpenJobs,
@@ -16,9 +15,7 @@ router.get("/all-jobs", getJobs);
 
 router.get("/all-open-jobs", getOpenJobs);
 
-router.get("/all-open-jobs/:industry_id", getFilteredOpenJobs);
-
-router.get("/get-job-details/:id", getJobDetails);
+router.get("/get-job-details/:id", getJobDetails)
 
 router.post("/add-job", insertJob);
 
