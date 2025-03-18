@@ -1,4 +1,3 @@
-import knex from "knex";
 import { db } from "../config/db.js";
 
 const tableEmployee = "sl_employee_blogs";
