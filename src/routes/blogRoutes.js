@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  addCompanyBlog,
   addEmployeeBlog,
   getAllCompanyBlogs,
   getAllEmployeeBlogs,
@@ -14,5 +15,9 @@ router.get("/all-employee-blog", getAllEmployeeBlogs);
 router.post("/add-employee-blog", verifyJWT, addEmployeeBlog);
 
 router.get("/all-company-blog", getAllCompanyBlogs);
+
+router.get("/all-company-blog", getAllCompanyBlogs);
+
+router.get("/add-company-blog", verifyJWT, addCompanyBlog);
 
 export default router;
