@@ -17,7 +17,7 @@ import newsRoutes from "./routes/newsRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import contentRoutes from "./routes/contentRoutes.js";
 import setupRoutes from "./routes/setupRoutes.js";
-import fileRoutes from "./routes/fileRoutes.js";
+import claudinaryRoutes from "./routes/claudinaryRoutes.js";
 import industryRoutes from "./routes/industryRoutes.js";
 
 const app = express();
@@ -44,7 +44,7 @@ app.use("/api", newsRoutes);
 app.use("/api", jobRoutes);
 app.use("/api", contentRoutes);
 app.use("/api", setupRoutes);
-app.use("/api", fileRoutes);
+app.use("/api", claudinaryRoutes);
 app.use("/api", industryRoutes);
 
 export default app;
