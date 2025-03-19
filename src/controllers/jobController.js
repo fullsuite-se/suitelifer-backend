@@ -38,7 +38,7 @@ export const getFilteredAllJobs = async (req, res) => {
       message: "Internal Server Error",
     });
   }
-}
+};
 
 export const getOpenJobs = async (req, res) => {
   try {
@@ -75,7 +75,7 @@ export const getFilteredOpenJobs = async (req, res) => {
       message: "Internal Server Error",
     });
   }
-}
+};
 
 export const getJobDetails = async (req, res) => {
   try {
@@ -85,6 +85,17 @@ export const getJobDetails = async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const getJobAssessmentUrl = async (req, res) => {
+  try {
+    const { job_id } = req.body;
+    const assessmentUrl = await Job.getJobAssessmentUrl(job_id);
+    res.status(200).json({ success: true, data: assessmentUrl });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: "Internal Server Errror" });
   }
 };
 
@@ -225,7 +236,7 @@ export const updateJob = async (req, res) => {
       requirement,
       preferred_qualification,
       is_open,
-      is_shown,
+      is_shown
     );
 
     if (!updatedJob) {
