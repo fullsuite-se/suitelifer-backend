@@ -77,6 +77,32 @@ export const getFilteredOpenJobs = async (req, res) => {
   }
 };
 
+export const getOpenJobsCount = async (req, res) => {
+  try {
+    const openJobsCount = await Job.getOpenJobsCount();
+    res.status(200).json({ success: true, data: openJobsCount });
+  } catch (err) {
+    console.error("Error fetching open jobs:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const getClosedJobsCount = async (req, res) => {
+  try {
+    const closedJobsCount = await Job.getClosedJobsCount();
+    res.status(200).json({ success: true, data: closedJobsCount });
+  } catch (err) {
+    console.error("Error fetching open jobs:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
 export const getJobDetails = async (req, res) => {
   try {
     const { id } = req.params;

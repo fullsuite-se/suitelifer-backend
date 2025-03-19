@@ -10,6 +10,8 @@ import {
   searchJob,
   updateJob,
   getJobAssessmentUrl,
+  getOpenJobsCount,
+  getClosedJobsCount,
 } from "../controllers/jobController.js";
 
 const router = express.Router();
@@ -21,6 +23,10 @@ router.get("/all-jobs/:industry_id", getFilteredAllJobs);
 router.get("/all-open-jobs", getOpenJobs);
 
 router.get("/all-open-jobs/:industry_id", getFilteredOpenJobs);
+
+router.get("/get-open-jobs-count", getOpenJobsCount);
+
+router.get("/get-closed-jobs-count", getClosedJobsCount);
 
 router.get("/get-job-details/:id", getJobDetails);
 
