@@ -20,8 +20,8 @@ export const uploadImage = async (req, res) => {
   }
 };
 
-export const uploadImages = async (req, res) => {
-  const { folder, id } = req.params;
+export const uploadAndSaveImages = async (req, res) => {
+  const { table, folder, id } = req.params;
 
   try {
     if (!req.files || req.files.length === 0) {
@@ -41,8 +41,15 @@ export const uploadImages = async (req, res) => {
 
     const imageUrls = await Promise.all(uploadPromises);
 
+    const eBlog = "sl_employee_blog_images";
+    const cBlog = "sl_company_blog_images";
+    const cNews = "sl_news_images";
     try {
-      await Image.addImages(id, imageUrls);
+      if (table === "eBlog") {
+        await Image.addEmployeeBlogImages(id, imageUrls);
+      } else if (table === "cNews") {
+        await Image.addCompanyNewsImages(id, imageUrls);
+      }
     } catch (dbError) {
       console.error("Database error:", dbError);
       return res
