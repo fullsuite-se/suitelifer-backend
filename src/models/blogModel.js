@@ -1,4 +1,5 @@
 import { db } from "../config/db.js";
+import { v7 as uuidv7 } from "uuid";
 
 const tableEmployee = "sl_employee_blogs";
 const tableEmployeeImages = "sl_employee_blog_images";
@@ -41,7 +42,18 @@ export const Blogs = {
       .groupBy(`${tableCompany}.cblog_id`);
   },
 
-  addCompanyBlog: async (blog) => {
-    return await db(tableCompany).insert(blog);
+  addCompanyBlog: async (data) => {
+    const cblog_id = uuidv7();
+
+    await db(tableCompany).insert({
+      cblog_id,
+      title: data.title,
+      description: data.description,
+      created_at: db.fn.now(),
+      created_by: data.userId,
+      updated_by: data.userId,
+      updated_at: db.fn.now(),
+    });
+    return cblog_id;
   },
 };
