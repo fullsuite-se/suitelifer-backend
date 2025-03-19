@@ -51,3 +51,33 @@ export const getAllCompanyBlogs = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+export const addCompanyBlog = async (req, res) => {
+  const data = req.body;
+
+  const blog = {
+    cblog_id: uuidv7(),
+    title: data.title,
+    description: data.description,
+    created_at: now(),
+    created_by: data.userId,
+    updated_by: data.userId,
+  };
+
+  console.dir(blog, { depth: null });
+
+  return;
+
+  try {
+    // Creating records the eblog table
+    await Blogs.addCompanyBlog(blog);
+    res.status(200).json({
+      success: true,
+      message: "Blog added successfully!",
+      cblog_id: blog.cblog_id,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
