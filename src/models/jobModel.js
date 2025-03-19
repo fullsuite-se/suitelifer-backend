@@ -107,6 +107,12 @@ export const Job = {
       })
       .where({ is_open: 1, is_shown: 1, industry_id });
   },
+  getOpenJobsCount: async () => {
+    return await table().where({ is_open: 1 }).count("job_id AS count").first();
+  },
+  getClosedJobsCount: async () => {
+    return await table().where({ is_open: 0 }).count("job_id AS count").first();
+  },
   getJobDetails: async (job_id) => {
     return await db
       .select(
