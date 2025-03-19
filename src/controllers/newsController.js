@@ -21,3 +21,24 @@ export const getNewsArticle = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+export const addNewsArticle = async (req, res) => {
+  try {
+    const data = req.body;
+
+    if (!data.title || !data.article || !data.created_by) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const newsId = await News.addNewsArticle(data);
+
+    res.status(201).json({
+      message: "News article added successfully",
+      isSuccess: true,
+      id: newsId,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
