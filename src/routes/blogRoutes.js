@@ -16,6 +16,6 @@ router.post("/add-employee-blog", verifyJWT, addEmployeeBlog);
 
 router.get("/all-company-blog", getAllCompanyBlogs);
 
-router.get("/add-company-blog", verifyJWT, addCompanyBlog);
+router.post("/add-company-blog", verifyJWT, addCompanyBlog);
 
 export default router;
