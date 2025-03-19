@@ -7,6 +7,7 @@ const tableCompany = "sl_company_blogs";
 const tableCompanyImages = "sl_company_blog_images";
 
 export const Blogs = {
+  // Employee
   getAllEmployeeBlogs: async () => {
     return await db(tableEmployee)
       .leftJoin(
@@ -25,6 +26,7 @@ export const Blogs = {
     return await db(tableEmployee).insert(blog);
   },
 
+  // Company
   getAllCompanyBlogs: async () => {
     return await db(tableCompany)
       .leftJoin(
@@ -37,5 +39,9 @@ export const Blogs = {
         db.raw(`JSON_ARRAYAGG(${tableCompanyImages}.image_url) AS images`)
       )
       .groupBy(`${tableCompany}.cblog_id`);
+  },
+
+  addCompanyBlog: async (blog) => {
+    return await db(tableCompany).insert(blog);
   },
 };
