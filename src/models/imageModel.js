@@ -45,7 +45,7 @@ export const Image = {
     const records = images.map((url) => ({
       cblog_image_id: uuidv7(),
       image_url: url,
-      cblog_id: blogId,
+      cblog_id: id,
     }));
 
     return db(cBlogTable).insert(records);
