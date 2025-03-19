@@ -55,26 +55,13 @@ export const getAllCompanyBlogs = async (req, res) => {
 export const addCompanyBlog = async (req, res) => {
   const data = req.body;
 
-  const blog = {
-    cblog_id: uuidv7(),
-    title: data.title,
-    description: data.description,
-    created_at: now(),
-    created_by: data.userId,
-    updated_by: data.userId,
-  };
-
-  console.dir(blog, { depth: null });
-
-  return;
-
   try {
-    // Creating records the eblog table
-    await Blogs.addCompanyBlog(blog);
+    const blogId = await Blogs.addCompanyBlog(data);
+
     res.status(200).json({
-      success: true,
+      isSuccess: true,
       message: "Blog added successfully!",
-      cblog_id: blog.cblog_id,
+      id: blogId,
     });
   } catch (err) {
     console.log(err);
