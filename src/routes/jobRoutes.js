@@ -9,6 +9,7 @@ import {
   insertJob,
   searchJob,
   updateJob,
+  getJobAssessmentUrl,
 } from "../controllers/jobController.js";
 
 const router = express.Router();
@@ -22,6 +23,8 @@ router.get("/all-open-jobs", getOpenJobs);
 router.get("/all-open-jobs/:industry_id", getFilteredOpenJobs);
 
 router.get("/get-job-details/:id", getJobDetails);
+
+router.post("/get-job-assessment-url/", getJobAssessmentUrl);
 
 router.post("/add-job", insertJob);
 

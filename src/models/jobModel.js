@@ -133,6 +133,16 @@ export const Job = {
       .where({ is_shown: 1, job_id })
       .first();
   },
+  getJobAssessmentUrl: async (job_id) => {
+    return await db
+      .select("job_id AS jobId", "assessment_url AS assessmentUrl")
+      .from("sl_company_jobs")
+      .innerJoin("sl_job_industries", {
+        "sl_company_jobs.industry_id": "sl_job_industries.job_ind_id",
+      })
+      .where({ job_id })
+      .first();
+  },
   searchJob: async (search_val) => {
     return await db
       .select(
