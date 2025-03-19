@@ -29,13 +29,13 @@ export const Blogs = {
     return await db(tableCompany)
       .leftJoin(
         tableCompanyImages,
-        `${tableCompany}.eblog_id`,
-        `${tableCompanyImages}.eblog_id`
+        `${tableCompany}.cblog_id`,
+        `${tableCompanyImages}.cblog_id`
       )
       .select(
         `${tableCompany}.*`,
         db.raw(`JSON_ARRAYAGG(${tableCompanyImages}.image_url) AS images`)
       )
-      .groupBy(`${tableCompany}.eblog_id`);
+      .groupBy(`${tableCompany}.cblog_id`);
   },
 };
