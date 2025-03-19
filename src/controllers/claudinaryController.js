@@ -41,15 +41,19 @@ export const uploadAndSaveImages = async (req, res) => {
 
     const imageUrls = await Promise.all(uploadPromises);
 
-    const eBlog = "sl_employee_blog_images";
-    const cBlog = "sl_company_blog_images";
-    const cNews = "sl_news_images";
     try {
-      if (table === "eBlog") {
-        await Image.addEmployeeBlogImages(id, imageUrls);
-      } else if (table === "cNews") {
-        await Image.addCompanyNewsImages(id, imageUrls);
+      const tableMap = {
+        eBlog: Image.addEmployeeBlogImages,
+        cBlog: Image.addCompanyBlogImages,
+        cNews: Image.addCompanyNewsImages,
+      };
+      const saveImagesToDb = tableMap[table];
+
+      if (!saveImagesToDb) {
+        return res.status(400).json({ error: "Invalid table name" });
       }
+
+      await saveImagesToDb(id, imageUrls);
     } catch (dbError) {
       console.error("Database error:", dbError);
       return res
