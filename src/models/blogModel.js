@@ -7,6 +7,8 @@ const tableEmployeeImages = "sl_employee_blog_images";
 const tableCompany = "sl_company_blogs";
 const tableCompanyImages = "sl_company_blog_images";
 
+const cBlogTags = "sl_cblog_tags";
+
 export const Blogs = {
   // Employee
   getAllEmployeeBlogs: async () => {
@@ -60,6 +62,15 @@ export const Blogs = {
       updated_by: data.userId,
       updated_at: db.fn.now(),
     });
+
+    const tags = data.tags.map((id) => ({
+      cblog_tag_id: uuidv7(),
+      cblog_id: cblog_id,
+      tag_id: id,
+    }));
+
+    await db(cBlogTags).insert(tags);
+
     return cblog_id;
   },
 };
