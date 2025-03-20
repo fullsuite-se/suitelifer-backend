@@ -25,6 +25,12 @@ export const Blogs = {
     return await db(tableEmployee).insert(blog);
   },
 
+  getAllCompanyBlogTags: async () => {
+    return await db
+      .select("tag_id AS tagId", "tag_name AS tagName")
+      .from("sl_tags");
+  },
+
   getAllCompanyBlogs: async () => {
     return await db(tableCompany)
       .leftJoin(
