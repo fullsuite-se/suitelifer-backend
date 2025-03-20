@@ -20,8 +20,8 @@ export const uploadImage = async (req, res) => {
   }
 };
 
-export const uploadImages = async (req, res) => {
-  const { folder, id } = req.params;
+export const uploadAndSaveImages = async (req, res) => {
+  const { table, folder, id } = req.params;
 
   try {
     if (!req.files || req.files.length === 0) {
@@ -42,7 +42,18 @@ export const uploadImages = async (req, res) => {
     const imageUrls = await Promise.all(uploadPromises);
 
     try {
-      await Image.addImages(id, imageUrls);
+      const tableMap = {
+        eBlog: Image.addEmployeeBlogImages,
+        cBlog: Image.addCompanyBlogImages,
+        cNews: Image.addCompanyNewsImages,
+      };
+      const saveImagesToDb = tableMap[table];
+
+      if (!saveImagesToDb) {
+        return res.status(400).json({ error: "Invalid table name" });
+      }
+
+      await saveImagesToDb(id, imageUrls);
     } catch (dbError) {
       console.error("Database error:", dbError);
       return res

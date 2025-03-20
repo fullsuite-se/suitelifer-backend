@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  addCompanyBlog,
   addEmployeeBlog,
   getAllCompanyBlogs,
   getAllCompanyBlogTags,
@@ -20,5 +21,7 @@ router.get("/all-tags", getAllCompanyBlogTags);
 router.get("/all-company-blogs", getAllCompanyBlogs);
 
 router.get("/all-company-blogs/:tag_id", getFilteredCompanyBlogs);
+
+router.post("/add-company-blog", verifyJWT, addCompanyBlog);
 
 export default router;
