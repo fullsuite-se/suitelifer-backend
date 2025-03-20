@@ -64,7 +64,7 @@ export const Blogs = {
         "hris_user_infos.middle_name",
         "hris_user_infos.last_name"
       )
-      .orderBy("sl_company_blogs.created_at");
+      .orderBy("sl_company_blogs.created_at", "desc");
   },
 
   getFilteredCompanyBlogs: async (tag_id) => {
@@ -101,7 +101,7 @@ export const Blogs = {
         "hris_user_infos.last_name",
         "sl_cblog_tags.tag_id"
       )
-      .orderBy("sl_company_blogs.created_at");
+      .orderBy("sl_company_blogs.created_at", "desc");
   },
 
   addCompanyBlog: async (data) => {
