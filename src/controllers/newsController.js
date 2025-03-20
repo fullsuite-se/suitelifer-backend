@@ -10,11 +10,11 @@ export const getAllNews = async (req, res) => {
   }
 };
 
-export const getNewsArticle = async (req, res) => {
+export const getNewsById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const newsArticle = await News.getNewsArticle(id);
+    const newsArticle = await News.getNewsById(id);
 
     res.status(200).json(newsArticle);
   } catch (err) {
