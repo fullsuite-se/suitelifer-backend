@@ -107,6 +107,12 @@ export const Job = {
       })
       .where({ is_open: 1, is_shown: 1, industry_id });
   },
+  getOpenJobsCount: async () => {
+    return await table().where({ is_open: 1 }).count("job_id AS count").first();
+  },
+  getClosedJobsCount: async () => {
+    return await table().where({ is_open: 0 }).count("job_id AS count").first();
+  },
   getJobDetails: async (job_id) => {
     return await db
       .select(
@@ -131,6 +137,16 @@ export const Job = {
         "sl_company_jobs.industry_id": "sl_job_industries.job_ind_id",
       })
       .where({ is_shown: 1, job_id })
+      .first();
+  },
+  getJobAssessmentUrl: async (job_id) => {
+    return await db
+      .select("job_id AS jobId", "assessment_url AS assessmentUrl")
+      .from("sl_company_jobs")
+      .innerJoin("sl_job_industries", {
+        "sl_company_jobs.industry_id": "sl_job_industries.job_ind_id",
+      })
+      .where({ job_id })
       .first();
   },
   searchJob: async (search_val) => {

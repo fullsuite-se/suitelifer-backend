@@ -3,6 +3,7 @@ import {
   addCompanyBlog,
   addEmployeeBlog,
   getAllCompanyBlogs,
+  getAllCompanyBlogTags,
   getAllEmployeeBlogs,
 } from "../controllers/blogController.js";
 
@@ -13,6 +14,8 @@ const router = express.Router();
 router.get("/all-employee-blog", getAllEmployeeBlogs);
 
 router.post("/add-employee-blog", verifyJWT, addEmployeeBlog);
+
+router.get("/all-tags", getAllCompanyBlogTags);
 
 router.get("/all-company-blog", getAllCompanyBlogs);
 

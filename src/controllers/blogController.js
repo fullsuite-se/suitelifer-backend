@@ -42,6 +42,16 @@ export const addEmployeeBlog = async (req, res) => {
   }
 };
 
+export const getAllCompanyBlogTags = async (req, res) => {
+  try {
+    const blogTags = await Blogs.getAllCompanyBlogTags();
+    res.status(200).json({ success: true, data: blogTags });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 export const getAllCompanyBlogs = async (req, res) => {
   try {
     const blogs = await Blogs.getAllCompanyBlogs();
