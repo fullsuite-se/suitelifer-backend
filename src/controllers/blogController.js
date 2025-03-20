@@ -61,3 +61,22 @@ export const getAllCompanyBlogs = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+export const getFilteredCompanyBlogs = async (req, res) => {
+  try {
+    const { tag_id } = req.params;
+
+    if (!tag_id) {
+      res
+        .status(400)
+        .json({ success: false, message: "Missing required field: tag id" });
+    }
+
+    const blogs = await Blogs.getFilteredCompanyBlogs(tag_id);
+
+    res.status(200).json({ success: true, data: blogs });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
