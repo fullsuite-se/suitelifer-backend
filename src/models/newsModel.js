@@ -30,12 +30,15 @@ export const News = {
   getNewsById: async (id) => {
     const news = await db("sl_news as n")
       .leftJoin("sl_news_images as ni", "n.news_id", "ni.news_id")
+      .innerJoin("hris_user_infos as u", "u.user_id", "n.created_by")
       .select(
         "n.news_id as id",
         "n.title",
         "n.article",
         "n.created_at as createdAt",
-        "n.created_by as createdBy",
+        db.raw(
+          `CONCAT(u.first_name, " ", LEFT(u.middle_name, 1), ". ", u.last_name) as createdBy`
+        ),
         db.raw("COALESCE(GROUP_CONCAT(ni.image_url), '') as imgUrls")
       )
       .where("n.news_id", id)
