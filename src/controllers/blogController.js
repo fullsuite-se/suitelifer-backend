@@ -62,23 +62,6 @@ export const getAllCompanyBlogs = async (req, res) => {
   }
 };
 
-export const addCompanyBlog = async (req, res) => {
-  const data = req.body;
-
-  try {
-    const blogId = await Blogs.addCompanyBlog(data);
-
-    res.status(200).json({
-      isSuccess: true,
-      message: "Blog added successfully!",
-      id: blogId,
-    });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-};
-
 export const getFilteredCompanyBlogs = async (req, res) => {
   try {
     const { tag_id } = req.params;
@@ -95,5 +78,35 @@ export const getFilteredCompanyBlogs = async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const getCompanyBlogById = async (req, res) => {
+  try {
+    const { cblog_id } = req.params;
+
+    const cblogDetails = await Blogs.getCompanyBlogById(cblog_id);
+
+    res.status(200).json({ success: true, data: cblogDetails });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const addCompanyBlog = async (req, res) => {
+  const data = req.body;
+
+  try {
+    const blogId = await Blogs.addCompanyBlog(data);
+
+    res.status(200).json({
+      isSuccess: true,
+      message: "Blog added successfully!",
+      id: blogId,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
