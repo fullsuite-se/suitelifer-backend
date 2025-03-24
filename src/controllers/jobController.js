@@ -17,7 +17,7 @@ export const getJobs = async (req, res) => {
   }
 };
 
-export const getFilteredAllJobs = async (req, res) => {
+export const getFilteredAllJobsByIndustry = async (req, res) => {
   try {
     const { industry_id } = req.params;
 
@@ -143,6 +143,21 @@ export const getJobsAdmin = async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const getJobsAdminFilteredByStatus = async (req, res) => {
+  try {
+    const { is_open } = req.params;
+    const jobsFilteredByStatus = await Job.getJobsFilteredByStatus(is_open);
+
+    res.status(200).json({ success: true, data: jobsFilteredByStatus });
+  } catch (err) {
+    console.error(`Error fetching jobs by status - is_open: ${is_open}`, err.message);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 };
 
