@@ -89,7 +89,7 @@ export const refreshToken = async (req, res) => {
     async (err, decoded) => {
       if (err) {
         return res
-          .status(401)
+          .status(400)
           .json({ message: "Invalid or expired refresh token" });
       }
 
