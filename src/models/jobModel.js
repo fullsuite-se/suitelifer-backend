@@ -219,7 +219,6 @@ export const Job = {
   updateJob: async (
     job_id,
     title,
-    industry_id,
     employment_type,
     setup_id,
     description,
@@ -233,7 +232,6 @@ export const Job = {
   ) => {
     return await table().where({ job_id }).update({
       title,
-      industry_id,
       employment_type,
       setup_id,
       description,
