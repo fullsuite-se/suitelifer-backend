@@ -216,7 +216,6 @@ export const updateJob = async (req, res) => {
     const {
       job_id,
       title,
-      industry_id,
       employment_type,
       setup_id,
       description,
@@ -230,8 +229,6 @@ export const updateJob = async (req, res) => {
       user_id,
     } = req.body;
 
-    console.dir(req.body, { depth: null });
-
     // VALIDATE REQUIRED FIELDS
     if (
       !title ||
@@ -239,8 +236,7 @@ export const updateJob = async (req, res) => {
       !employment_type ||
       !setup_id ||
       !is_open ||
-      !is_shown ||
-      !industry_id
+      !is_shown
     ) {
       return res.status(400).json({
         success: false,
@@ -252,7 +248,6 @@ export const updateJob = async (req, res) => {
     const updatedJob = await Job.updateJob(
       job_id,
       title,
-      industry_id,
       employment_type,
       setup_id,
       description,
