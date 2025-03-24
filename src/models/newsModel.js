@@ -4,8 +4,8 @@ import { v7 as uuidv7 } from "uuid";
 const table = "sl_news";
 
 export const News = {
-  getAllNews: async () => {
-    const news = await db("sl_news as n")
+  getAllNews: async (filter) => {
+    let query = db("sl_news as n")
       .leftJoin("sl_news_images as ni", "n.news_id", "ni.news_id")
       .innerJoin("hris_user_infos as u", "u.user_id", "n.created_by")
       .select(
@@ -20,6 +20,17 @@ export const News = {
         db.raw("COALESCE(GROUP_CONCAT(ni.image_url), '') as imgUrls")
       )
       .groupBy("n.news_id");
+
+    if (filter) {
+      query = query.where((qb) => {
+        qb.where("n.title", "like", `%${filter}%`).orWhereRaw(
+          `CONCAT(u.first_name, " ", LEFT(u.middle_name, 1), ". ", u.last_name) LIKE ?`,
+          [`%${filter}%`]
+        );
+      });
+    }
+
+    const news = await query;
 
     return news.map((item) => ({
       ...item,
