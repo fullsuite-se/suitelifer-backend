@@ -5,14 +5,18 @@ import {
   logout,
   refreshToken,
   userInfo,
+  verifyApplication,
 } from "../controllers/authController.js";
 import verifyJWT from "../middlewares/verifyJWT.js";
+import { recaptcha } from "../middlewares/recaptcha.js";
 
 const router = express.Router();
 
-router.post("/login", login);
+router.post("/login", recaptcha, login);
 
 router.post("/logout", logout);
+
+router.post("/verify-recaptcha", verifyApplication);
 
 router.get("/user-info", verifyJWT, userInfo);
 
