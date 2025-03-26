@@ -2,75 +2,10 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { Auth } from "../models/authModel.js";
 import axios from "axios";
-
-const verifyRecaptcha = async (recaptchaToken) => {
-  try {
-    const response = await axios.post(
-      `${process.env.GOOGLE_RECAPTCHA_API_URL}`,
-      new URLSearchParams({
-        secret: process.env.RECAPTCHA_SECRET_KEY,
-        response: recaptchaToken,
-      })
-    );
-
-    const data = response.data;
-
-    if (!data.success) {
-      return {
-        message: "reCAPTCHA verification failed. Please refresh and try again.",
-        isSuccess: false,
-        isHuman: false,
-      };
-    }
-
-    if (data.score < 0.5) {
-      return {
-        message:
-          "Suspicious activity detected. If you're human, please try again.",
-        isSuccess: false,
-        isHuman: false,
-      };
-    }
-
-    return {
-      message: "Verification successful! You are good to go.",
-      isSuccess: true,
-      isHuman: true,
-    };
-  } catch (error) {
-    console.error("reCAPTCHA verification error:", error);
-    return {
-      message:
-        "An error occurred while verifying reCAPTCHA. Please try again later.",
-      isSuccess: false,
-      isHuman: false,
-      error: true,
-    };
-  }
-};
+import { verifyRecaptchaToken } from "../utils/verifyRecaptchaToken.js";
 
 export const login = async (req, res) => {
-  const { email, password, recaptchaToken } = req.body;
-
-  const recaptcha = await verifyRecaptcha(recaptchaToken);
-
-  if (recaptcha.error) {
-    return res
-      .status(500)
-      .json({ recaptchaError: true, message: recaptcha.message });
-  }
-
-  if (!recaptcha.isSuccess) {
-    return res
-      .status(400)
-      .json({ recaptchaError: true, message: recaptcha.message });
-  }
-
-  if (!recaptcha.isHuman) {
-    return res
-      .status(403)
-      .json({ recaptchaError: true, message: recaptcha.message });
-  }
+  const { email, password } = req.body;
 
   const user = await Auth.authenticate(email);
 
@@ -209,4 +144,20 @@ export const getServices = async (req, res) => {
       .status(500)
       .json({ message: "Server error", error: error.message });
   }
+};
+
+export const verifyApplication = async (req, res) => {
+  const { recaptchaToken } = req.body;
+
+  const response = await verifyRecaptchaToken(recaptchaToken);
+
+  if (!response.isSuccess) {
+    return res.status(400).json({ message: recaptcha.message });
+  }
+
+  if (!response.isHuman) {
+    return res.status(403).json({ message: recaptcha.message });
+  }
+
+  return res.status(200).json({ message: response.message });
 };
