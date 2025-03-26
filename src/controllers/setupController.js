@@ -101,7 +101,7 @@ export const deleteSetup = async (req, res) => {
     // ATTEMPT TO DELETE THE SETUP
     const deletedSetup = await Setup.deleteSetup(setup_id);
 
-    if (!deleteSetup) {
+    if (!deletedSetup) {
       return res.status(404).json({
         success: false,
         message: "Setup not found or already deleted",
