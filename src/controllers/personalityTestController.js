@@ -38,7 +38,7 @@ export const insertPersonalityTest = async (req, res) => {
       .status(201)
       .json({ success: true, message: "Personality Test added successfully" });
   } catch (err) {
-    console.error("Error inserting personality tests:", err.message);
+    console.error("Error inserting personality test:", err.message);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -76,7 +76,42 @@ export const updatePersonalityTest = async (req, res) => {
       message: "Personality Test successfully updated",
     });
   } catch (err) {
-    console.error("Error updating personality tests:", err.message);
+    console.error("Error updating personality test:", err.message);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const deletePersonalityTest = async (req, res) => {
+  try {
+    const { test_id } = req.body;
+
+    if (!test_id) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required field: test_id" });
+    }
+
+    const deletedPersonalityTest = await PersonalityTest.deletePersonalityTest(
+      test_id
+    );
+
+    if (!deletedPersonalityTest) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Personality Test not found or already deleted",
+        });
+    }
+
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Personality Test deleted successfully",
+      });
+  } catch (err) {
+    console.error("Error deleting personality test:", err.message);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
