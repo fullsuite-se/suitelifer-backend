@@ -24,11 +24,11 @@ export const PersonalityTest = {
     return await table().insert(newPersonalityTest);
   },
 
-  updatePersonalityTest: async (test_id, updatedPersonalityTest) => {
-    return await table().where({ test_id }).update(updatedPersonalityTest);
+  updatePersonalityTest: async (test_id, updatedDetails) => {
+    return await table().where({ test_id }).update(updatedDetails);
   },
 
   deletePersonalityTest: async (test_id) => {
-    return await table(0).where({ test_id }).del();
+    return await table().where({ test_id }).del();
   },
 };
