@@ -1,23 +1,10 @@
 import { SpotifyEpisode } from "../models/spotifyEpisodeModel.js";
 import { now } from "../utils/date.js";
 
-export const getLatestEpisode = async (req, res) => {
+export const getThreeLatestEpisodes = async (req, res) => {
   try {
-    const latestEpisode = await SpotifyEpisode.getLatestEpisode();
-    res.status(200).json({ success: true, data: latestEpisode });
-  } catch (err) {
-    console.error("Error fetching latest episode:", err.message);
-    res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-    });
-  }
-};
-
-export const getLatestThreeEpisodes = async (req, res) => {
-  try {
-    const latestThreeEpisodes = await SpotifyEpisode.getLatestThreeEpisodes();
-    res.status(200).json({ success: true, data: latestThreeEpisodes });
+    const threeLatestEpisodes = await SpotifyEpisode.getThreeLatestEpisodes();
+    res.status(200).json({ success: true, data: threeLatestEpisodes });
   } catch (err) {
     console.error("Error fetching latest three episodes:", err.message);
     res.status(500).json({
@@ -109,10 +96,7 @@ export const updateEpisode = async (req, res) => {
     const id = parts[1].split("?")[0];
 
     // ATTEMPT TO UPDATE THE EPISODE
-    const updatedEpisode = await SpotifyEpisode.updateEpisode(
-      episode_id,
-      id
-    );
+    const updatedEpisode = await SpotifyEpisode.updateEpisode(episode_id, id);
 
     if (!updatedEpisode) {
       return res.status(404).json({
