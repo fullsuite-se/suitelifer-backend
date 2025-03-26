@@ -1,4 +1,5 @@
 import { SpotifyEpisode } from "../models/spotifyEpisodeModel.js";
+import { v7 as uuidv7 } from "uuid";
 import { now } from "../utils/date.js";
 
 export const getThreeLatestEpisodes = async (req, res) => {
@@ -40,7 +41,7 @@ export const insertEpisode = async (req, res) => {
     }
 
     // EXTRACT ID FROM THE URL
-    const parts = url.split("episodes/");
+    const parts = url.split("episode/");
     if (parts.length < 2) {
       return res.status(400).json({
         success: false,
@@ -58,7 +59,7 @@ export const insertEpisode = async (req, res) => {
     };
 
     // INSERT EPISODE INTO THE DATABASE
-    await SpotifyEpisode.addEpisode(newEpisode);
+    await SpotifyEpisode.insertEpisode(newEpisode);
 
     res.status(201).json({
       success: true,
@@ -86,14 +87,14 @@ export const updateEpisode = async (req, res) => {
     }
 
     // EXTRACT ID FROM THE URL
-    const parts = url.split("episodes/");
+    const parts = url.split("/episode/");
     if (parts.length < 2) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid URL format" });
     }
 
-    const id = parts[1].split("?")[0];
+    const id = parts[1].split(/[?#]/)[0];
 
     // ATTEMPT TO UPDATE THE EPISODE
     const updatedEpisode = await SpotifyEpisode.updateEpisode(episode_id, id);
@@ -134,7 +135,7 @@ export const deleteEpisode = async (req, res) => {
     // ATTEMPT TO DELETE THE EPISODE
     const deletedEpisode = await SpotifyEpisode.deleteEpisode(episode_id);
 
-    if (!deleteEpisode) {
+    if (!deletedEpisode) {
       return res.status(404).json({
         success: false,
         message: "Episode not found or already deleted",

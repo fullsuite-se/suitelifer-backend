@@ -15,7 +15,7 @@ router.get("/all-episodes", getEpisodes);
 
 router.post("/add-episode", insertEpisode);
 
-router.post("/update-episode", updateEpisode);
+router.post("/edit-episode", updateEpisode);
 
 router.post("/delete-episode", deleteEpisode);
 
