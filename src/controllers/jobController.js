@@ -153,7 +153,10 @@ export const getJobsAdminFilteredByStatus = async (req, res) => {
 
     res.status(200).json({ success: true, data: jobsFilteredByStatus });
   } catch (err) {
-    console.error(`Error fetching jobs by status - is_open: ${is_open}`, err.message);
+    console.error(
+      `Error fetching jobs by status - is_open: ${is_open}`,
+      err.message
+    );
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -165,29 +168,29 @@ export const insertJob = async (req, res) => {
   try {
     const {
       title,
-      industry_id,
-      employment_type,
-      setup_id,
+      industryId,
+      employmentType,
+      setupId,
       description,
-      salary_min,
-      salary_max,
+      salaryMin,
+      salaryMax,
       responsibility,
       requirement,
-      preferred_qualification,
-      is_open,
-      is_shown,
-      user_id,
+      preferredQualification,
+      isOpen,
+      isShown,
+      userId,
     } = req.body;
 
     // VALIDATE REQUIRED FIELDS
     if (
       !title ||
       !description ||
-      !employment_type ||
-      !setup_id ||
-      !is_open ||
-      !is_shown ||
-      !industry_id
+      !employmentType ||
+      !setupId ||
+      !isOpen ||
+      !isShown ||
+      !industryId
     ) {
       return res.status(400).json({
         success: false,
@@ -199,19 +202,19 @@ export const insertJob = async (req, res) => {
       job_id: uuidv7(),
       company_id,
       title,
-      industry_id,
-      employment_type,
-      setup_id,
+      industry_id: industryId,
+      employment_type: employmentType,
+      setup_id: setupId,
       description,
-      salary_min,
-      salary_max,
+      salary_min: salaryMin,
+      salary_max: salaryMax,
       responsibility,
       requirement,
-      preferred_qualification,
-      is_open,
-      is_shown,
+      preferred_qualification: preferredQualification,
+      is_open: isOpen,
+      is_shown: isShown,
       created_at: now(),
-      created_by: user_id,
+      created_by: userId,
     };
 
     // INSERT JOB INTO THE DATABASE
@@ -229,18 +232,18 @@ export const insertJob = async (req, res) => {
 export const updateJob = async (req, res) => {
   try {
     const {
-      job_id,
+      jobId,
       title,
-      employment_type,
-      setup_id,
+      employmentType,
+      setupId,
       description,
-      salary_min,
-      salary_max,
+      salaryMin,
+      salaryMax,
       responsibility,
       requirement,
-      preferred_qualification,
-      is_open,
-      is_shown,
+      preferredQualification,
+      isOpen,
+      isShown,
       user_id,
     } = req.body;
 
@@ -248,10 +251,12 @@ export const updateJob = async (req, res) => {
     if (
       !title ||
       !description ||
-      !employment_type ||
-      !setup_id ||
-      !is_open ||
-      !is_shown
+      !employmentType ||
+      !setupId ||
+      isOpen === "" ||
+      isOpen === undefined ||
+      isShown === "" ||
+      isShown === undefined
     ) {
       return res.status(400).json({
         success: false,
@@ -259,20 +264,24 @@ export const updateJob = async (req, res) => {
       });
     }
 
-    // ATTEMPT TO UPDATE THE JOB
-    const updatedJob = await Job.updateJob(
-      job_id,
+    const updates = {
       title,
-      employment_type,
-      setup_id,
+      employment_type: employmentType,
+      setup_id: setupId,
       description,
-      salary_min ?? 0,
-      salary_max ?? 0,
+      salary_min: salaryMin ?? 0,
+      salary_max: salaryMax ?? 0,
       responsibility,
       requirement,
-      preferred_qualification,
-      is_open,
-      is_shown
+      preferred_qualification: preferredQualification,
+      is_open: isOpen,
+      is_shown: isShown
+    }
+
+    // ATTEMPT TO UPDATE THE JOB
+    const updatedJob = await Job.updateJob(
+      jobId,
+      updates
     );
 
     if (!updatedJob) {

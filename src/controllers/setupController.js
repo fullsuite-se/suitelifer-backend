@@ -18,10 +18,10 @@ export const getAllSetups = async (req, res) => {
 
 export const insertSetup = async (req, res) => {
   try {
-    const { setup_name, user_id } = req.body;
+    const { setupName, userId } = req.body;
 
     // VALIDATE REQUIRED FIELDS
-    if (!setup_name) {
+    if (!setupName) {
       return res.status(400).json({
         success: false,
         message: "Missing required field: setup name",
@@ -30,9 +30,9 @@ export const insertSetup = async (req, res) => {
 
     const newSetup = {
       setup_id: uuidv7(),
-      setup_name,
+      setup_name: setupName,
       created_at: now(),
-      created_by: user_id,
+      created_by: userId,
     };
 
     // INSERT SETUP INTO THE DATABASE
@@ -52,10 +52,10 @@ export const insertSetup = async (req, res) => {
 
 export const updateSetup = async (req, res) => {
   try {
-    const { setup_id, setup_name, user_id } = req.body;
+    const { setupId, setupName, userId } = req.body;
 
     // VALIDATE REQUIRED FIELDS
-    if (!setup_id || !setup_name) {
+    if (!setupId || !setupName) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields: setup id or setup name",
@@ -63,7 +63,7 @@ export const updateSetup = async (req, res) => {
     }
 
     // ATTEMPT TO UPDATE THE SETUP
-    const updatedSetup = await Setup.updateSetup(setup_id, setup_name);
+    const updatedSetup = await Setup.updateSetup(setupId, setupName);
 
     if (!updatedSetup) {
       return res.status(404).json({
