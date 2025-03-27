@@ -17,8 +17,10 @@ import newsRoutes from "./routes/newsRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import contentRoutes from "./routes/contentRoutes.js";
 import setupRoutes from "./routes/setupRoutes.js";
-import fileRoutes from "./routes/fileRoutes.js";
+import claudinaryRoutes from "./routes/claudinaryRoutes.js";
 import industryRoutes from "./routes/industryRoutes.js";
+import personalityTestRoutes from "./routes/personalityTestRoutes.js";
+import testimonialRoutes from "./routes/testimonialRoutes.js";
 
 const app = express();
 dotenv.config();
@@ -44,7 +46,9 @@ app.use("/api", newsRoutes);
 app.use("/api", jobRoutes);
 app.use("/api", contentRoutes);
 app.use("/api", setupRoutes);
-app.use("/api", fileRoutes);
+app.use("/api", claudinaryRoutes);
 app.use("/api", industryRoutes);
+app.use("/api", personalityTestRoutes);
+app.use("/api", testimonialRoutes);
 
 export default app;

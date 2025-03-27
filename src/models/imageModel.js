@@ -1,13 +1,15 @@
 import { db } from "../config/db.js";
 import { v7 as uuidv7 } from "uuid";
 
-const table = "sl_employee_blog_images";
+const eBlogTable = "sl_employee_blog_images";
+const cBlogTable = "sl_company_blog_images";
+const cNewsTable = "sl_news_images";
 
 export const Image = {
   getAllImages: async (id) => {
-    return await db(table).where("content_id", id);
+    return await db(eBlogTable).where("content_id", id);
   },
-  addImages: async (blogId, images) => {
+  addEmployeeBlogImages: async (blogId, images) => {
     if (!Array.isArray(images) || images.length === 0) {
       throw new Error("No images to insert");
     }
@@ -18,6 +20,34 @@ export const Image = {
       eblog_id: blogId,
     }));
 
-    return db(table).insert(imageRecords);
+    return db(eBlogTable).insert(imageRecords);
+  },
+
+  addCompanyNewsImages: async (id, images) => {
+    if (!Array.isArray(images) || images.length === 0) {
+      throw new Error("No images to insert");
+    }
+
+    const records = images.map((url) => ({
+      news_image_id: uuidv7(),
+      image_url: url,
+      news_id: id,
+    }));
+
+    return db(cNewsTable).insert(records);
+  },
+
+  addCompanyBlogImages: async (id, images) => {
+    if (!Array.isArray(images) || images.length === 0) {
+      throw new Error("No images to insert");
+    }
+
+    const records = images.map((url) => ({
+      cblog_image_id: uuidv7(),
+      image_url: url,
+      cblog_id: id,
+    }));
+
+    return db(cBlogTable).insert(records);
   },
 };

@@ -1,13 +1,13 @@
 import express from "express";
 import upload from "../utils/multer.js";
-import { uploadImages } from "../controllers/fileController.js";
+import { uploadAndSaveImages } from "../controllers/claudinaryController.js";
 
 const router = express.Router();
 
 router.post(
-  "/upload-image/:folder/:id",
+  "/upload-save-image/:table/:folder/:id",
   upload.array("images", 10),
-  uploadImages
+  uploadAndSaveImages
 );
 
 export default router;
