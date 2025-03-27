@@ -4,6 +4,7 @@ import {
   login,
   logout,
   refreshToken,
+  resetPassword,
   userInfo,
   verifyApplication,
 } from "../controllers/authController.js";
@@ -23,6 +24,8 @@ router.get("/user-info", verifyJWT, userInfo);
 router.get("/get-services/:id", getServices);
 
 router.get("/refresh-token", refreshToken);
+
+router.post("/reset-password", resetPassword);
 
 router.get("/profile", verifyJWT, (req, res) => {
   return res.json({ message: "Profile data", user: req.user });
