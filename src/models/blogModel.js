@@ -3,6 +3,7 @@ import { v7 as uuidv7 } from "uuid";
 
 const tableEmployee = "sl_employee_blogs";
 const tableEmployeeImages = "sl_employee_blog_images";
+const tableEmployeeInfos = "hris_user_infos";
 
 const tableCompany = "sl_company_blogs";
 const tableCompanyImages = "sl_company_blog_images";
@@ -18,8 +19,22 @@ export const Blogs = {
         `${tableEmployee}.eblog_id`,
         `${tableEmployeeImages}.eblog_id`
       )
+      .innerJoin(
+        tableEmployeeInfos,
+        `${tableEmployee}.created_by`,
+        `${tableEmployeeInfos}.user_id`
+      )
       .select(
-        `${tableEmployee}.*`,
+        `${tableEmployee}.eblog_id as eblogId`,
+        "title",
+        "description",
+        `${tableEmployee}.created_at as createdAt`,
+        `${tableEmployee}.created_by as createdById`,
+        `${tableEmployee}.created_by as createdById`,
+        `${tableEmployeeInfos}.first_name as firstName`,
+        `${tableEmployeeInfos}.last_name as lastName`,
+        `${tableEmployeeInfos}.middle_name as middleName`,
+        `${tableEmployeeInfos}.user_pic as userPic`,
         db.raw(`JSON_ARRAYAGG(${tableEmployeeImages}.image_url) AS images`)
       )
       .groupBy(`${tableEmployee}.eblog_id`);
