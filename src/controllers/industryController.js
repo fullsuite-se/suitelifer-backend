@@ -44,10 +44,10 @@ export const getAllIndustriesPR = async (req, res) => {
 
 export const insertIndustry = async (req, res) => {
   try {
-    const { industry_name, assessment_url, user_id } = req.body;
+    const { industryName, assessmentUrl, userId } = req.body;
 
     // VALIDATE REQUIRED FIELDS
-    if (!industry_name || !assessment_url) {
+    if (!industryName || !assessmentUrl) {
       res.status(400).json({
         success: false,
         message: "Missing required fields: industry name or assessment url",
@@ -56,12 +56,12 @@ export const insertIndustry = async (req, res) => {
 
     const newIndustry = {
       job_ind_id: uuidv7(),
-      industry_name,
+      industry_name: industryName,
       company_id,
       image_url: null,
-      assessment_url,
+      assessment_url: assessmentUrl,
       created_at: now(),
-      created_by: user_id,
+      created_by: userId,
     };
 
     // INSERT INDUSTRY INTO THE DATABASE
@@ -81,9 +81,9 @@ export const insertIndustry = async (req, res) => {
 
 export const updateIndustry = async (req, res) => {
   try {
-    const { job_ind_id, industry_name, assessment_url, user_id } = req.body;
+    const { jobIndId, industryName, assessmentUrl, userId } = req.body;
 
-    if (!job_ind_id || !industry_name || !assessment_url) {
+    if (!jobIndId || !industryName || !assessmentUrl) {
       res.status(400).json({
         success: false,
         message:
@@ -92,11 +92,11 @@ export const updateIndustry = async (req, res) => {
     }
 
     const updates = {
-      industry_name,
-      assessment_url,
+      industry_name: industryName,
+      assessment_url: assessmentUrl,
     };
 
-    const updatedIndustry = await Industry.updateIndustry(job_ind_id, updates);
+    const updatedIndustry = await Industry.updateIndustry(jobIndId, updates);
 
     if (!updatedIndustry) {
       res
