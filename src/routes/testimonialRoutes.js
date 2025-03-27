@@ -1,5 +1,5 @@
 import express from "express";
-import getAllTestimonials from "../controllers/testimonialController.js";
+import {getAllTestimonials} from "../controllers/testimonialController.js";
 
 const router = express.Router();
 
