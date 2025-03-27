@@ -1,5 +1,6 @@
 import { Content } from "../models/contentModel.js";
 import { now } from "../utils/date.js";
+import { v7 as uuidv7 } from "uuid";
 
 export const getAboutUs = async (req, res) => {
   try {
@@ -28,16 +29,16 @@ export const insertContent = async (req, res) => {
     } = req.body;
 
     if (
-      !homeVideo ||
-      !textBanner ||
-      !heroImage ||
-      !storyImage ||
-      !aboutVideo ||
-      !missionSlogan ||
-      !mission ||
-      !visionSlogan ||
-      !vision ||
-      !dayInPodUrl ||
+      homeVideo === undefined ||
+      textBanner === undefined ||
+      heroImage === undefined ||
+      storyImage === undefined ||
+      aboutVideo === undefined ||
+      missionSlogan === undefined ||
+      mission === undefined ||
+      visionSlogan === undefined ||
+      vision === undefined ||
+      dayInPodUrl === undefined ||
       !user_id
     ) {
       return res
@@ -46,6 +47,7 @@ export const insertContent = async (req, res) => {
     }
 
     const newAboutUs = {
+      content_id: uuidv7(),
       home_video: homeVideo,
       text_banner: textBanner,
       hero_image: heroImage,
