@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import { Auth } from "../models/authModel.js";
 import axios from "axios";
 import { verifyRecaptchaToken } from "../utils/verifyRecaptchaToken.js";
+import transporter from "../utils/nodemailer.js";
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
@@ -160,4 +161,16 @@ export const verifyApplication = async (req, res) => {
   }
 
   return res.status(200).json({ message: response.message });
+};
+
+export const resetPassword = async (req, res) => {
+  const { email } = req.body;
+
+  const info = await transporter.sendMail({
+    from: process.env.NODEMAILER_USER,
+    to: email,
+    subject: "Password Reset",
+    html: "<p>Password reset <strong>test.</strong> Suitelifer Password reset test</p>",
+  });
+  res.json(info);
 };
