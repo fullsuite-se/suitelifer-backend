@@ -1,8 +1,10 @@
 import express from "express";
-import { getAboutUs } from "../controllers/contentController.js";
+import { getAboutUs, insertContent } from "../controllers/contentController.js";
 
 const router = express.Router();
 
-router.get("/get-about-us", getAboutUs);
+router.get("/get-content", getAboutUs);
+
+router.post("/add-content", insertContent);
 
 export default router;
