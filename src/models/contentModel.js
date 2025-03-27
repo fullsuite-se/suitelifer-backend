@@ -9,7 +9,7 @@ export const Content = {
         "home_video AS homeVideo",
         "text_banner AS textBanner",
         "hero_image AS heroImage",
-        "story_img AS storyImg",
+        "story_image AS storyImage",
         "about_video AS aboutVideo",
         "mission_slogan AS missionSlogan",
         "mission",
