@@ -1,5 +1,4 @@
-import { db } from "../config/db";
-import { deleteJob } from "../controllers/jobController";
+import { db } from "../config/db.js";
 
 const table = () => db("sl_courses");
 

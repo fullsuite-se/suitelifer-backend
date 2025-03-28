@@ -21,6 +21,7 @@ import claudinaryRoutes from "./routes/claudinaryRoutes.js";
 import industryRoutes from "./routes/industryRoutes.js";
 import personalityTestRoutes from "./routes/personalityTestRoutes.js";
 import testimonialRoutes from "./routes/testimonialRoutes.js";
+import courseRoutes from "./routes/courseRoutes.js";
 
 const app = express();
 dotenv.config();
@@ -50,5 +51,6 @@ app.use("/api", claudinaryRoutes);
 app.use("/api", industryRoutes);
 app.use("/api", personalityTestRoutes);
 app.use("/api", testimonialRoutes);
+app.use("/api", courseRoutes);
 
 export default app;
