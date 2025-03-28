@@ -1,5 +1,5 @@
 import { db } from "../config/db.js";
-
+const table = () => db("sl_testimonials");
 export const Testimonial = {
   getAllTestimonials: async () => {
     return await db
@@ -18,5 +18,7 @@ export const Testimonial = {
       .innerJoin("hris_user_infos", {
         "sl_testimonials.created_by": "hris_user_infos.user_id",
       });
+  },  insertTestimonial: async (newTestimonial) => {
+    return await table().insert(newTestimonial);
   },
 };
