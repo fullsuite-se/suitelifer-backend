@@ -1,8 +1,16 @@
 import express from "express";
-import { insertJobCourse as insertCourse } from "../controllers/courseController";
+import {
+  insertCourse as insertCourse,
+  getJobCourses,
+  addJobCourse,
+} from "../controllers/courseController.js";
 
 const router = express.Router();
 
-router.post("add-course", insertCourse);
+router.post("/add-course", insertCourse);
+
+router.get("/all-courses", getJobCourses);
+
+router.post("/add-job-course", addJobCourse);
 
 export default router;
