@@ -30,10 +30,10 @@ export const getEpisodes = async (req, res) => {
 
 export const insertEpisode = async (req, res) => {
   try {
-    const { url, user_id } = req.body;
+    const { url, userId } = req.body;
 
     // VALIDATE REQUIRED FIELDS
-    if (!url || !user_id) {
+    if (!url || !userId) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields: url or userId",
@@ -55,7 +55,7 @@ export const insertEpisode = async (req, res) => {
       episode_id: uuidv7(),
       id,
       created_at: now(),
-      created_by: user_id,
+      created_by: userId,
     };
 
     // INSERT EPISODE INTO THE DATABASE
@@ -76,10 +76,10 @@ export const insertEpisode = async (req, res) => {
 
 export const updateEpisode = async (req, res) => {
   try {
-    const { episode_id, url, user_id } = req.body;
+    const { episodeId, url, userId } = req.body;
 
     // VALIDATE REQUIRED FIELDS
-    if (!episode_id || !url) {
+    if (!episodeId || !url) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields: episode_id or url",
@@ -97,7 +97,7 @@ export const updateEpisode = async (req, res) => {
     const id = parts[1].split(/[?#]/)[0];
 
     // ATTEMPT TO UPDATE THE EPISODE
-    const updatedEpisode = await SpotifyEpisode.updateEpisode(episode_id, id);
+    const updatedEpisode = await SpotifyEpisode.updateEpisode(episodeId, id);
 
     if (!updatedEpisode) {
       return res.status(404).json({
@@ -122,10 +122,10 @@ export const updateEpisode = async (req, res) => {
 
 export const deleteEpisode = async (req, res) => {
   try {
-    const { episode_id, user_id } = req.body;
+    const { episodeId, userId } = req.body;
 
     // VALIDATE REQUIRED FIELD
-    if (!episode_id) {
+    if (!episodeId) {
       return res.status(400).json({
         success: false,
         message: "Missing: episode id",
@@ -133,7 +133,7 @@ export const deleteEpisode = async (req, res) => {
     }
 
     // ATTEMPT TO DELETE THE EPISODE
-    const deletedEpisode = await SpotifyEpisode.deleteEpisode(episode_id);
+    const deletedEpisode = await SpotifyEpisode.deleteEpisode(episodeId);
 
     if (!deletedEpisode) {
       return res.status(404).json({
