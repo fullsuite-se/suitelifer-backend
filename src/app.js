@@ -7,6 +7,7 @@ import helmet from "helmet";
 // Middlewares
 import verifyJWT from "./middlewares/verifyJWT.js";
 
+
 // Routes
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -24,6 +25,9 @@ import testimonialRoutes from "./routes/testimonialRoutes.js";
 
 const app = express();
 dotenv.config();
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
 
 app.use(express.json());
 app.use(cookieParser());
