@@ -21,4 +21,7 @@ export const Testimonial = {
   },  insertTestimonial: async (newTestimonial) => {
     return await table().insert(newTestimonial);
   },
+  updateTestimonial: async (testimonial_id, updatedTestimonial) => {
+    return await table().where({ testimonial_id }).update(updatedTestimonial);
+  },
 };

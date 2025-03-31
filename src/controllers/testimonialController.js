@@ -23,12 +23,12 @@ export const insertTestimonial = async (req, res) => {
     console.log(req.body);
     
     // Validate required fields
-    // if (!employee_image_url || !employee_name || !position || !testimony || !is_shown || !user_id) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "Missing required fields: employee_image_url, employee_name, position, testimony, is_shown, or user_id",
-    //   });
-    // }
+    if (!employee_image_url || !employee_name || !position || !testimony || !is_shown || !user_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: employee_image_url, employee_name, position, testimony, is_shown, or user_id",
+      });
+    }
 
     const newTestimonial = {
       testimonial_id: uuidv7(),
@@ -52,5 +52,66 @@ export const insertTestimonial = async (req, res) => {
       success: false,
       message: "Internal Server Error: " + err.message,
     });
+  }
+};
+
+
+export const updateTestimonial = async (req, res) => {
+  try {
+    const {
+      testimonial_id,
+      employee_image_url,
+      employee_name,
+      position,
+      testimony,
+      is_shown,
+      user_id
+    } = req.body;
+
+    console.log(req.body);
+
+    if (
+      !testimonial_id ||
+      !employee_image_url ||
+      !employee_name ||
+      !position ||
+      !testimony ||
+      !is_shown ||
+      !user_id
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    const updates = {
+      employee_image_url,
+      employee_name,
+      position,
+      testimony,
+      is_shown,
+    };
+
+    const updatedTestimonial = await Testimonial.updateTestimonial(
+      testimonial_id,
+      updates
+    );
+    
+    if (!updatedTestimonial) {
+      return res.status(404).json({
+        success: false,
+        message: "Testimonial not found or not updated",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Testimonial updated successfully",
+      updatedTestimonial,  
+    });
+  } catch (err) {
+    console.log("Error updating testimonial:", err.message);
+    res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 };
