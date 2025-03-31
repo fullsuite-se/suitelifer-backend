@@ -200,14 +200,14 @@ export const generatePasswordResetLink = async (req, res) => {
             <p>Click the button below to reset your password:</p>
             <p style="text-align: center;">
               <a href="${resetLink}" 
-                 style="background-color: #0097b2; color: white; padding: 10px 20px; text-decoration: none; 
-                 border-radius: 5px; display: inline-block; font-weight: bold;">
+                style="background-color: #0097b2; color: white; padding: 10px 20px; text-decoration: none; 
+                border-radius: 5px; display: inline-block; font-weight: bold;">
                 Reset Password
               </a>
             </p>
+            <p><strong>This link is valid for 15 minutes.</strong> If it expires, you will need to request a new password reset.</p>
             <p>If you didn't request this, you can ignore this email. Your password will remain unchanged.</p>
             <p style="color: #777; font-size: 12px;">For security reasons, this link will expire in 15 minutes.</p>
-            <p>Best regards,<br><strong>Suitelifer Team</strong></p>
           </div>
         `,
   });
