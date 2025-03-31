@@ -34,7 +34,7 @@ export const addNewsArticle = async (req, res) => {
 
     const newsId = await News.addNewsArticle(data);
 
-    res.status(201).json({
+    res.status(200).json({
       message: "News article added successfully",
       isSuccess: true,
       id: newsId,
