@@ -6,6 +6,7 @@ import {
   refreshToken,
   userInfo,
   verifyApplication,
+  generatePasswordResetLink,
 } from "../controllers/authController.js";
 import verifyJWT from "../middlewares/verifyJWT.js";
 import { recaptcha } from "../middlewares/recaptcha.js";
@@ -23,6 +24,8 @@ router.get("/user-info", verifyJWT, userInfo);
 router.get("/get-services/:id", getServices);
 
 router.get("/refresh-token", refreshToken);
+
+router.post("/reset-password", generatePasswordResetLink);
 
 router.get("/profile", verifyJWT, (req, res) => {
   return res.json({ message: "Profile data", user: req.user });
