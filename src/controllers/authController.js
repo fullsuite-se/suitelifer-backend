@@ -176,7 +176,7 @@ export const generatePasswordResetLink = async (req, res) => {
 
   const resetToken = jwt.sign(
     { userId: user.user_id },
-    process.env.ACCESS_TOKEN_SECRET,
+    process.env.PASSWORD_RESET_KEY,
     { expiresIn: "15m" }
   );
 
