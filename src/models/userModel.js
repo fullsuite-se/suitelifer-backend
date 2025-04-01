@@ -28,4 +28,10 @@ export const User = {
       .where({ user_id: userId })
       .update({ user_key: generatedKey });
   },
+
+  updatePassword: async (userId, newPassword) => {
+    return await db(userAccounts)
+      .where({ user_id: userId })
+      .update({ user_password: newPassword });
+  },
 };
