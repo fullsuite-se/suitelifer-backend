@@ -21,7 +21,7 @@ export const updateUserPassword = async (req, res) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const decoded = jwt.verify(token, process.env.PASSWORD_RESET_KEY);
 
     const user = await User.getUser(decoded.userId);
 
@@ -31,14 +31,26 @@ export const updateUserPassword = async (req, res) => {
         .json({ isSuccess: false, message: "Invalid request" });
     }
 
-    const tokenIsValid = await bcrypt.compare(token, user.user_key);
+    // const tokenIsValid = await bcrypt.compare(token, user.user_key);
+    const tokenIsValid = jwt.verify(token, process.env.PASSWORD_RESET_KEY);
 
     if (!tokenIsValid) {
       return res
         .status(400)
         .json({ isSuccess: false, message: "Invalid request" });
     }
-    res.json(user);
+
+    // Hash the new password and update the user
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await User.updatePassword(user.user_id, hashedPassword);
+
+    // Invalidate the reset token
+    await User.updateUserKey(user.user_id, null);
+
+    res
+      .status(200)
+      .json({ isSuccess: true, message: "Password updated successfully" });
   } catch (error) {
     if (error.name === "TokenExpiredError") {
       console.error("Token has expired:", error.name);
