@@ -1,16 +1,19 @@
 import express from "express";
 import {
   insertCourse as insertCourse,
-  getJobCourses,
-  addJobCourse,
+  getAllCourses,
+  deleteCourse,
+  updateCourse,
 } from "../controllers/courseController.js";
 
 const router = express.Router();
 
 router.post("/add-course", insertCourse);
 
-router.get("/all-courses", getJobCourses);
+router.get("/all-courses", getAllCourses);
 
-router.post("/add-job-course", addJobCourse);
+router.post("/delete-course", deleteCourse);
+
+router.post("/update-course", updateCourse);
 
 export default router;
