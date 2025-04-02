@@ -1,6 +1,4 @@
 import { db } from "../config/db.js";
-import { v7 as uuidv7 } from "uuid";
-import { now } from "../utils/date.js";
 
 const table = () => db("sl_company_jobs_setups");
 
