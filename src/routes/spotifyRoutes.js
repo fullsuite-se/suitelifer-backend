@@ -9,14 +9,14 @@ import {
 
 const router = express.Router();
 
-router.get("/latest-three-episodes", getThreeLatestEpisodes);
+router.get("/spotify", getEpisodes);
 
-router.get("/all-episodes", getEpisodes);
+router.get("/spotify/latest-three", getThreeLatestEpisodes);
 
-router.post("/add-episode", insertEpisode);
+router.post("/spotify", insertEpisode);
 
-router.post("/edit-episode", updateEpisode);
+router.put("/spotify/:episodeId", updateEpisode);
 
-router.post("/delete-episode", deleteEpisode);
+router.delete("/spotify/:episodeId", deleteEpisode);
 
 export default router;

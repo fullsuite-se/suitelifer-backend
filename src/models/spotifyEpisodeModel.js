@@ -1,48 +1,47 @@
 import { db } from "../config/db.js";
 
-const table = () => db("sl_spotify_episodes");
+const table = () => db("sl_spotify_embeds");
 
 export const SpotifyEpisode = {
   getThreeLatestEpisodes: async () => {
     return await db
       .select(
         "episode_id AS episodeId",
-        "id AS spotifyId",
+        "spotify_id AS spotifyId",
+        "embed_type AS embedType",
         "created_at AS createdAt"
       )
-      .from("sl_spotify_episodes")
+      .from("sl_spotify_embeds")
       .orderBy("created_at", "desc")
       .limit(3);
   },
 
-  getAllEpisodes: async () => {
+  getAllEmbeds: async () => {
     return await db
       .select(
         "episode_id AS episodeId",
-        "id AS spotifyId",
-        "sl_spotify_episodes.created_at AS createdAt",
+        "spotify_id AS spotifyId",
+        "embed_type AS embedType",
+        "sl_spotify_embeds.created_at AS createdAt",
         db.raw(
-          "CONCAT(hris_user_infos.first_name, ' ', LEFT(hris_user_infos.middle_name, 1), '. ', hris_user_infos.last_name) AS createdBy"
+          "CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy"
         )
       )
-      .from("sl_spotify_episodes")
-      .join("hris_user_accounts", {
-        "sl_spotify_episodes.created_by": "hris_user_accounts.user_id",
-      })
-      .join("hris_user_infos", {
-        "hris_user_accounts.user_id": "hris_user_infos.user_id",
+      .from("sl_spotify_embeds")
+      .leftJoin("sl_user_accounts", {
+        "sl_spotify_embeds.created_by": "sl_user_accounts.user_id",
       });
   },
 
-  insertEpisode: async (newEpisode) => {
+  insertEmbed: async (newEpisode) => {
     return await table().insert(newEpisode);
   },
 
-  updateEpisode: async (episode_id, id) => {
-    return await table().where({ episode_id }).update({ id });
+  updateEmbed: async (episode_id, spotifyId, userId) => {
+    return await table().where({ episode_id }).update({ spotifyId });
   },
 
-  deleteEpisode: async (episode_id) => {
-    return await table().where("episode_id", episode_id).del();
+  deleteEmbed: async (episode_id, userId) => {
+    return await table().where({ episode_id }).del();
   },
 };
