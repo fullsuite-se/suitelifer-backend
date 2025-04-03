@@ -3,7 +3,6 @@ import knex from "knex";
 import dotenv from "dotenv";
 import { knexconfig } from '../config/knexConfig.js';
 
-
 dotenv.config();
 
 const DB_HOST = process.env.DB_HOST;
