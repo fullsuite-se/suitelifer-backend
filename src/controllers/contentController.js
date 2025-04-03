@@ -2,10 +2,52 @@ import { Content } from "../models/contentModel.js";
 import { now } from "../utils/date.js";
 import { v7 as uuidv7 } from "uuid";
 
+export const getHome = async (req, res) => {
+  try {
+    const homeContent = await Content.getAboutUs();
+    res.status(200).json({ success: true, homeContent });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
 export const getAboutUs = async (req, res) => {
   try {
-    const events = await Content.getAboutUs();
-    res.status(200).json({ success: true, data: events });
+    const aboutContent = await Content.getAboutUs();
+    res.status(200).json({ success: true, aboutContent });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const getCareers = async (req, res) => {
+  try {
+    const careersContent = await Content.getCareers();
+
+    res.status(200).json({ success: true, careersContent });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const getContact = async (req, res) => {
+  try {
+    const contactContent = await Content.getContact();
+
+    res.status(200).json({ success: true, contactContent });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const getAllContent = async (req, res) => {
+  try {
+    const content = await Content.getAllContent();
+    res.status(200).json({ success: true, content });
   } catch (err) {
     console.log(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -62,7 +104,7 @@ export const insertContent = async (req, res) => {
       created_by: user_id,
     };
 
-    await Content.insertAboutUs(newAboutUs);
+    await Content.insertContent(newAboutUs);
 
     res
       .status(201)
