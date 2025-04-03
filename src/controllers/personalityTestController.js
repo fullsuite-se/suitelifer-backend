@@ -15,9 +15,9 @@ export const getAllPersonalityTests = async (req, res) => {
 
 export const insertPersonalityTest = async (req, res) => {
   try {
-    const { test_title, url, user_id } = req.body;
+    const { testTitle, url, userId } = req.body;
 
-    if (!test_title || !url) {
+    if (!testTitle || !url) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields: test_title or url",
@@ -26,10 +26,10 @@ export const insertPersonalityTest = async (req, res) => {
 
     const newPersonalityTest = {
       test_id: uuidv7(),
-      test_title,
+      test_title: testTitle,
       url,
       created_at: now(),
-      created_by: user_id,
+      created_by: userId,
     };
 
     await PersonalityTest.insertPersonalityTest(newPersonalityTest);
@@ -45,9 +45,9 @@ export const insertPersonalityTest = async (req, res) => {
 
 export const updatePersonalityTest = async (req, res) => {
   try {
-    const { test_id, test_title, url } = req.body;
+    const { testId, testTitle, url } = req.body;
 
-    if (!test_id || !test_title || !url) {
+    if (!testId || !testTitle || !url) {
       return res.status(400).json({
         success: false,
         message: "Mising required fields: test_id, test_title, or url",
@@ -55,12 +55,12 @@ export const updatePersonalityTest = async (req, res) => {
     }
 
     const updatedDetails = {
-      test_title,
+      test_title: testTitle,
       url,
     };
 
     const updatedPersonalityTest = await PersonalityTest.updatePersonalityTest(
-      test_id,
+      testId,
       updatedDetails
     );
 
