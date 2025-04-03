@@ -9,5 +9,5 @@ router.post("/add-testimonial", insertTestimonial);
 
 router.post("/edit-testimonial", updateTestimonial);
 
-router.delete("/delete-testimonial/:testimonial_id", deleteTestimonial);
+router.post("/delete-testimonial", deleteTestimonial);
 export default router;
