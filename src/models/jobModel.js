@@ -261,33 +261,8 @@ export const Job = {
     return await table().insert(newJob);
   },
 
-  updateJob: async (
-    job_id,
-    title,
-    employment_type,
-    setup_id,
-    description,
-    salary_min,
-    salary_max,
-    responsibility,
-    requirement,
-    preferred_qualification,
-    is_open,
-    is_shown
-  ) => {
-    return await table().where({ job_id }).update({
-      title,
-      employment_type,
-      setup_id,
-      description,
-      salary_min,
-      salary_max,
-      responsibility,
-      requirement,
-      preferred_qualification,
-      is_open,
-      is_shown,
-    });
+  updateJob: async (job_id, jobUpdates) => {
+    return await table().where({ job_id }).update(jobUpdates);
   },
 
   deleteJob: async (job_id) => {
