@@ -1,6 +1,5 @@
 import express from "express";
 import {
-  getServices,
   login,
   logout,
   refreshToken,
@@ -28,8 +27,6 @@ router.post("/logout", logout);
 router.post("/verify-recaptcha", verifyApplication);
 
 router.get("/user-info", verifyJWT, userInfo);
-
-router.get("/get-services/:id", getServices);
 
 router.get("/refresh-token", refreshToken);
 
