@@ -7,6 +7,9 @@ import {
   userInfo,
   verifyApplication,
   generatePasswordResetLink,
+  register,
+  sendEmailVerificationCode,
+  verifyEmailVerificationCode,
 } from "../controllers/authController.js";
 import verifyJWT from "../middlewares/verifyJWT.js";
 import { recaptcha } from "../middlewares/recaptcha.js";
@@ -14,6 +17,12 @@ import { recaptcha } from "../middlewares/recaptcha.js";
 const router = express.Router();
 
 router.post("/login", recaptcha, login);
+
+router.post("/register", register);
+
+router.post("/send-verification-code", sendEmailVerificationCode);
+
+router.get("/verify-verification-code", verifyEmailVerificationCode);
 
 router.post("/logout", logout);
 
