@@ -12,11 +12,10 @@ import {
   verifyEmailVerificationCode,
 } from "../controllers/authController.js";
 import verifyJWT from "../middlewares/verifyJWT.js";
-import { recaptcha } from "../middlewares/recaptcha.js";
 
 const router = express.Router();
 
-router.post("/login", recaptcha, login);
+router.post("/login", login);
 
 router.post("/register", register);
 
