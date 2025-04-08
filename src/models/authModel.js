@@ -9,6 +9,7 @@ export const Auth = {
       return await trx(userAccountTable)
         .select(
           `${userAccountTable}.user_email`,
+          `${userAccountTable}.user_type`,
           `${userAccountTable}.user_id`,
           `${userAccountTable}.user_password`,
           `${userAccountTable}.first_name`,
