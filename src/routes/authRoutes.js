@@ -1,6 +1,5 @@
 import express from "express";
 import {
-  getServices,
   login,
   logout,
   refreshToken,
@@ -12,11 +11,10 @@ import {
   verifyEmailVerificationCode,
 } from "../controllers/authController.js";
 import verifyJWT from "../middlewares/verifyJWT.js";
-import { recaptcha } from "../middlewares/recaptcha.js";
 
 const router = express.Router();
 
-router.post("/login", recaptcha, login);
+router.post("/login", login);
 
 router.post("/register", register);
 
@@ -29,8 +27,6 @@ router.post("/logout", logout);
 router.post("/verify-recaptcha", verifyApplication);
 
 router.get("/user-info", verifyJWT, userInfo);
-
-router.get("/get-services/:id", getServices);
 
 router.get("/refresh-token", refreshToken);
 
