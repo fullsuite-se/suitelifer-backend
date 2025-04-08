@@ -2,6 +2,7 @@ import express from "express";
 import {
   deleteEpisode,
   getEpisodes,
+  getPlaylists,
   getThreeLatestEpisodes,
   insertEpisode,
   updateEpisode,
@@ -12,6 +13,8 @@ const router = express.Router();
 router.get("/spotify", getEpisodes);
 
 router.get("/spotify/latest-three", getThreeLatestEpisodes);
+
+router.get("/spotify/playlists", getPlaylists);
 
 router.post("/spotify", insertEpisode);
 
