@@ -25,6 +25,7 @@ export const login = async (req, res) => {
   const accessToken = jwt.sign(
     {
       email: user.user_email,
+      role: user.user_type,
       id: user.user_id,
       first_name: user.first_name,
       last_name: user.last_name,
@@ -36,6 +37,7 @@ export const login = async (req, res) => {
   const refreshToken = jwt.sign(
     {
       email: user.user_email,
+      role: user.user_type,
       id: user.user_id,
       first_name: user.first_name,
       last_name: user.last_name,
@@ -232,6 +234,7 @@ export const refreshToken = async (req, res) => {
       const newAccessToken = jwt.sign(
         {
           email: decoded.email,
+          role: decoded.role,
           id: decoded.id,
           first_name: decoded.first_name,
           last_name: decoded.last_name,
@@ -249,31 +252,6 @@ export const refreshToken = async (req, res) => {
       res.json({ accessToken: newAccessToken });
     }
   );
-};
-
-export const getServices = async (req, res) => {
-  try {
-    const id = req.params.id;
-
-    if (!id) {
-      return res.status(400).json({ message: "User ID is required" });
-    }
-
-    const services = await Auth.getServices(id);
-
-    if (!services || services.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No services found for this user" });
-    }
-
-    return res.status(200).json({ message: "Services retrieved", services });
-  } catch (error) {
-    console.error("Error fetching services:", error);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: error.message });
-  }
 };
 
 export const verifyApplication = async (req, res) => {

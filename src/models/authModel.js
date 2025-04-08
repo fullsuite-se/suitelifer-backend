@@ -1,10 +1,6 @@
 import { db } from "../config/db.js";
 
-const userAccountTable = "hris_user_accounts";
-const userInfos = "hris_user_infos";
-
-// TODO New Tables
-const tempUserAccountTable = "sl_user_accounts";
+const userAccountTable = "sl_user_accounts";
 const emailVerificationCodeTable = "sl_email_verification_codes";
 
 export const Auth = {
@@ -15,14 +11,8 @@ export const Auth = {
           `${userAccountTable}.user_email`,
           `${userAccountTable}.user_id`,
           `${userAccountTable}.user_password`,
-          `${userAccountTable}.user_key`,
-          `${userInfos}.first_name`,
-          `${userInfos}.last_name`
-        )
-        .innerJoin(
-          userInfos,
-          `${userAccountTable}.user_id`,
-          `${userInfos}.user_id`
+          `${userAccountTable}.first_name`,
+          `${userAccountTable}.last_name`
         )
         .where(`${userAccountTable}.user_email`, email)
         .first();
@@ -47,7 +37,7 @@ export const Auth = {
   },
 
   registerUser: async (user) => {
-    return await db(tempUserAccountTable).insert(user);
+    return await db(userAccountTable).insert(user);
   },
 
   addEmailVerificationCode: async (user) => {
@@ -55,7 +45,7 @@ export const Auth = {
   },
 
   updateUserVerificationStatus: async (id) => {
-    return await db(tempUserAccountTable).where("user_id", id).update({
+    return await db(userAccountTable).where("user_id", id).update({
       is_verified: true,
     });
   },
