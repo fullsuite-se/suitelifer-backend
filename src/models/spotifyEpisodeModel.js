@@ -11,6 +11,7 @@ export const SpotifyEpisode = {
         "embed_type AS embedType",
         "created_at AS createdAt"
       )
+      .where({ embed_type: "EPISODE" })
       .from("sl_spotify_embeds")
       .orderBy("created_at", "desc")
       .limit(3);
@@ -37,8 +38,8 @@ export const SpotifyEpisode = {
     return await table().insert(newEpisode);
   },
 
-  updateEmbed: async (episode_id, spotifyId, userId) => {
-    return await table().where({ episode_id }).update({ spotifyId });
+  updateEmbed: async (episode_id, updates, userId) => {
+    return await table().where({ episode_id }).update(updates);
   },
 
   deleteEmbed: async (episode_id, userId) => {
