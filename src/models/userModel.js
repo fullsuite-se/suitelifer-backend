@@ -2,6 +2,7 @@ import { db } from "../config/db.js";
 
 const userAccounts = "hris_user_accounts";
 const userInfo = "hris_user_infos";
+const newUserAccount = "sl_user_accounts";
 
 export const User = {
   getAllUsers: async () => {
