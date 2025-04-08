@@ -8,12 +8,12 @@ import {
 
 const router = express.Router();
 
-router.get("/get-all-personality-tests", getAllPersonalityTests);
+router.get("/personality-test", getAllPersonalityTests);
 
-router.post("/add-personality-test", insertPersonalityTest);
+router.post("/personality-test", insertPersonalityTest);
 
-router.post("/edit-personality-test", updatePersonalityTest);
+router.put("/personality-test", updatePersonalityTest);
 
-router.post("/delete-personality-test", deletePersonalityTest);
+router.delete("/personality-test", deletePersonalityTest);
 
 export default router;
