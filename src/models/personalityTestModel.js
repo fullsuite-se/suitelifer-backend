@@ -8,15 +8,15 @@ export const PersonalityTest = {
       .select(
         "test_id AS testId",
         "test_title AS testTitle",
-        "url",
-        "created_at AS createdAt",
+        "test_url AS testUrl",
+        "sl_personality_tests.created_at AS createdAt",
         db.raw(
-          "CONCAT(hris_user_infos.first_name, ' ', LEFT(hris_user_infos.middle_name, 1), '. ', hris_user_infos.last_name) AS createdBy"
+          "CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy"
         )
       )
       .from("sl_personality_tests")
-      .innerJoin("hris_user_infos", {
-        "sl_personality_tests.created_by": "hris_user_infos.user_id",
+      .innerJoin("sl_user_accounts", {
+        "sl_personality_tests.created_by": "sl_user_accounts.user_id",
       });
   },
 
