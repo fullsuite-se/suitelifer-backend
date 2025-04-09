@@ -9,6 +9,7 @@ export const PersonalityTest = {
         "test_id AS testId",
         "test_title AS testTitle",
         "test_url AS testUrl",
+        "test_description AS testDescription",
         "sl_personality_tests.created_at AS createdAt",
         db.raw(
           "CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy"
