@@ -1,8 +1,6 @@
 import { db } from "../config/db.js";
 
-const userAccounts = "hris_user_accounts";
-const userInfo = "hris_user_infos";
-const newUserAccount = "sl_user_accounts";
+const userAccounts = "sl_user_accounts";
 
 export const User = {
   getAllUsers: async () => {
@@ -19,7 +17,6 @@ export const User = {
 
   getUserByEmail: async (email) => {
     return await db(userAccounts)
-      .innerJoin(userInfo, `${userAccounts}.user_id`, `${userInfo}.user_id`)
       .where(`${userAccounts}.user_email`, email)
       .first();
   },
@@ -27,7 +24,7 @@ export const User = {
   updateUserKey: async (userId, generatedKey) => {
     return await db(userAccounts)
       .where({ user_id: userId })
-      .update({ user_key: generatedKey });
+      .update({ reset_key: generatedKey });
   },
 
   updatePassword: async (userId, newPassword) => {
