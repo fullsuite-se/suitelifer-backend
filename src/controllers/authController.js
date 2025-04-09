@@ -17,6 +17,16 @@ export const login = async (req, res) => {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
+  if (!user.is_verified) {
+    return res.status(403).json({
+      message:
+        "Account not yet verified. Please check your email for the verification link.",
+      isNotVerified: true,
+      userId: user.user_id,
+      email: user.user_email,
+    });
+  }
+
   const isMatch = await bcrypt.compare(password, user.user_password);
 
   if (!isMatch) {
