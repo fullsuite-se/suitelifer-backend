@@ -21,17 +21,6 @@ export const Auth = {
     });
   },
 
-  getServices: async (id) => {
-    return await db("hris_user_access_permissions")
-      .select("service_features.feature_name")
-      .innerJoin(
-        "service_features",
-        "hris_user_access_permissions.service_feature_id",
-        "service_features.service_feature_id"
-      )
-      .where("hris_user_access_permissions.user_id", id);
-  },
-
   getEmailVerificationCodeById: async (id) => {
     return await db(emailVerificationCodeTable)
       .where(`${emailVerificationCodeTable}.user_id`, id)
