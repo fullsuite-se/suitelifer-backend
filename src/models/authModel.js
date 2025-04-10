@@ -35,6 +35,7 @@ export const Auth = {
   getEmailVerificationCodeById: async (id) => {
     return await db(emailVerificationCodeTable)
       .where(`${emailVerificationCodeTable}.user_id`, id)
+      .orderBy(`${emailVerificationCodeTable}.created_at`, "desc")
       .first();
   },
 
