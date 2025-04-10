@@ -18,6 +18,17 @@ export const login = async (req, res) => {
   }
 
   if (!user.is_verified) {
+    // Verify Verification Attempt
+    const { attempt } = await Auth.getEmailVerificationCodeAttempt(
+      user.user_id
+    );
+    if (attempt >= 3) {
+      console.log("Exceeded");
+
+      return res.status(403).json({
+        isAttemptExceeded: true,
+      });
+    }
     return res.status(403).json({
       message:
         "Account not yet verified. Please check your email for the verification link.",
@@ -120,6 +131,9 @@ export const register = async (req, res) => {
 
 export const sendEmailVerificationCode = async (req, res) => {
   const { userId, email } = req.body;
+
+  // Check Verification Attempt
+  // const attemptCount = Auth.
 
   const code = crypto.randomBytes(4).toString("hex").toUpperCase();
   const hashedCode = await bcrypt.hash(code, 10);
