@@ -28,6 +28,18 @@ export const Auth = {
       .first();
   },
 
+  getEmailVerificationCodeAttempt: async (id) => {
+    return await db(emailVerificationCodeTable)
+      .where(`${emailVerificationCodeTable}.user_id`, id)
+      .andWhere(
+        `${emailVerificationCodeTable}.created_at`,
+        ">=",
+        db.raw("NOW() - INTERVAL 10 MINUTE")
+      )
+      .count("* as attempt")
+      .first();
+  },
+
   registerUser: async (user) => {
     return await db(userAccountTable).insert(user);
   },
