@@ -7,6 +7,7 @@ import { User } from "../models/userModel.js";
 import { v7 as uuidv7 } from "uuid";
 import { db } from "../config/db.js";
 import crypto from "crypto";
+import { CompactEncrypt } from "jose";
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
@@ -130,9 +131,6 @@ export const register = async (req, res) => {
 export const sendEmailVerificationCode = async (req, res) => {
   const { userId, email } = req.body;
 
-  // Check Verification Attempt
-  // const attemptCount = Auth.
-
   const code = crypto.randomBytes(4).toString("hex").toUpperCase();
   const hashedCode = await bcrypt.hash(code, 10);
 
@@ -148,13 +146,24 @@ export const sendEmailVerificationCode = async (req, res) => {
     expires_at: db.raw("NOW() + INTERVAL 15 MINUTE"),
   };
 
+  const encoder = new TextEncoder();
+  const payload = encoder.encode(JSON.stringify({ code: code, id: userId }));
+  const publicKey = JSON.parse(process.env.JWE_PUBLIC_KEY);
+
+  const jwe = await new CompactEncrypt(payload)
+    .setProtectedHeader({
+      alg: "RSA-OAEP",
+      enc: "A256GCM",
+    })
+    .encrypt(publicKey);
+
   try {
     await Auth.addEmailVerificationCode(data);
 
     const verificationLink =
       process.env.NODE_ENV === "production"
-        ? `${process.env.LIVE_URL}/verify-account?code=${code}&id=${token}`
-        : `${process.env.VITE_API_BASE_URL}/verify-account?code=${code}&id=${token}`;
+        ? `${process.env.LIVE_URL}/verify-account?payload=${code}&id=${token}&payload-encrypted=${jwe}`
+        : `${process.env.VITE_API_BASE_URL}/verify-account?code=${code}&id=${token}&payload-encrypted=${jwe}`;
 
     await transporter.sendMail({
       from: process.env.NODEMAILER_USER,
@@ -190,7 +199,9 @@ export const sendEmailVerificationCode = async (req, res) => {
 };
 
 export const verifyEmailVerificationCode = async (req, res) => {
-  const { code, id } = req.query;
+  const { code, id, payload } = req.query;
+
+  console.dir(payload, { depth: null });
 
   try {
     const decoded = jwt.verify(id, process.env.PASSWORD_RESET_KEY);
