@@ -23,8 +23,6 @@ export const login = async (req, res) => {
       user.user_id
     );
     if (attempt >= 3) {
-      console.log("Exceeded");
-
       return res.status(403).json({
         isAttemptExceeded: true,
       });
