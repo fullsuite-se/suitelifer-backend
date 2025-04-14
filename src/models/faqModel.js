@@ -8,14 +8,14 @@ export const Faq = {
         "question",
         "answer",
         "is_shown",
-        "created_at",
+        "sl_faqs.created_at",
         db.raw(
-          "CONCAT(hris_user_infos.first_name, ' ', LEFT(hris_user_infos.middle_name, 1), '. ', hris_user_infos.last_name) AS createdBy"
+          "CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy"
         )
       )
       .from("sl_faqs")
-      .innerJoin("hris_user_infos", {
-        "sl_faqs.created_by": "hris_user_infos.user_id",
+      .innerJoin("sl_user_accounts", {
+        "sl_faqs.created_by": "sl_user_accounts.user_id",
       })
       .orderBy("created_at", "asc"); 
   },  insertFaq: async (newFaq) => {
