@@ -23,6 +23,7 @@ import industryRoutes from "./routes/industryRoutes.js";
 import personalityTestRoutes from "./routes/personalityTestRoutes.js";
 import testimonialRoutes from "./routes/testimonialRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
+import faqsRoutes from "./routes/faqsRoutes.js";
 
 const app = express();
 dotenv.config();
@@ -53,5 +54,6 @@ app.use("/api", industryRoutes);
 app.use("/api", personalityTestRoutes);
 app.use("/api", testimonialRoutes);
 app.use("/api", courseRoutes);
+app.use("/api", faqsRoutes);
 
 export default app;
