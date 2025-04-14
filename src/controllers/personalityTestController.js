@@ -6,7 +6,7 @@ export const getAllPersonalityTests = async (req, res) => {
   try {
     const personalityTests = await PersonalityTest.getAllPersonalityTests();
 
-    res.status(200).json({ success: true, data: personalityTests });
+    res.status(200).json({ success: true, personalityTests });
   } catch (err) {
     console.error("Error fetching personality tests:", err.message);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -15,19 +15,20 @@ export const getAllPersonalityTests = async (req, res) => {
 
 export const insertPersonalityTest = async (req, res) => {
   try {
-    const { testTitle, url, userId } = req.body;
+    const { testTitle, testUrl, testDescription, userId } = req.body;
 
-    if (!testTitle || !url) {
+    if (!testTitle || !testUrl || !testDescription) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: test_title or url",
+        message: "Missing required fields: test title, test description, or url",
       });
     }
 
     const newPersonalityTest = {
       test_id: uuidv7(),
       test_title: testTitle,
-      url,
+      test_url: testUrl,
+      test_description: testDescription,
       created_at: now(),
       created_by: userId,
     };
@@ -45,9 +46,9 @@ export const insertPersonalityTest = async (req, res) => {
 
 export const updatePersonalityTest = async (req, res) => {
   try {
-    const { testId, testTitle, url } = req.body;
+    const { testId, testTitle, testUrl, testDescription, userId } = req.body;
 
-    if (!testId || !testTitle || !url) {
+    if (!testId || !testTitle || !testUrl || !testDescription) {
       return res.status(400).json({
         success: false,
         message: "Mising required fields: test_id, test_title, or url",
@@ -56,7 +57,8 @@ export const updatePersonalityTest = async (req, res) => {
 
     const updatedDetails = {
       test_title: testTitle,
-      url,
+      test_url: testUrl,
+      test_description: testDescription,
     };
 
     const updatedPersonalityTest = await PersonalityTest.updatePersonalityTest(
@@ -83,16 +85,16 @@ export const updatePersonalityTest = async (req, res) => {
 
 export const deletePersonalityTest = async (req, res) => {
   try {
-    const { test_id } = req.body;
+    const { testId } = req.body;
 
-    if (!test_id) {
+    if (!testId) {
       return res
         .status(400)
         .json({ success: false, message: "Missing required field: test_id" });
     }
 
     const deletedPersonalityTest = await PersonalityTest.deletePersonalityTest(
-      test_id
+      testId
     );
 
     if (!deletedPersonalityTest) {
