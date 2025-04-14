@@ -77,7 +77,7 @@ export const Content = {
       })
       .select(
         "get_in_touch_image AS getInTouchImage",
-        "home_video AS homeVideo",
+        "kickstart_video AS kickstartVideo",
         "text_banner AS textBanner",
         "hero_image AS heroImage",
         "story_image AS storyImage",
