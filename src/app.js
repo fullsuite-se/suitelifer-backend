@@ -7,6 +7,7 @@ import helmet from "helmet";
 // Middlewares
 import verifyJWT from "./middlewares/verifyJWT.js";
 
+
 // Routes
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -20,10 +21,11 @@ import industryRoutes from "./routes/industryRoutes.js";
 import personalityTestRoutes from "./routes/personalityTestRoutes.js";
 import testimonialRoutes from "./routes/testimonialRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
+import faqsRoutes from "./routes/faqsRoutes.js";
 
 const app = express();
 dotenv.config();
-
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(helmet());
@@ -48,5 +50,6 @@ app.use("/api", industryRoutes);
 app.use("/api", personalityTestRoutes);
 app.use("/api", testimonialRoutes);
 app.use("/api", courseRoutes);
+app.use("/api", faqsRoutes);
 
 export default app;
