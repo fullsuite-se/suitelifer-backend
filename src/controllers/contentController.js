@@ -4,13 +4,26 @@ import { v7 as uuidv7 } from "uuid";
 
 export const getHome = async (req, res) => {
   try {
-    const homeContent = await Content.getAboutUs();
+    const homeContent = await Content.getHome();
     res.status(200).json({ success: true, homeContent });
   } catch (err) {
     console.log(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+
+export const patchHome = async (req, res) => {
+  try {
+    const { contentId, kickstartVideo } = req.body;
+
+    await Content.patchHome(kickstartVideo, contentId);
+
+    res.status(200).json({ success: true, message: "Home Content Successfully Updated!"})
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+}
 
 export const getAboutUs = async (req, res) => {
   try {
