@@ -32,7 +32,7 @@ export const patchHome = async (req, res) => {
   }
 };
 
-export const getAboutUs = async (req, res) => {
+export const getAbout = async (req, res) => {
   try {
     const aboutContent = await Content.getAboutUs();
     res.status(200).json({ success: true, aboutContent });
