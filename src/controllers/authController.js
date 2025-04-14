@@ -128,7 +128,7 @@ export const register = async (req, res) => {
   }
 };
 
-export const sendEmailVerificationCode = async (req, res) => {
+export const sendAccountVerificationLink = async (req, res) => {
   const { userId, email } = req.body;
 
   const code = crypto.randomBytes(4).toString("hex").toUpperCase();
@@ -190,7 +190,7 @@ export const sendEmailVerificationCode = async (req, res) => {
   }
 };
 
-export const verifyEmailVerificationCode = async (req, res) => {
+export const verifyAccountVerificationLink = async (req, res) => {
   const { payloadEncrypted } = req.query;
 
   try {
@@ -294,7 +294,7 @@ export const verifyApplication = async (req, res) => {
   return res.status(200).json({ message: response.message });
 };
 
-export const generatePasswordResetLink = async (req, res) => {
+export const sentPasswordResetLink = async (req, res) => {
   const { email } = req.body;
 
   const user = await User.getUserByEmail(email);
