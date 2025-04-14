@@ -7,6 +7,7 @@ import { User } from "../models/userModel.js";
 import { v7 as uuidv7 } from "uuid";
 import { db } from "../config/db.js";
 import crypto from "crypto";
+import { compactDecrypt, CompactEncrypt, importPKCS8, importSPKI } from "jose";
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
@@ -18,6 +19,15 @@ export const login = async (req, res) => {
   }
 
   if (!user.is_verified) {
+    // Verify Verification Attempt
+    const { attempt } = await Auth.getEmailVerificationCodeAttempt(
+      user.user_id
+    );
+    if (attempt >= 3) {
+      return res.status(403).json({
+        isAttemptExceeded: true,
+      });
+    }
     return res.status(403).json({
       message:
         "Account not yet verified. Please check your email for the verification link.",
@@ -118,15 +128,11 @@ export const register = async (req, res) => {
   }
 };
 
-export const sendEmailVerificationCode = async (req, res) => {
+export const sendAccountVerificationLink = async (req, res) => {
   const { userId, email } = req.body;
 
   const code = crypto.randomBytes(4).toString("hex").toUpperCase();
   const hashedCode = await bcrypt.hash(code, 10);
-
-  const token = jwt.sign({ userId: userId }, process.env.PASSWORD_RESET_KEY, {
-    expiresIn: "15m",
-  });
 
   const data = {
     code_id: uuidv7(),
@@ -136,13 +142,20 @@ export const sendEmailVerificationCode = async (req, res) => {
     expires_at: db.raw("NOW() + INTERVAL 15 MINUTE"),
   };
 
+  const publicKeyPEM = process.env.JWE_PUBLIC_KEY;
+  const publicKey = await importSPKI(publicKeyPEM, "RSA-OAEP");
+  const payload = JSON.stringify({ code: code, id: userId });
+  const jwe = await new CompactEncrypt(new TextEncoder().encode(payload))
+    .setProtectedHeader({ alg: "RSA-OAEP", enc: "A256GCM" })
+    .encrypt(publicKey);
+
   try {
     await Auth.addEmailVerificationCode(data);
 
     const verificationLink =
       process.env.NODE_ENV === "production"
-        ? `${process.env.LIVE_URL}/verify-account?code=${code}&id=${token}`
-        : `${process.env.VITE_API_BASE_URL}/verify-account?code=${code}&id=${token}`;
+        ? `${process.env.LIVE_URL}/verify-account?payload-encrypted=${jwe}`
+        : `${process.env.VITE_API_BASE_URL}/verify-account?payload-encrypted=${jwe}`;
 
     await transporter.sendMail({
       from: process.env.NODEMAILER_USER,
@@ -177,21 +190,22 @@ export const sendEmailVerificationCode = async (req, res) => {
   }
 };
 
-export const verifyEmailVerificationCode = async (req, res) => {
-  const { code, id } = req.query;
+export const verifyAccountVerificationLink = async (req, res) => {
+  const { payloadEncrypted } = req.query;
 
   try {
-    const decoded = jwt.verify(id, process.env.PASSWORD_RESET_KEY);
+    const privateKeyPEM = process.env.JWE_PRIVATE_KEY;
+    const privateKey = await importPKCS8(privateKeyPEM, "RSA-OAEP");
+    const { plaintext } = await compactDecrypt(payloadEncrypted, privateKey);
+    const payload = JSON.parse(new TextDecoder().decode(plaintext));
 
-    console.log(decoded.userId);
+    const user = await Auth.getEmailVerificationCodeById(payload.id);
 
-    const user = await Auth.getEmailVerificationCodeById(decoded.userId);
-
-    const isMatch = await bcrypt.compare(code, user.verification_code);
+    const isMatch = await bcrypt.compare(payload.code, user.verification_code);
 
     if (!isMatch) {
       return res
-        .status(401)
+        .status(400)
         .json({ isSuccess: false, message: "Invalid credentials" });
     }
 
@@ -280,7 +294,7 @@ export const verifyApplication = async (req, res) => {
   return res.status(200).json({ message: response.message });
 };
 
-export const generatePasswordResetLink = async (req, res) => {
+export const sentPasswordResetLink = async (req, res) => {
   const { email } = req.body;
 
   const user = await User.getUserByEmail(email);
