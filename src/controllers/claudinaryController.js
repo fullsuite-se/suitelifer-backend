@@ -7,7 +7,7 @@ export const uploadImage = async (req, res) => {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    const { folder } = req.body;
+    const { folder } = req.params;
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         { folder: `suitelifer/${folder}` },
