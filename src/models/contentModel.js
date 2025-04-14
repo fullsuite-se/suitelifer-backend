@@ -6,12 +6,19 @@ export const Content = {
   getHome: async () => {
     return await contentTable()
       .select(
-        "get_in_touch_image AS getInTouchImage",
-        "home_video AS homeVideo",
+        "content_id AS contentId",
+        // "get_in_touch_image AS getInTouchImage",
+        "kickstart_video AS kickstartVideo",
         "sl_content.created_at AS createdAt"
       )
       .orderBy("sl_content.created_at", "desc")
       .first();
+  },
+
+  patchHome: async (kickstart_video, content_id) => {
+    return await contentTable()
+      .update({ kickstart_video })
+      .where({ content_id });
   },
 
   getAboutUs: async () => {
