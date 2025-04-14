@@ -6,9 +6,9 @@ export const Testimonial = {
   getAllTestimonials: async () => {
     return await db
       .select(
-        "testimonial_id AS testimonialId",
-        "employee_image_url AS employeeImageUrl",
-        "employee_name AS employeeName",
+        "testimonial_id",
+        "employee_image_url",
+        "employee_name",
         "position",
         "testimony",
         "is_shown as isShown",
