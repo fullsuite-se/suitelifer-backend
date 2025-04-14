@@ -17,7 +17,7 @@ export const Faq = {
       .innerJoin("sl_user_accounts", {
         "sl_faqs.created_by": "sl_user_accounts.user_id",
       })
-      .orderBy("created_at", "asc"); 
+      .orderBy("created_at", "desc"); 
   },  insertFaq: async (newFaq) => {
     return await table().insert(newFaq);
   },
