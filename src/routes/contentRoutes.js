@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  getAboutUs as getAbout,
+  getAbout,
   getAllContent,
   getCareers,
   getContact,
