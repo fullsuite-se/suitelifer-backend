@@ -29,7 +29,7 @@ export const updateUserPassword = async (req, res) => {
     const { plaintext } = await compactDecrypt(payloadEncrypted, privateKey);
     const payload = JSON.parse(new TextDecoder().decode(plaintext));
 
-    const user = await Auth.getEmailVerificationCodeById(payload.id);
+    const user = await Auth.getVerificationCodeById(payload.id);
 
     const isMatch = await bcrypt.compare(payload.code, user.verification_code);
 
@@ -44,7 +44,7 @@ export const updateUserPassword = async (req, res) => {
 
     await User.updatePassword(user.user_id, hashedPassword);
 
-    await Auth.deleteEmailVerificationCodesById(user.user_id);
+    await Auth.deleteVerificationCodesById(user.user_id);
     // Invalidate the reset token/s
     res
       .status(200)
