@@ -40,6 +40,10 @@ export const Auth = {
       .first();
   },
 
+  deleteEmailVerificationCodesById: async (id) => {
+    return await db(emailVerificationCodeTable).where("user_id", id).del();
+  },
+
   registerUser: async (user) => {
     return await db(userAccountTable).insert(user);
   },
