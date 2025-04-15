@@ -22,9 +22,7 @@ export const login = async (req, res) => {
 
   if (!user.is_verified) {
     // Verify Verification Attempt
-    const { attempt } = await Auth.getEmailVerificationCodeAttempt(
-      user.user_id
-    );
+    const { attempt } = await Auth.getVerificationCodeAttempt(user.user_id);
     if (attempt >= 3) {
       return res.status(403).json({
         isAttemptExceeded: true,
@@ -146,7 +144,7 @@ export const sendAccountVerificationLink = async (req, res) => {
       .setProtectedHeader({ alg: "RSA-OAEP", enc: "A256GCM" })
       .encrypt(publicKey);
 
-    await Auth.addEmailVerificationCode(data);
+    await Auth.addVerificationCode(data);
 
     const verificationLink =
       process.env.NODE_ENV === "production"
@@ -195,7 +193,7 @@ export const verifyAccountVerificationLink = async (req, res) => {
     const { plaintext } = await compactDecrypt(payloadEncrypted, privateKey);
     const payload = JSON.parse(new TextDecoder().decode(plaintext));
 
-    const user = await Auth.getEmailVerificationCodeById(payload.id);
+    const user = await Auth.getVerificationCodeById(payload.id);
 
     const isMatch = await bcrypt.compare(payload.code, user.verification_code);
 
@@ -207,10 +205,10 @@ export const verifyAccountVerificationLink = async (req, res) => {
 
     // Update the status of the account
     await Auth.updateUserVerificationStatus(user.user_id);
-    await Auth.deleteEmailVerificationCodesById(user.user_id);
+    await Auth.deleteVerificationCodesById(user.user_id);
     res
       .status(200)
-      .json({ isSuccess: true, message: "Account successfuly verified" });
+      .json({ isSuccess: true, message: "Account successfully verified" });
   } catch (error) {
     if (error.name === "TokenExpiredError") {
       console.error("Token has expired:", error.message);
@@ -257,7 +255,7 @@ export const sendPasswordResetLink = async (req, res) => {
       .setProtectedHeader({ alg: "RSA-OAEP", enc: "A256GCM" })
       .encrypt(publicKey);
 
-    await Auth.addEmailVerificationCode(data);
+    await Auth.addVerificationCode(data);
 
     const resetLink =
       process.env.NODE_ENV === "production"
