@@ -1,7 +1,7 @@
 import { db } from "../config/db.js";
 
 const userAccountTable = "sl_user_accounts";
-const emailVerificationCodeTable = "sl_email_verification_codes";
+const verificationCodeTable = "sl_verification_codes";
 
 export const Auth = {
   authenticate: async (email) => {
@@ -21,18 +21,18 @@ export const Auth = {
     });
   },
 
-  getEmailVerificationCodeById: async (id) => {
-    return await db(emailVerificationCodeTable)
-      .where(`${emailVerificationCodeTable}.user_id`, id)
-      .orderBy(`${emailVerificationCodeTable}.created_at`, "desc")
+  getVerificationCodeById: async (id) => {
+    return await db(verificationCodeTable)
+      .where(`${verificationCodeTable}.user_id`, id)
+      .orderBy(`${verificationCodeTable}.created_at`, "desc")
       .first();
   },
 
-  getEmailVerificationCodeAttempt: async (id) => {
-    return await db(emailVerificationCodeTable)
-      .where(`${emailVerificationCodeTable}.user_id`, id)
+  getVerificationCodeAttempt: async (id) => {
+    return await db(verificationCodeTable)
+      .where(`${verificationCodeTable}.user_id`, id)
       .andWhere(
-        `${emailVerificationCodeTable}.created_at`,
+        `${verificationCodeTable}.created_at`,
         ">=",
         db.raw("NOW() - INTERVAL 10 MINUTE")
       )
@@ -40,16 +40,16 @@ export const Auth = {
       .first();
   },
 
-  deleteEmailVerificationCodesById: async (id) => {
-    return await db(emailVerificationCodeTable).where("user_id", id).del();
+  deleteVerificationCodesById: async (id) => {
+    return await db(verificationCodeTable).where("user_id", id).del();
   },
 
   registerUser: async (user) => {
     return await db(userAccountTable).insert(user);
   },
 
-  addEmailVerificationCode: async (user) => {
-    return await db(emailVerificationCodeTable).insert(user);
+  addVerificationCode: async (user) => {
+    return await db(verificationCodeTable).insert(user);
   },
 
   updateUserVerificationStatus: async (id) => {
