@@ -130,26 +130,25 @@ export const register = async (req, res) => {
 
 export const sendAccountVerificationLink = async (req, res) => {
   const { userId, email } = req.body;
-
-  const code = crypto.randomBytes(4).toString("hex").toUpperCase();
-  const hashedCode = await bcrypt.hash(code, 10);
-
-  const data = {
-    code_id: uuidv7(),
-    user_id: userId,
-    verification_code: hashedCode,
-    created_at: db.fn.now(),
-    expires_at: db.raw("NOW() + INTERVAL 15 MINUTE"),
-  };
-
-  const publicKeyPEM = process.env.JWE_PUBLIC_KEY;
-  const publicKey = await importSPKI(publicKeyPEM, "RSA-OAEP");
-  const payload = JSON.stringify({ code: code, id: userId });
-  const jwe = await new CompactEncrypt(new TextEncoder().encode(payload))
-    .setProtectedHeader({ alg: "RSA-OAEP", enc: "A256GCM" })
-    .encrypt(publicKey);
-
   try {
+    const code = crypto.randomBytes(4).toString("hex").toUpperCase();
+    const hashedCode = await bcrypt.hash(code, 10);
+
+    const data = {
+      code_id: uuidv7(),
+      user_id: userId,
+      verification_code: hashedCode,
+      created_at: db.fn.now(),
+      expires_at: db.raw("NOW() + INTERVAL 15 MINUTE"),
+    };
+
+    const publicKeyPEM = process.env.JWE_PUBLIC_KEY;
+    const publicKey = await importSPKI(publicKeyPEM, "RSA-OAEP");
+    const payload = JSON.stringify({ code: code, id: userId });
+    const jwe = await new CompactEncrypt(new TextEncoder().encode(payload))
+      .setProtectedHeader({ alg: "RSA-OAEP", enc: "A256GCM" })
+      .encrypt(publicKey);
+
     await Auth.addEmailVerificationCode(data);
 
     const verificationLink =
@@ -206,7 +205,7 @@ export const verifyAccountVerificationLink = async (req, res) => {
     if (!isMatch) {
       return res
         .status(400)
-        .json({ isSuccess: false, message: "Invalid credentials" });
+        .json({ isSuccess: false, message: "Invalid verification code" });
     }
 
     // Update the status of the account
@@ -227,6 +226,76 @@ export const verifyAccountVerificationLink = async (req, res) => {
     return res
       .status(400)
       .json({ isSuccess: false, message: error.message || "Invalid request" });
+  }
+};
+
+export const sendPasswordResetLink = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.getUserByEmail(email);
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ isSuccess: false, message: "Email not found or invalid" });
+    }
+
+    const code = crypto.randomBytes(4).toString("hex").toUpperCase();
+    const hashedCode = await bcrypt.hash(code, 10);
+
+    const data = {
+      code_id: uuidv7(),
+      user_id: user.user_id,
+      verification_code: hashedCode,
+      created_at: db.fn.now(),
+      expires_at: db.raw("NOW() + INTERVAL 15 MINUTE"),
+    };
+
+    const publicKeyPEM = process.env.JWE_PUBLIC_KEY;
+    const publicKey = await importSPKI(publicKeyPEM, "RSA-OAEP");
+    const payload = JSON.stringify({ code: code, id: user.user_id });
+    const jwe = await new CompactEncrypt(new TextEncoder().encode(payload))
+      .setProtectedHeader({ alg: "RSA-OAEP", enc: "A256GCM" })
+      .encrypt(publicKey);
+
+    await Auth.addEmailVerificationCode(data);
+
+    const resetLink =
+      process.env.NODE_ENV === "production"
+        ? `${process.env.LIVE_URL}/reset-password?payload-encrypted=${jwe}`
+        : `${process.env.VITE_API_BASE_URL}/reset-password?payload-encrypted=${jwe}`;
+
+    await transporter.sendMail({
+      from: process.env.NODEMAILER_USER,
+      to: email,
+      subject: "Reset Your Password - Suitelifer",
+      html: `
+          <div style="font-family: Arial, sans-serif; color: #333; max-width: 500px; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+            <h2 style="color: #0097b2;">Password Reset Request</h2>
+            <p>Hello,</p>
+            <p>We received a request to reset your password for your Suitelifer account.</p>
+            <p>Click the button below to reset your password:</p>
+            <p style="text-align: center;">
+              <a href="${resetLink}" 
+                style="background-color: #0097b2; color: white; padding: 10px 20px; text-decoration: none; 
+                border-radius: 5px; display: inline-block; font-weight: bold;">
+                Reset Password
+              </a>
+            </p>
+            <p><strong>This link is valid for 15 minutes.</strong> If it expires, you will need to request a new password reset.</p>
+            <p>If you didn't request this, you can ignore this email. Your password will remain unchanged.</p>
+            <p style="color: #777; font-size: 12px;">For security reasons, this link will expire in 15 minutes.</p>
+          </div>
+        `,
+    });
+    res.status(200).json({
+      isSuccess: true,
+      message: "Password reset link sent! Check your email.",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
@@ -292,58 +361,4 @@ export const verifyApplication = async (req, res) => {
   }
 
   return res.status(200).json({ message: response.message });
-};
-
-export const sentPasswordResetLink = async (req, res) => {
-  const { email } = req.body;
-
-  const user = await User.getUserByEmail(email);
-
-  if (!user) {
-    return res
-      .status(404)
-      .json({ isSuccess: false, message: "Email not found or invalid" });
-  }
-
-  const resetToken = jwt.sign(
-    { userId: user.user_id },
-    process.env.PASSWORD_RESET_KEY,
-    { expiresIn: "15m" }
-  );
-
-  const hashedToken = await bcrypt.hash(resetToken, 10);
-  await User.updateUserKey(user.user_id, hashedToken);
-
-  const resetLink =
-    process.env.NODE_ENV === "production"
-      ? `${process.env.LIVE_URL}/reset-password?token=${resetToken}`
-      : `${process.env.VITE_API_BASE_URL}/reset-password?token=${resetToken}`;
-
-  await transporter.sendMail({
-    from: process.env.NODEMAILER_USER,
-    to: email,
-    subject: "Reset Your Password - Suitelifer",
-    html: `
-          <div style="font-family: Arial, sans-serif; color: #333; max-width: 500px; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-            <h2 style="color: #0097b2;">Password Reset Request</h2>
-            <p>Hello,</p>
-            <p>We received a request to reset your password for your Suitelifer account.</p>
-            <p>Click the button below to reset your password:</p>
-            <p style="text-align: center;">
-              <a href="${resetLink}" 
-                style="background-color: #0097b2; color: white; padding: 10px 20px; text-decoration: none; 
-                border-radius: 5px; display: inline-block; font-weight: bold;">
-                Reset Password
-              </a>
-            </p>
-            <p><strong>This link is valid for 15 minutes.</strong> If it expires, you will need to request a new password reset.</p>
-            <p>If you didn't request this, you can ignore this email. Your password will remain unchanged.</p>
-            <p style="color: #777; font-size: 12px;">For security reasons, this link will expire in 15 minutes.</p>
-          </div>
-        `,
-  });
-  res.status(200).json({
-    isSuccess: true,
-    message: "Password reset link sent! Check your email.",
-  });
 };
