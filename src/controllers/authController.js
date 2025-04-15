@@ -14,7 +14,9 @@ export const login = async (req, res) => {
 
   const user = await Auth.authenticate(email);
 
-  if (!user) {
+  const isMatch = await bcrypt.compare(password, user.user_password);
+
+  if (!isMatch || !user) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
@@ -37,11 +39,6 @@ export const login = async (req, res) => {
     });
   }
 
-  const isMatch = await bcrypt.compare(password, user.user_password);
-
-  if (!isMatch) {
-    return res.status(401).json({ message: "Invalid credentials" });
-  }
   const accessToken = jwt.sign(
     {
       email: user.user_email,
