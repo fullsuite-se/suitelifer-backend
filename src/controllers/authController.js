@@ -210,6 +210,7 @@ export const verifyAccountVerificationLink = async (req, res) => {
 
     // Update the status of the account
     await Auth.updateUserVerificationStatus(user.user_id);
+    await Auth.deleteEmailVerificationCodesById(user.user_id);
     res
       .status(200)
       .json({ isSuccess: true, message: "Account successfuly verified" });
