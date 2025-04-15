@@ -5,7 +5,7 @@ import {
   refreshToken,
   userInfo,
   verifyApplication,
-  sentPasswordResetLink,
+  sendPasswordResetLink,
   register,
   sendAccountVerificationLink,
   verifyAccountVerificationLink,
@@ -24,7 +24,7 @@ router.post("/send-account-verification-link", sendAccountVerificationLink);
 
 router.get("/verify-account-verification-link", verifyAccountVerificationLink);
 
-router.post("/send-password-reset-link", sentPasswordResetLink);
+router.post("/send-password-reset-link", sendPasswordResetLink);
 
 router.get("/refresh-token", refreshToken);
 
