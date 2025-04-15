@@ -210,7 +210,7 @@ export const verifyAccountVerificationLink = async (req, res) => {
     await Auth.deleteEmailVerificationCodesById(user.user_id);
     res
       .status(200)
-      .json({ isSuccess: true, message: "Account successfuly verified" });
+      .json({ isSuccess: true, message: "Account successfully verified" });
   } catch (error) {
     if (error.name === "TokenExpiredError") {
       console.error("Token has expired:", error.message);
