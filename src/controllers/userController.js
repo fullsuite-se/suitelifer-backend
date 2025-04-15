@@ -44,9 +44,8 @@ export const updateUserPassword = async (req, res) => {
 
     await User.updatePassword(user.user_id, hashedPassword);
 
-    // Invalidate the reset token
-    await User.updateUserKey(user.user_id, null);
-
+    await Auth.deleteEmailVerificationCodesById(user.user_id);
+    // Invalidate the reset token/s
     res
       .status(200)
       .json({ isSuccess: true, message: "Password updated successfully" });
