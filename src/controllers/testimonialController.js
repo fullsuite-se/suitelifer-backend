@@ -121,7 +121,7 @@ export const deleteTestimonial = async (req, res) => {
 
     res
       .status(200)
-      .json({ suuccess: true, message: "Testimony Deleted Successfully" });
+      .json({ success: true, message: "Testimony Deleted Successfully" });
   } catch (err) {
     console.error("Error deleting testimonial:", err.message);
     res.status(500).json({ success: false, message: "Internal Server Error" });
