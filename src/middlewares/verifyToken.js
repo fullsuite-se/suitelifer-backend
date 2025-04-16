@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 
-const verifyJWT = (req, res, next) => {
-  const token = req.cookies.accessToken;
+const verifyToken = (req, res, next) => {
+  const token = req.cookies?.accessToken;
 
   if (!token) {
     return res.status(403).json({ message: "Access Denied" });
@@ -16,4 +16,4 @@ const verifyJWT = (req, res, next) => {
   }
 };
 
-export default verifyJWT;
+export default verifyToken;

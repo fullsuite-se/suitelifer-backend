@@ -3,11 +3,13 @@ import {
   addEmployeeBlog,
   getAllEmployeeBlogs,
 } from "../controllers/blogController.js";
-import verifyJWT from "../middlewares/verifyJWT.js";
+
+import verifyToken from "../middlewares/verifyToken.js";
 
 const router = express.Router();
 
-router.get("/employee-allblog", getAllEmployeeBlogs);
-router.post("/employee-blog", verifyJWT, addEmployeeBlog);
+router.get("/all-employee-blog", verifyToken, getAllEmployeeBlogs);
+
+router.post("/add-employee-blog", verifyToken, addEmployeeBlog);
 
 export default router;
