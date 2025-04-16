@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-const verifyJWT = (req, res, next) => {
+const verifyToken = (req, res, next) => {
   const token = req.cookies.accessToken;
 
   if (!token) {
@@ -16,4 +16,4 @@ const verifyJWT = (req, res, next) => {
   }
 };
 
-export default verifyJWT;
+export default verifyToken;
