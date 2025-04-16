@@ -5,16 +5,17 @@ import {
   deleteCourse,
   updateCourse,
 } from "../controllers/courseController.js";
+import verifyToken from "../middlewares/verifyToken.js";
+import verifyAdmin from "../middlewares/verifyAdmin.js";
 
 const router = express.Router();
 
-router.get("/course", getAllCourses);
+router.get("/course", verifyToken, getAllCourses);
 
-router.post("/course", insertCourse);
+router.post("/course", verifyToken, verifyAdmin, insertCourse);
 
-router.put("/course", updateCourse);
+router.put("/course", verifyToken, verifyAdmin, updateCourse);
 
-router.delete("/course", deleteCourse);
-
+router.delete("/course", verifyToken, verifyAdmin, deleteCourse);
 
 export default router;

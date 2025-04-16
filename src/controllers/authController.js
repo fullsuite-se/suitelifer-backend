@@ -269,7 +269,8 @@ export const sendPasswordResetLink = async (req, res) => {
 
     const publicKeyPEM = process.env.JWE_PUBLIC_KEY;
     const publicKey = await importSPKI(publicKeyPEM, "RSA-OAEP");
-    const payload = JSON.stringify({ code: code, id: user.user_id });
+    const exp = Math.floor(Date.now() / 1000 + 15 * 60);
+    const payload = JSON.stringify({ code: code, id: user.user_id, exp: exp });
     const jwe = await new CompactEncrypt(new TextEncoder().encode(payload))
       .setProtectedHeader({ alg: "RSA-OAEP", enc: "A256GCM" })
       .encrypt(publicKey);
