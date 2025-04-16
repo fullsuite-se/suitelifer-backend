@@ -2,6 +2,20 @@ import { Course } from "../models/courseModel.js";
 import { v7 as uuidv7 } from "uuid";
 import { now } from "../utils/date.js";
 
+export const getAllCourses = async (req, res) => {
+  try {
+    const courses = await Course.getAllCourses();
+
+    res.status(200).json({ success: true, courses });
+  } catch (e) {
+    console.log("Error Fetching Job Courses", e);
+    res.status(500).json({
+      success: false,
+      messsage: "Internal Server Error.",
+    });
+  }
+};
+
 export const insertCourse = async (req, res) => {
   try {
     const { title, description, url, userId } = req.body;
@@ -26,30 +40,16 @@ export const insertCourse = async (req, res) => {
 
     await Course.addCourse(newCourse);
 
-    res.status(201).json({ success: true, courseId: course_id });
+    res.status(201).json({ success: true, message: "Course added successfully" });
   } catch (err) {
     console.log("Error inserting job course", err.message);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
-export const getAllCourses = async (req, res) => {
-  try {
-    const courses = await Course.getAllCourses();
-
-    res.status(200).json({ success: true, data: courses });
-  } catch (e) {
-    console.log("Error Fetching Job Courses", e);
-    res.status(500).json({
-      success: false,
-      messsage: "Internal Server Error.",
-    });
-  }
-};
-
 export const updateCourse = async (req, res) => {
   try {
-    const { course_id, title, description, url } = req.body;
+    const { courseId, title, description, url } = req.body;
 
     const updatedCourse = {
       title,
@@ -57,10 +57,10 @@ export const updateCourse = async (req, res) => {
       url
     };
 
-    await Course.updateCourse(course_id, updatedCourse);
+    await Course.updateCourse(courseId, updatedCourse);
     res.status(200).json({
       success: true,
-      message: "Course has been updated successfully.",
+      message: "Course updated successfully.",
     });
   } catch (error) {
     console.log("Error Updating Course.");
@@ -70,27 +70,27 @@ export const updateCourse = async (req, res) => {
 
 export const deleteCourse = async (req, res) => {
   try {
-    const { course_id } = req.body;
+    const { courseId } = req.body;
 
-    if (!course_id) {
+    if (!courseId) {
       return res.status(400).json({
         success: false,
         message: "Missing: job_course_id",
       });
     }
 
-    const deletedCourse = await Course.deleteCourse(course_id);
+    const deletedCourse = await Course.deleteCourse(courseId);
 
     if (!deletedCourse) {
       return res.status(404).json({
         success: false,
-        message: "Job course not found or already deleted",
+        message: "Course not found or already deleted",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: "Job course deleted successfully.",
+      message: "Course deleted successfully.",
     });
   } catch (error) {
     console.log("Error Deleting Job Course.", error);

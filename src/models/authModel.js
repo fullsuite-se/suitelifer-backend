@@ -1,7 +1,7 @@
 import { db } from "../config/db.js";
 
 const userAccountTable = "sl_user_accounts";
-const emailVerificationCodeTable = "sl_email_verification_codes";
+const verificationCodeTable = "sl_verification_codes";
 
 export const Auth = {
   authenticate: async (email) => {
@@ -13,36 +13,43 @@ export const Auth = {
           `${userAccountTable}.user_id`,
           `${userAccountTable}.user_password`,
           `${userAccountTable}.first_name`,
-          `${userAccountTable}.last_name`
+          `${userAccountTable}.last_name`,
+          `${userAccountTable}.is_verified`
         )
         .where(`${userAccountTable}.user_email`, email)
         .first();
     });
   },
 
-  getServices: async (id) => {
-    return await db("hris_user_access_permissions")
-      .select("service_features.feature_name")
-      .innerJoin(
-        "service_features",
-        "hris_user_access_permissions.service_feature_id",
-        "service_features.service_feature_id"
-      )
-      .where("hris_user_access_permissions.user_id", id);
+  getVerificationCodeById: async (id) => {
+    return await db(verificationCodeTable)
+      .where(`${verificationCodeTable}.user_id`, id)
+      .orderBy(`${verificationCodeTable}.created_at`, "desc")
+      .first();
   },
 
-  getEmailVerificationCodeById: async (id) => {
-    return await db(emailVerificationCodeTable)
-      .where(`${emailVerificationCodeTable}.user_id`, id)
+  getVerificationCodeAttempt: async (id) => {
+    return await db(verificationCodeTable)
+      .where(`${verificationCodeTable}.user_id`, id)
+      .andWhere(
+        `${verificationCodeTable}.created_at`,
+        ">=",
+        db.raw("NOW() - INTERVAL 10 MINUTE")
+      )
+      .count("* as attempt")
       .first();
+  },
+
+  deleteVerificationCodesById: async (id) => {
+    return await db(verificationCodeTable).where("user_id", id).del();
   },
 
   registerUser: async (user) => {
     return await db(userAccountTable).insert(user);
   },
 
-  addEmailVerificationCode: async (user) => {
-    return await db(emailVerificationCodeTable).insert(user);
+  addVerificationCode: async (user) => {
+    return await db(verificationCodeTable).insert(user);
   },
 
   updateUserVerificationStatus: async (id) => {
