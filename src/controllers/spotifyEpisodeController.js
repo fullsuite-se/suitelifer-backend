@@ -1,11 +1,11 @@
-import { SpotifyEpisode } from "../models/spotifyEpisodeModel.js";
+import { SpotifyEpisode as SpotifyEmbed } from "../models/spotifyEpisodeModel.js";
 import { v7 as uuidv7 } from "uuid";
 import { now } from "../utils/date.js";
 
 export const getThreeLatestEpisodes = async (req, res) => {
   try {
-    const threeLatestEpisodes = await SpotifyEpisode.getThreeLatestEpisodes();
-    res.status(200).json({ success: true, data: threeLatestEpisodes });
+    const threeLatestEpisodes = await SpotifyEmbed.getThreeLatestEpisodes();
+    res.status(200).json({ success: true, threeLatestEpisodes });
   } catch (err) {
     console.error("Error fetching latest three episodes:", err.message);
     res.status(500).json({
@@ -15,9 +15,23 @@ export const getThreeLatestEpisodes = async (req, res) => {
   }
 };
 
+export const getPlaylists = async (req, res) => {
+  try {
+    const playlists = await SpotifyEmbed.getPlaylists();
+
+    res.status(200).json({ success: true, playlists });
+  } catch (err) {
+    console.error("Error fetching playlists:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
 export const getEpisodes = async (req, res) => {
   try {
-    const episodes = await SpotifyEpisode.getAllEmbeds();
+    const episodes = await SpotifyEmbed.getAllEmbeds();
     res.status(200).json({ success: true, data: episodes });
   } catch (err) {
     console.error("Error fetching episodes:", err.message);
@@ -30,13 +44,15 @@ export const getEpisodes = async (req, res) => {
 
 export const insertEpisode = async (req, res) => {
   try {
-    const { embedType, url, userId } = req.body;
+    const { url, userId } = req.body;
+
+    const embedType = url.indexOf("episode/") !== -1 ? "EPISODE" : "PLAYLIST";
 
     // VALIDATE REQUIRED FIELDS
-    if (!embedType || !url || !userId) {
+    if (!url || !userId) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: embed type, url, or user id",
+        message: "Missing required fields: url or user id",
       });
     }
 
@@ -54,12 +70,13 @@ export const insertEpisode = async (req, res) => {
     const newEpisode = {
       episode_id: uuidv7(),
       spotify_id,
+      embed_type: embedType,
       created_at: now(),
       created_by: userId,
     };
 
     // INSERT EPISODE INTO THE DATABASE
-    await SpotifyEpisode.insertEmbed(newEpisode);
+    await SpotifyEmbed.insertEmbed(newEpisode);
 
     res.status(201).json({
       success: true,
@@ -78,15 +95,17 @@ export const insertEpisode = async (req, res) => {
 
 export const updateEpisode = async (req, res) => {
   try {
-    const { episodeId, embedType, url, userId } = req.body;
+    const { episodeId, url, userId } = req.body;
 
     // VALIDATE REQUIRED FIELDS
-    if (!episodeId || !embedType || !url) {
+    if (!episodeId || !url) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: episode id, embed type, or url",
+        message: "Missing required fields: episode id or url",
       });
     }
+
+    const embedType = url.indexOf("episode/") !== -1 ? "EPISODE" : "PLAYLIST";
 
     // EXTRACT ID FROM THE URL
     const parts = url.split(embedType === "EPISODE" ? "episode/" : "playlist/");
@@ -104,7 +123,7 @@ export const updateEpisode = async (req, res) => {
     };
 
     // ATTEMPT TO UPDATE THE EPISODE
-    const updatedEpisode = await SpotifyEpisode.updateEmbed(
+    const updatedEpisode = await SpotifyEmbed.updateEmbed(
       episodeId,
       updates,
       userId
@@ -146,7 +165,7 @@ export const deleteEpisode = async (req, res) => {
     }
 
     // ATTEMPT TO DELETE THE EPISODE
-    const deletedEpisode = await SpotifyEpisode.deleteEmbed(episodeId, userId);
+    const deletedEpisode = await SpotifyEmbed.deleteEmbed(episodeId, userId);
 
     if (!deletedEpisode) {
       return res.status(404).json({

@@ -4,6 +4,9 @@ import { Auth } from "../models/authModel.js";
 import { verifyRecaptchaToken } from "../utils/verifyRecaptchaToken.js";
 import transporter from "../utils/nodemailer.js";
 import { User } from "../models/userModel.js";
+import { v7 as uuidv7 } from "uuid";
+import { db } from "../config/db.js";
+import crypto from "crypto";
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
@@ -22,6 +25,7 @@ export const login = async (req, res) => {
   const accessToken = jwt.sign(
     {
       email: user.user_email,
+      role: user.user_type,
       id: user.user_id,
       first_name: user.first_name,
       last_name: user.last_name,
@@ -33,6 +37,7 @@ export const login = async (req, res) => {
   const refreshToken = jwt.sign(
     {
       email: user.user_email,
+      role: user.user_type,
       id: user.user_id,
       first_name: user.first_name,
       last_name: user.last_name,
@@ -74,6 +79,132 @@ export const logout = (req, res) => {
 
   res.json({ message: "Logged out successfully", isLoggedOut: true });
 };
+export const register = async (req, res) => {
+  const { firstName, middleName, lastName, workEmail, password } = req.body;
+
+  const userId = uuidv7();
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const data = {
+    user_id: userId,
+    user_email: workEmail,
+    user_password: hashedPassword,
+    first_name: firstName,
+    middle_name: middleName,
+    last_name: lastName,
+    created_at: db.fn.now(),
+  };
+  try {
+    await Auth.registerUser(data);
+    res.status(200).json({
+      isSuccess: true,
+      message: "User added successfully",
+      userId: userId,
+      email: workEmail,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const sendEmailVerificationCode = async (req, res) => {
+  const { userId, email } = req.body;
+
+  const code = crypto.randomBytes(4).toString("hex").toUpperCase();
+  const hashedCode = await bcrypt.hash(code, 10);
+
+  const token = jwt.sign({ userId: userId }, process.env.PASSWORD_RESET_KEY, {
+    expiresIn: "15m",
+  });
+
+  const data = {
+    code_id: uuidv7(),
+    user_id: userId,
+    verification_code: hashedCode,
+    created_at: db.fn.now(),
+    expires_at: db.raw("NOW() + INTERVAL 15 MINUTE"),
+  };
+
+  try {
+    await Auth.addEmailVerificationCode(data);
+
+    const verificationLink =
+      process.env.NODE_ENV === "production"
+        ? `${process.env.LIVE_URL}/verify-account?code=${code}&id=${token}`
+        : `${process.env.VITE_API_BASE_URL}/verify-account?code=${code}&id=${token}`;
+
+    await transporter.sendMail({
+      from: process.env.NODEMAILER_USER,
+      to: email,
+      subject: "Verify Your Account - Suitelifer",
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #333; max-width: 500px; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+          <h2 style="color: #0097b2;">Verify Your Suitelifer Account</h2>
+          <p>Hello,</p>
+          <p>Thank you for signing up for Suitelifer! To complete your registration, please verify your email address by clicking the button below:</p>
+          <p style="text-align: center;">
+            <a href="${verificationLink}" 
+              style="background-color: #0097b2; color: white; padding: 10px 20px; text-decoration: none; 
+              border-radius: 5px; display: inline-block; font-weight: bold;">
+              Verify My Account
+            </a>
+          </p>
+          <p><strong>This link is valid for 15 minutes.</strong> If it expires, please request a new verification email.</p>
+          <p>If you didn't sign up for Suitelifer, you can ignore this email.</p>
+          <p style="color: #777; font-size: 12px;">For security reasons, this link will expire in 15 minutes.</p>
+        </div>
+      `,
+    });
+
+    res.status(200).json({
+      isSuccess: true,
+      message: "Account verification link sent! Check your email.",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const verifyEmailVerificationCode = async (req, res) => {
+  const { code, id } = req.query;
+
+  try {
+    const decoded = jwt.verify(id, process.env.PASSWORD_RESET_KEY);
+
+    console.log(decoded.userId);
+
+    const user = await Auth.getEmailVerificationCodeById(decoded.userId);
+
+    const isMatch = await bcrypt.compare(code, user.verification_code);
+
+    if (!isMatch) {
+      return res
+        .status(401)
+        .json({ isSuccess: false, message: "Invalid credentials" });
+    }
+
+    // Update the status of the account
+    await Auth.updateUserVerificationStatus(user.user_id);
+    res
+      .status(200)
+      .json({ isSuccess: true, message: "Account successfuly verified" });
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      console.error("Token has expired:", error.message);
+      return res.status(400).json({
+        isSuccess: false,
+        message:
+          "Your password verification link has expired. Please request a new one.",
+      });
+    }
+    console.error("Other error:", error.message);
+    return res
+      .status(400)
+      .json({ isSuccess: false, message: error.message || "Invalid request" });
+  }
+};
 
 export const userInfo = (req, res) => {
   res.json({ user: req.user });
@@ -103,6 +234,7 @@ export const refreshToken = async (req, res) => {
       const newAccessToken = jwt.sign(
         {
           email: decoded.email,
+          role: decoded.role,
           id: decoded.id,
           first_name: decoded.first_name,
           last_name: decoded.last_name,
@@ -120,31 +252,6 @@ export const refreshToken = async (req, res) => {
       res.json({ accessToken: newAccessToken });
     }
   );
-};
-
-export const getServices = async (req, res) => {
-  try {
-    const id = req.params.id;
-
-    if (!id) {
-      return res.status(400).json({ message: "User ID is required" });
-    }
-
-    const services = await Auth.getServices(id);
-
-    if (!services || services.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No services found for this user" });
-    }
-
-    return res.status(200).json({ message: "Services retrieved", services });
-  } catch (error) {
-    console.error("Error fetching services:", error);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: error.message });
-  }
 };
 
 export const verifyApplication = async (req, res) => {
