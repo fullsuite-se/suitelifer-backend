@@ -37,8 +37,6 @@ export const updateUserPassword = async (req, res) => {
       });
     }
 
-    console.log(payload);
-
     const user = await Auth.getVerificationCodeById(payload.id);
 
     const isMatch = await bcrypt.compare(payload.code, user.verification_code);
