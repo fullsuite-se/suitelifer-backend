@@ -13,7 +13,7 @@ import verifyAdmin from "../middlewares/verifyAdmin.js";
 
 const router = express.Router();
 
-router.get("/content/home", verifyToken, getHome);
+router.get("/content/home", getHome);
 
 router.patch("/content/home", verifyToken, verifyAdmin, patchHome);
 
