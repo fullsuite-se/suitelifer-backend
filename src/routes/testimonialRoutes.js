@@ -6,6 +6,7 @@ import {
   getShownTestimonials,
   insertTestimonial,
 } from "../controllers/testimonialController.js";
+import verifyToken from "../middlewares/verifyToken.js";
 
 const router = express.Router();
 
@@ -13,10 +14,10 @@ router.get("/testimonials/shown", getShownTestimonials);
 
 router.get("/testimonials", getAllTestimonials);
 
-router.post("/testimonials", insertTestimonial);
+router.post("/testimonials", verifyToken, insertTestimonial);
 
-router.put("/testimonials", editTestimonial);
+router.put("/testimonials", verifyToken, editTestimonial);
 
-router.delete("/testimonials", deleteTestimonial);
+router.delete("/testimonials", verifyToken, deleteTestimonial);
 
 export default router;
