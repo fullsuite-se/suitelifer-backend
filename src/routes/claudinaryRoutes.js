@@ -4,13 +4,20 @@ import {
   uploadAndSaveImages,
   uploadImage,
 } from "../controllers/claudinaryController.js";
+import verifyToken from "../middlewares/verifyToken.js";
 
 const router = express.Router();
 
-router.post("/upload-image/:folder", upload.single("file"), uploadImage);
+router.post(
+  "/upload-image/:folder",
+  verifyToken,
+  upload.single("file"),
+  uploadImage
+);
 
 router.post(
   "/upload-save-image/:table/:folder/:id",
+  verifyToken,
   upload.array("images", 10),
   uploadAndSaveImages
 );

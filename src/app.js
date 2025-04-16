@@ -4,10 +4,6 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
 
-// Middlewares
-import verifyJWT from "./middlewares/verifyJWT.js";
-
-
 // Routes
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
