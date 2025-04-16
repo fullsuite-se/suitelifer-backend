@@ -10,7 +10,7 @@ import {
   sendAccountVerificationLink,
   verifyAccountVerificationLink,
 } from "../controllers/authController.js";
-import verifyJWT from "../middlewares/verifyJWT.js";
+import verifyToken from "../middlewares/verifyToken.js";
 
 const router = express.Router();
 
@@ -30,6 +30,6 @@ router.get("/refresh-token", refreshToken);
 
 router.post("/verify-recaptcha", verifyApplication);
 
-router.get("/user-info", verifyJWT, userInfo);
+router.get("/user-info", verifyToken, userInfo);
 
 export default router;
