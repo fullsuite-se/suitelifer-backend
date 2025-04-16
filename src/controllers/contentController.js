@@ -1,10 +1,11 @@
 import { Content } from "../models/contentModel.js";
 import { now } from "../utils/date.js";
 import { v7 as uuidv7 } from "uuid";
+import { youtubeLinkToEmbed } from "../utils/youtubeEmbed.js";
 
 export const getHome = async (req, res) => {
   try {
-    const homeContent = await Content.getAboutUs();
+    const homeContent = await Content.getHome();
     res.status(200).json({ success: true, homeContent });
   } catch (err) {
     console.log(err);
@@ -12,7 +13,26 @@ export const getHome = async (req, res) => {
   }
 };
 
-export const getAboutUs = async (req, res) => {
+export const patchHome = async (req, res) => {
+  try {
+    const { contentId, kickstartVideo } = req.body;
+
+    const kickstartEmbed = youtubeLinkToEmbed(kickstartVideo);
+
+    console.log(kickstartEmbed);
+
+    await Content.patchHome(kickstartEmbed, contentId);
+
+    res
+      .status(200)
+      .json({ success: true, message: "Home Content Successfully Updated!" });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const getAbout = async (req, res) => {
   try {
     const aboutContent = await Content.getAboutUs();
     res.status(200).json({ success: true, aboutContent });
