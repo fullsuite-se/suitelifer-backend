@@ -9,12 +9,13 @@ import {
   patchHome,
 } from "../controllers/contentController.js";
 import verifyToken from "../middlewares/verifyToken.js";
+import verifyAdmin from "../middlewares/verifyAdmin.js";
 
 const router = express.Router();
 
-router.get("/content/home", getHome);
+router.get("/content/home", verifyToken, getHome);
 
-router.patch("/content/home", verifyToken, patchHome);
+router.patch("/content/home", verifyToken, verifyAdmin, patchHome);
 
 router.get("/content/about", getAbout);
 
@@ -24,6 +25,6 @@ router.get("/content/contact", getContact);
 
 router.get("/content", getAllContent);
 
-router.post("/add-content", verifyToken, insertContent);
+router.post("/add-content", verifyToken, verifyAdmin, insertContent);
 
 export default router;
