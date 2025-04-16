@@ -34,8 +34,15 @@ export const Blogs = {
       .groupBy(`${tableEmployee}.eblog_id`);
   },
 
+  editEmployeeBlog: async (eblog_id, is_shown) => {
+    return await db(tableEmployee).where({ eblog_id }).update({ is_shown });
+  },
+
+  deleteEmployeeBlog: async (eblog_id) => {
+    return await db(tableEmployee).where({ eblog_id }).del();
+  },
+
   addEmployeeBlog: async (blog) => {
     return await db(tableEmployee).insert(blog);
   },
 };
-
