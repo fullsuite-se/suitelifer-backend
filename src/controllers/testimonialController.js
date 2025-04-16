@@ -84,7 +84,6 @@ export const editTestimonial = async (req, res) => {
       !employeeName ||
       !position ||
       !testimony ||
-      !isShown ||
       !employeeImageUrl
     ) {
       return res.status(400).json({
