@@ -9,7 +9,7 @@ import {
 
 const router = express.Router();
 
-router.get("/testimonials/shown", getShownTestimonials)
+router.get("/testimonials/shown", getShownTestimonials);
 
 router.get("/testimonials", getAllTestimonials);
 
