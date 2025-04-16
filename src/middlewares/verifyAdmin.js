@@ -10,8 +10,10 @@ const verifyAdmin = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-    if (decoded.role !== "ADMIN") {
-      return res.status(403).json({ message: "Access Denied: Admins only" });
+    if (decoded.role !== "ADMIN" && decoded.role !== "SUPER ADMIN") {
+      return res
+        .status(403)
+        .json({ message: "Access Denied: Admins/Super Admin only" });
     }
 
     req.user = decoded;
