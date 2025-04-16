@@ -10,7 +10,7 @@ export const uploadImage = async (req, res) => {
     const { folder } = req.params;
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        { folder: `suitelifer/${folder}` },
+        { folder: `suitelifer/${folder}`, format: "webp" },
         (error, result) => (error ? reject(error) : resolve(result))
       );
       stream.end(req.file.buffer);

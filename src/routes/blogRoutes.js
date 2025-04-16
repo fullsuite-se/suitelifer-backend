@@ -1,12 +1,7 @@
 import express from "express";
 import {
-  addCompanyBlog,
   addEmployeeBlog,
-  getAllCompanyBlogs,
-  getAllCompanyBlogTags,
   getAllEmployeeBlogs,
-  getCompanyBlogById,
-  getFilteredCompanyBlogs,
 } from "../controllers/blogController.js";
 
 import verifyToken from "../middlewares/verifyToken.js";
