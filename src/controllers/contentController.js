@@ -66,7 +66,7 @@ export const patchAbout = async (req, res) => {
     if (
       !contentId ||
       !textBanner ||
-      !aboutHeroImage||
+      !aboutHeroImage ||
       !aboutBackgroundImage ||
       !teamPlayerVideo ||
       !understoodVideo ||
