@@ -28,6 +28,8 @@ router.post("/send-password-reset-link", sendPasswordResetLink);
 
 router.get("/refresh-token", refreshToken);
 
+router.post("/verify-recaptcha", verifyApplication);
+
 router.get("/user-info", verifyToken, userInfo);
 
 export default router;
