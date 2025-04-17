@@ -12,18 +12,30 @@ export const getAllCert = async (req, res) => {
 };
 
 export const addCert = async (req, res) => {
-  try {
-    const { cert_img_url } = req.body;
-    const created_by = req.user.user_id;
-    const created_at = new Date();
+  console.log("req", req.body);
 
-    await Cert.addCert({ cert_img_url, created_by, created_at });
+  const cert_id = uuidv7()
+  const cert_img_url = req.body.imageUrl;
+  const created_by = req.body.userId
+  const created_at = new Date();
+
+  try {
+    console.log("Inserting:", {cert_id, cert_img_url, created_by, created_at });
+
+    await Cert.addCert({ cert_id, cert_img_url, created_by, created_at });
 
     res.status(201).json({ message: "Certification added successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Failed to add certification", error });
+    console.error("Error adding certification:", error);
+
+    res.status(500).json({
+      message: "Failed to add certification",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
   }
 };
+
 
 export const updateCert = async (req, res) => {
   try {
