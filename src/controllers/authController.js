@@ -7,6 +7,7 @@ import { v7 as uuidv7 } from "uuid";
 import { db } from "../config/db.js";
 import crypto from "crypto";
 import { compactDecrypt, CompactEncrypt, importPKCS8, importSPKI } from "jose";
+import { verifyRecaptchaToken } from "../utils/verifyRecaptchaToken.js";
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
@@ -364,4 +365,20 @@ export const refreshToken = async (req, res) => {
       res.json({ accessToken: newAccessToken });
     }
   );
+};
+
+export const verifyApplication = async (req, res) => {
+  const { recaptchaToken } = req.body;
+
+  const response = await verifyRecaptchaToken(recaptchaToken);
+
+  if (!response.isSuccess) {
+    return res.status(400).json({ message: recaptcha.message });
+  }
+
+  if (!response.isHuman) {
+    return res.status(403).json({ message: recaptcha.message });
+  }
+
+  return res.status(200).json({ message: response.message });
 };
