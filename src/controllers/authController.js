@@ -1,7 +1,6 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { Auth } from "../models/authModel.js";
-import { verifyRecaptchaToken } from "../utils/verifyRecaptchaToken.js";
 import transporter from "../utils/nodemailer.js";
 import { User } from "../models/userModel.js";
 import { v7 as uuidv7 } from "uuid";
@@ -14,9 +13,13 @@ export const login = async (req, res) => {
 
   const user = await Auth.authenticate(email);
 
+  if (!user) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
   const isMatch = await bcrypt.compare(password, user.user_password);
 
-  if (!isMatch || !user) {
+  if (!isMatch) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
@@ -361,20 +364,4 @@ export const refreshToken = async (req, res) => {
       res.json({ accessToken: newAccessToken });
     }
   );
-};
-
-export const verifyApplication = async (req, res) => {
-  const { recaptchaToken } = req.body;
-
-  const response = await verifyRecaptchaToken(recaptchaToken);
-
-  if (!response.isSuccess) {
-    return res.status(400).json({ message: recaptcha.message });
-  }
-
-  if (!response.isHuman) {
-    return res.status(403).json({ message: recaptcha.message });
-  }
-
-  return res.status(200).json({ message: response.message });
 };
