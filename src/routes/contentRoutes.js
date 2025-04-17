@@ -6,6 +6,7 @@ import {
   getContact,
   getHome,
   insertContent,
+  patchAbout,
   patchHome,
 } from "../controllers/contentController.js";
 import verifyToken from "../middlewares/verifyToken.js";
@@ -18,6 +19,8 @@ router.get("/content/home", getHome);
 router.patch("/content/home", verifyToken, verifyAdmin, patchHome);
 
 router.get("/content/about", getAbout);
+
+router.patch("/content/about", verifyToken, verifyAdmin, patchAbout);
 
 router.get("/content/careers", getCareers);
 
