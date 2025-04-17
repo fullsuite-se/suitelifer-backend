@@ -1,22 +1,26 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { Auth } from "../models/authModel.js";
-import { verifyRecaptchaToken } from "../utils/verifyRecaptchaToken.js";
 import transporter from "../utils/nodemailer.js";
 import { User } from "../models/userModel.js";
 import { v7 as uuidv7 } from "uuid";
 import { db } from "../config/db.js";
 import crypto from "crypto";
 import { compactDecrypt, CompactEncrypt, importPKCS8, importSPKI } from "jose";
+import { verifyRecaptchaToken } from "../utils/verifyRecaptchaToken.js";
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
   const user = await Auth.authenticate(email);
 
+  if (!user) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
   const isMatch = await bcrypt.compare(password, user.user_password);
 
-  if (!isMatch || !user) {
+  if (!isMatch) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
