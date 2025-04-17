@@ -4,21 +4,21 @@ import {
   logout,
   refreshToken,
   userInfo,
-  verifyApplication,
   sendPasswordResetLink,
   register,
   sendAccountVerificationLink,
   verifyAccountVerificationLink,
 } from "../controllers/authController.js";
 import verifyToken from "../middlewares/verifyToken.js";
+import { recaptcha } from "../middlewares/recaptcha.js";
 
 const router = express.Router();
 
-router.post("/login", login);
+router.post("/login", recaptcha, login);
 
 router.post("/logout", logout);
 
-router.post("/register", register);
+router.post("/register", recaptcha, register);
 
 router.post("/send-account-verification-link", sendAccountVerificationLink);
 
