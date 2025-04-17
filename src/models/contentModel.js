@@ -53,6 +53,7 @@ export const Content = {
   getCareers: async () => {
     return await contentTable()
       .select(
+        "content_id AS contentId",
         "careers_main_image AS careersMainImage",
         "careers_left_image AS careersLeftImage",
         "careers_right_image AS careersRightImage",
@@ -60,6 +61,10 @@ export const Content = {
       )
       .orderBy("sl_content.created_at", "desc")
       .first();
+  },
+
+  patchCareers: async (updates, content_id) => {
+    return await contentTable().update(updates).where({ content_id });
   },
 
   getAllContent: async () => {
