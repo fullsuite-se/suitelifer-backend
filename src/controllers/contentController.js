@@ -66,7 +66,7 @@ export const patchAbout = async (req, res) => {
     if (
       !contentId ||
       !textBanner ||
-      !aboutHeroImage||
+      !aboutHeroImage ||
       !aboutBackgroundImage ||
       !teamPlayerVideo ||
       !understoodVideo ||
@@ -122,6 +122,33 @@ export const getCareers = async (req, res) => {
     res.status(200).json({ success: true, careersContent });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const patchCareers = async (req, res) => {
+  try {
+    const { contentId, careersLeftImage, careersMainImage, careersRightImage } =
+      req.body;
+
+    console.log("L: " + careersLeftImage);
+    console.log("M: " + careersMainImage);
+    console.log("R: " + careersRightImage);
+
+    const updates = {
+      careers_left_image: careersLeftImage,
+      careers_main_image: careersMainImage,
+      careers_right_image: careersRightImage,
+    };
+
+    await Content.patchCareers(updates, contentId);
+
+    res.status(200).json({
+      success: true,
+      message: "Careers Page Images Updates Successfully",
+    });
+  } catch (e) {
+    console.log(e);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
