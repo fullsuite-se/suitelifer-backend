@@ -8,6 +8,7 @@ import {
   register,
   sendAccountVerificationLink,
   verifyAccountVerificationLink,
+  verifyApplication,
 } from "../controllers/authController.js";
 import verifyToken from "../middlewares/verifyToken.js";
 import { recaptcha } from "../middlewares/recaptcha.js";
