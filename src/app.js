@@ -19,6 +19,7 @@ import testimonialRoutes from "./routes/testimonialRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import faqsRoutes from "./routes/faqsRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
+import certificationRoutes from "./routes/certificationRoutes.js";
 
 const app = express();
 dotenv.config();
@@ -49,5 +50,6 @@ app.use("/api", testimonialRoutes);
 app.use("/api", courseRoutes);
 app.use("/api", faqsRoutes);
 app.use("/api", contactRoutes);
+app.use("/api", certificationRoutes);
 
 export default app;
