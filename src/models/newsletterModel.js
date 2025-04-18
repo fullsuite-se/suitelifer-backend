@@ -4,7 +4,7 @@ const newsletterTable = () => db("sl_newsletters");
 
 export const Newsletter = {
   getNewsletters: async (month, year) => {
-    return newsletterTable()
+    const query = newsletterTable()
       .select(
         "newsletter_id AS newsletterId",
         "title",
@@ -20,7 +20,15 @@ export const Newsletter = {
       .join("sl_user_accounts", {
         "sl_newsletters.created_by": "sl_user_accounts.user_id",
       })
-      .where({ month, year });
+      .where({ year });
+
+    if (month > 0 && month < 13) {
+      query.andWhere({ month });
+    }
+
+    query.orderBy("sl_newsletters.created_at", "asc");
+
+    return query;
   },
 
   addNewsletter: async (newNewsletter) => {

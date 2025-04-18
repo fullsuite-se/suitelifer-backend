@@ -4,14 +4,11 @@ import { Newsletter } from "../models/newsletterModel.js";
 
 export const getNewsletters = async (req, res) => {
   try {
-    const { month, year } = req.query;
-
-    console.log(month, year);
-    
+    const { month = null, year } = req.query;
 
     const newsletters = await Newsletter.getNewsletters(month, year);
 
-    res.status(200).json({ success: true, newsletters});
+    res.status(200).json({ success: true, newsletters });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
