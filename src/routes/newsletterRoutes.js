@@ -5,6 +5,7 @@ import {
   getNewsletters,
   insertIssue,
   insertNewsletter,
+  updateCurrentlyPublished,
   updateNewsletter,
 } from "../controllers/newsletterController.js";
 
@@ -13,6 +14,8 @@ const router = express.Router();
 router.get("/issues", getIssues);
 
 router.post("/issues", insertIssue);
+
+router.patch("/issues", updateCurrentlyPublished);
 
 router.get("/newsletter", getNewsletters);
 
