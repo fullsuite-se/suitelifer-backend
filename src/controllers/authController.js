@@ -1,22 +1,26 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { Auth } from "../models/authModel.js";
-import { verifyRecaptchaToken } from "../utils/verifyRecaptchaToken.js";
 import transporter from "../utils/nodemailer.js";
 import { User } from "../models/userModel.js";
 import { v7 as uuidv7 } from "uuid";
 import { db } from "../config/db.js";
 import crypto from "crypto";
 import { compactDecrypt, CompactEncrypt, importPKCS8, importSPKI } from "jose";
+import { verifyRecaptchaToken } from "../utils/verifyRecaptchaToken.js";
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
   const user = await Auth.authenticate(email);
 
+  if (!user) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
   const isMatch = await bcrypt.compare(password, user.user_password);
 
-  if (!isMatch || !user) {
+  if (!isMatch) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
@@ -97,19 +101,29 @@ export const logout = (req, res) => {
 export const register = async (req, res) => {
   const { firstName, middleName, lastName, workEmail, password } = req.body;
 
-  const userId = uuidv7();
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const data = {
-    user_id: userId,
-    user_email: workEmail,
-    user_password: hashedPassword,
-    first_name: firstName,
-    middle_name: middleName,
-    last_name: lastName,
-    created_at: db.fn.now(),
-  };
   try {
+    // Disallow registration if the email is associated with another account
+    const user = await User.getUserByEmail(workEmail);
+    if (user) {
+      return res.status(409).json({
+        isEmailAlreadyExist: true,
+        message: "Email is already registered",
+      });
+    }
+
+    const userId = uuidv7();
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const data = {
+      user_id: userId,
+      user_email: workEmail,
+      user_password: hashedPassword,
+      first_name: firstName,
+      middle_name: middleName,
+      last_name: lastName,
+      created_at: db.fn.now(),
+    };
+
     await Auth.registerUser(data);
     res.status(200).json({
       isSuccess: true,
@@ -139,7 +153,8 @@ export const sendAccountVerificationLink = async (req, res) => {
 
     const publicKeyPEM = process.env.JWE_PUBLIC_KEY;
     const publicKey = await importSPKI(publicKeyPEM, "RSA-OAEP");
-    const payload = JSON.stringify({ code: code, id: userId });
+    const exp = Math.floor(Date.now() / 1000 + 15 * 60);
+    const payload = JSON.stringify({ code: code, id: userId, exp: exp });
     const jwe = await new CompactEncrypt(new TextEncoder().encode(payload))
       .setProtectedHeader({ alg: "RSA-OAEP", enc: "A256GCM" })
       .encrypt(publicKey);
@@ -192,6 +207,14 @@ export const verifyAccountVerificationLink = async (req, res) => {
     const privateKey = await importPKCS8(privateKeyPEM, "RSA-OAEP");
     const { plaintext } = await compactDecrypt(payloadEncrypted, privateKey);
     const payload = JSON.parse(new TextDecoder().decode(plaintext));
+
+    // Checking if yung token is still valid
+    if (Date.now() / 1000 > payload.exp) {
+      return res.status(400).json({
+        isSuccess: false,
+        message: "Verification code has expired. Please request a new one.",
+      });
+    }
 
     const user = await Auth.getVerificationCodeById(payload.id);
 
@@ -250,7 +273,8 @@ export const sendPasswordResetLink = async (req, res) => {
 
     const publicKeyPEM = process.env.JWE_PUBLIC_KEY;
     const publicKey = await importSPKI(publicKeyPEM, "RSA-OAEP");
-    const payload = JSON.stringify({ code: code, id: user.user_id });
+    const exp = Math.floor(Date.now() / 1000 + 15 * 60);
+    const payload = JSON.stringify({ code: code, id: user.user_id, exp: exp });
     const jwe = await new CompactEncrypt(new TextEncoder().encode(payload))
       .setProtectedHeader({ alg: "RSA-OAEP", enc: "A256GCM" })
       .encrypt(publicKey);

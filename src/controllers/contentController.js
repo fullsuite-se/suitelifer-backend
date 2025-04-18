@@ -8,7 +8,7 @@ export const getHome = async (req, res) => {
     const homeContent = await Content.getHome();
     res.status(200).json({ success: true, homeContent });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -27,7 +27,7 @@ export const patchHome = async (req, res) => {
       .status(200)
       .json({ success: true, message: "Home Content Successfully Updated!" });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -37,7 +37,80 @@ export const getAbout = async (req, res) => {
     const aboutContent = await Content.getAboutUs();
     res.status(200).json({ success: true, aboutContent });
   } catch (err) {
-    console.log(err);
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const patchAbout = async (req, res) => {
+  try {
+    const {
+      contentId,
+      textBanner,
+      aboutHeroImage,
+      aboutBackgroundImage,
+      teamPlayerVideo,
+      understoodVideo,
+      focusedVideo,
+      upholdsVideo,
+      harmonyVideo,
+      missionSlogan,
+      visionSlogan,
+      mission,
+      vision,
+      missionVideo,
+      visionVideo,
+      dayInPodUrl,
+    } = req.body;
+
+    if (
+      !contentId ||
+      !textBanner ||
+      !aboutHeroImage ||
+      !aboutBackgroundImage ||
+      !teamPlayerVideo ||
+      !understoodVideo ||
+      !focusedVideo ||
+      !upholdsVideo ||
+      !harmonyVideo ||
+      // !missionSlogan ||
+      !visionSlogan ||
+      !mission ||
+      !vision ||
+      !missionVideo ||
+      !visionVideo ||
+      !dayInPodUrl
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required fields." });
+    }
+
+    const updates = {
+      text_banner: textBanner,
+      about_background_image: aboutBackgroundImage,
+      about_hero_image: aboutHeroImage,
+      team_player_video: teamPlayerVideo,
+      understood_video: understoodVideo,
+      focused_video: focusedVideo,
+      upholds_video: upholdsVideo,
+      harmony_video: harmonyVideo,
+      mission_slogan: missionSlogan,
+      mission,
+      mission_video: missionVideo,
+      vision_slogan: visionSlogan,
+      vision,
+      vision_video: visionVideo,
+      day_in_pod_url: dayInPodUrl,
+    };
+
+    await Content.patchAboutUs(updates, contentId);
+
+    res
+      .status(200)
+      .json({ success: true, message: "About Content Updates Successfully" });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -48,7 +121,34 @@ export const getCareers = async (req, res) => {
 
     res.status(200).json({ success: true, careersContent });
   } catch (err) {
-    console.log(err);
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const patchCareers = async (req, res) => {
+  try {
+    const { contentId, careersLeftImage, careersMainImage, careersRightImage } =
+      req.body;
+
+    console.log("L: " + careersLeftImage);
+    console.log("M: " + careersMainImage);
+    console.log("R: " + careersRightImage);
+
+    const updates = {
+      careers_left_image: careersLeftImage,
+      careers_main_image: careersMainImage,
+      careers_right_image: careersRightImage,
+    };
+
+    await Content.patchCareers(updates, contentId);
+
+    res.status(200).json({
+      success: true,
+      message: "Careers Page Images Updates Successfully",
+    });
+  } catch (e) {
+    console.log(e);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -59,7 +159,7 @@ export const getContact = async (req, res) => {
 
     res.status(200).json({ success: true, contactContent });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -69,7 +169,7 @@ export const getAllContent = async (req, res) => {
     const content = await Content.getAllContent();
     res.status(200).json({ success: true, content });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -130,7 +230,7 @@ export const insertContent = async (req, res) => {
       .status(201)
       .json({ success: true, message: "About Us successfully updated" });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };

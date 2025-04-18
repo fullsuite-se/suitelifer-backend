@@ -4,10 +4,6 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
 
-// Middlewares
-import verifyJWT from "./middlewares/verifyJWT.js";
-
-
 // Routes
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -22,6 +18,9 @@ import personalityTestRoutes from "./routes/personalityTestRoutes.js";
 import testimonialRoutes from "./routes/testimonialRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import faqsRoutes from "./routes/faqsRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
+import newsletterRoutes from "./routes/newsletterRoutes.js";
+import certificationRoutes from "./routes/certificationRoutes.js";
 
 const app = express();
 dotenv.config();
@@ -51,5 +50,8 @@ app.use("/api", personalityTestRoutes);
 app.use("/api", testimonialRoutes);
 app.use("/api", courseRoutes);
 app.use("/api", faqsRoutes);
+app.use("/api", contactRoutes);
+app.use("/api", newsletterRoutes);
+app.use("/api", certificationRoutes);
 
 export default app;
