@@ -7,7 +7,7 @@ export const Content = {
     return await contentTable()
       .select(
         "content_id AS contentId",
-        // "get_in_touch_image AS getInTouchImage",
+        "get_in_touch_image AS getInTouchImage",
         "kickstart_video AS kickstartVideo",
         "sl_content.created_at AS createdAt"
       )
@@ -15,9 +15,9 @@ export const Content = {
       .first();
   },
 
-  patchHome: async (kickstart_video, content_id) => {
+  patchHome: async (get_in_touch_image, kickstart_video, content_id) => {
     return await contentTable()
-      .update({ kickstart_video })
+      .update({ get_in_touch_image, kickstart_video })
       .where({ content_id });
   },
 
@@ -40,7 +40,7 @@ export const Content = {
         "vision_slogan AS visionSlogan",
         "vision",
         "vision_video AS visionVideo",
-        "day_in_pod_url AS dayInPodUrl",
+        "day_in_pod_url AS dayInPodUrl"
       )
       .orderBy("sl_content.created_at", "desc")
       .first();
