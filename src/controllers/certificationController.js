@@ -1,57 +1,67 @@
-import { Cert } from "../models/certificationModel.js";
+import { Certification } from "../models/certificationModel.js";
 import { now } from "../utils/date.js";
 import { v7 as uuidv7 } from "uuid";
 
-export const getAllCert = async (req, res) => {
+export const getAllCertifications = async (req, res) => {
   try {
-    const certs = await Cert.getAllCert();
+    const certifications = await Certification.getAllCertifications();
 
-    res.status(200).json(certs);
+    res.status(200).json({ success: true, certifications });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch certifications", error });
   }
 };
 
 export const addCert = async (req, res) => {
-  console.log("req", req.body);
-
-  const cert_id = uuidv7();
-  const cert_img_url = req.body.certImageUrl;
-  const created_by = req.body.createdBy;
-  const created_at = new Date();
-
   try {
-    console.log("Inserting:", {
-      cert_id,
-      cert_img_url,
-      created_by,
-      created_at,
-    });
+    const { certImageUrl, userId } = req.body;
 
-    await Cert.addCert({ cert_id, cert_img_url, created_by, created_at });
+    if (!certImageUrl || !userId) {
+      return res.status(400).json({
+        success: true,
+        message: "Missing required fields: certification image url or user id",
+      });
+    }
 
-    res.status(201).json({ message: "Certification added successfully" });
+    const newCertification = {
+      cert_id: uuidv7(),
+      cert_img_url: certImageUrl,
+      created_at: now(),
+      created_by: userId,
+    };
+
+    await Certification.addCertification(newCertification);
+
+    res
+      .status(201)
+      .json({ success: true, message: "Certification Added Successfully" });
   } catch (error) {
     console.error("Error adding certification:", error);
 
     res.status(500).json({
-      message: "Failed to add certification",
-      error: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      success: false,
+      message: "Internal Server Error",
     });
   }
 };
 
 export const updateCert = async (req, res) => {
   try {
-    const cert_id = req.body.certId;
-    const cert_img_url = req.body.certImageUrl;
-    const created_by = req.body.userId;
-    const updated_at = new Date.now();
+    const { certId, certImageUrl, userId } = req.body;
 
-    await Cert.updateCert({ cert_id, cert_img_url, created_by, created_at: updated_at });
+    if (!certId || !certImageUrl || !userId) {
+      return res.status(400).json({
+        success: true,
+        message:
+          "Missing required fields: certification id, certification image url, or user id",
+      });
+    }
 
-    res.status(200).json({ message: "Certification updated successfully" });
+    await Certification.updateCertification(certId, certImageUrl);
+
+    res
+      .status(200)
+      .json({ success: true, message: "Certification updated successfully" });
   } catch (error) {
     res.status(500).json({ message: "Failed to update certification", error });
   }
@@ -59,15 +69,18 @@ export const updateCert = async (req, res) => {
 
 export const deleteCert = async (req, res) => {
   try {
-    const { cert_id } = req.body;
+    const { certId } = req.body;
 
-    if (!cert_id) {
-      return res.status(400).json({ message: "cert_id is required" });
+    if (!certId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required field: certification id",
+      });
     }
 
-    await Cert.deleteCert(cert_id);
+    await Certification.deleteCertification(certId);
 
-    res.status(200).json({ message: "Certification deleted successfully" });
+    res.status(200).json({ success: true, message: "Certification Deleted Successfully" });
   } catch (error) {
     console.error("Server error while deleting cert:", error);
     res.status(500).json({ message: "Failed to delete certification", error });
