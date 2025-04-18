@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  getAllCert,
+  getAllCertifications,
   addCert,
   updateCert,
   deleteCert,
@@ -10,12 +10,12 @@ import verifyAdmin from "../middlewares/verifyAdmin.js";
 
 const router = express.Router();
 
-router.get("/all-cert", verifyToken, getAllCert);
+router.get("/certification", getAllCertifications);
 
-router.post("/add-cert", verifyToken, verifyAdmin, addCert);
+router.post("/certification", verifyToken, verifyAdmin, addCert);
 
-router.put("/update-cert", verifyToken, verifyAdmin, updateCert);
+router.put("/certification", verifyToken, verifyAdmin, updateCert);
 
-router.delete("/delete-cert", verifyToken, verifyAdmin, deleteCert);
+router.delete("/certification", verifyToken, verifyAdmin, deleteCert);
 
 export default router;
