@@ -10,6 +10,7 @@ import {
 
 const router = express.Router();
 
+// TODO: Delete all assigned to Jauwawi
 router.get("/get-all-industries", getAllIndustries);
 
 router.get("/get-all-industries-hr", getAllIndustriesHR);

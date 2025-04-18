@@ -1,30 +1,21 @@
 import express from "express";
 import {
-  addCompanyBlog,
   addEmployeeBlog,
-  getAllCompanyBlogs,
-  getAllCompanyBlogTags,
   getAllEmployeeBlogs,
-  getCompanyBlogById,
-  getFilteredCompanyBlogs,
+  deleteEmployeeBlog,
+  editEmployeeBlog,
 } from "../controllers/blogController.js";
 
-import verifyJWT from "../middlewares/verifyJWT.js";
+import verifyToken from "../middlewares/verifyToken.js";
 
 const router = express.Router();
 
-router.get("/all-employee-blog", getAllEmployeeBlogs);
+router.get("/all-employee-blog", verifyToken, getAllEmployeeBlogs);
 
-router.post("/add-employee-blog", verifyJWT, addEmployeeBlog);
+router.post("/add-employee-blog", verifyToken, addEmployeeBlog);
 
-router.get("/all-tags", getAllCompanyBlogTags);
+router.post("/edit-employee-blog", editEmployeeBlog);
 
-router.get("/all-company-blogs", getAllCompanyBlogs);
-
-router.get("/all-company-blogs/:tag_id", getFilteredCompanyBlogs);
-
-router.get("/get-company-blog/:cblog_id", getCompanyBlogById);
-
-router.post("/add-company-blog", verifyJWT, addCompanyBlog);
+router.post("/delete-employee-blog", deleteEmployeeBlog);
 
 export default router;

@@ -1,12 +1,12 @@
 import express from "express";
-import { getAllEvents, insertEvent } from "../controllers/eventController.js";
+import { getContact, insertContact } from "../controllers/contactController.js";
 import verifyToken from "../middlewares/verifyToken.js";
 import verifyAdmin from "../middlewares/verifyAdmin.js";
 
 const router = express.Router();
 
-router.get("/all-events", verifyToken, getAllEvents);
+router.get("/contact", getContact);
 
-router.post("/add-event", verifyToken, verifyAdmin, insertEvent);
+router.post("/contact", verifyToken, verifyAdmin, insertContact);
 
 export default router;
