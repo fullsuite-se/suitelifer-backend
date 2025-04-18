@@ -4,7 +4,7 @@ const issuesTable = () => db("sl_newsletter_issues");
 const newsletterTable = () => db("sl_newsletters");
 
 export const Newsletter = {
-  getIssues: async (year) => {
+  getIssues: async () => {
     const rows = await issuesTable()
       .select(
         "sl_newsletter_issues.issue_id AS issueId",
@@ -30,12 +30,6 @@ export const Newsletter = {
       .groupBy("sl_newsletter_issues.issue_id")
       .orderBy("month", "desc");
 
-    const getStatus = (count) => {
-      if (count === 0) return "No articles yet";
-      if (count === 1) return "Ready";
-      return "Has duplicates";
-    };
-
     return rows.map((row) => ({
       issueId: row.issueId,
       month: row.month,
@@ -48,6 +42,12 @@ export const Newsletter = {
 
   insertIssue: async (newIssue) => {
     return issuesTable().insert(newIssue);
+  },
+
+  updateCurrentlyPublished: async (issue_id) => {
+    await issuesTable().update({ is_published: 0 });
+
+    return await issuesTable().update({ is_published: 1 }).where({ issue_id });
   },
 
   getIssueNewsletters: async (issue_id) => {
