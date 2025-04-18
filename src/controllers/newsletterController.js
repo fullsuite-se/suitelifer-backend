@@ -38,6 +38,28 @@ export const insertIssue = async (req, res) => {
   }
 };
 
+export const updateCurrentlyPublished = async (req, res) => {
+  try {
+    const { issueId } = req.body;
+
+    if (!issueId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required field: issue id" });
+    }
+
+    await Newsletter.updateCurrentlyPublished(issueId);
+
+    res.status(200).json({
+      success: true,
+      message: "Currently Published Newsletter Issue Updated Successfully",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
 export const getNewsletters = async (req, res) => {
   try {
     const { issueId } = req.query;
@@ -122,22 +144,18 @@ export const deleteNewsletter = async (req, res) => {
     const { newsletterId } = req.body;
 
     if (!newsletterId) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Missing required field: newsletter id",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Missing required field: newsletter id",
+      });
     }
 
     await Newsletter.deleteNewsletter(newsletterId);
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Newsletter Article Deleted Successfully",
-      });
+    res.status(200).json({
+      success: true,
+      message: "Newsletter Article Deleted Successfully",
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
