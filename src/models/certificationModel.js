@@ -8,7 +8,7 @@ export const Cert = {
       .select(
         "cert_id AS certId",
         "cert_img_url",
-        "sl_certifications.created_at",
+        "sl_certifications.created_at AS createdAt",
         db.raw(
           "CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy"
         )
