@@ -31,7 +31,10 @@ app.use(helmet());
 
 const srcFolder = path.dirname(new URL(import.meta.url).pathname);
 const publicFolder = path.join(srcFolder, "..", "public");
-app.use(express.static(publicFolder));
+
+console.log(publicFolder);
+
+// app.use(express.static(publicFolder));
 
 app.use(
   cors({
