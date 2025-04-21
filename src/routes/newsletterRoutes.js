@@ -1,6 +1,7 @@
 import express from "express";
 import {
   deleteNewsletter,
+  getCurrentlyPublishedIssue,
   getIssues,
   getNewsletters,
   insertIssue,
@@ -12,6 +13,8 @@ import {
 const router = express.Router();
 
 router.get("/issues", getIssues);
+
+router.get("/issues/current", getCurrentlyPublishedIssue);
 
 router.post("/issues", insertIssue);
 
