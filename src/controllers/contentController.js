@@ -15,13 +15,13 @@ export const getHome = async (req, res) => {
 
 export const patchHome = async (req, res) => {
   try {
-    const { contentId, kickstartVideo } = req.body;
+    const { contentId, getInTouchImage, kickstartVideo } = req.body;
 
     const kickstartEmbed = youtubeLinkToEmbed(kickstartVideo);
 
     console.log(kickstartEmbed);
 
-    await Content.patchHome(kickstartEmbed, contentId);
+    await Content.patchHome(getInTouchImage, kickstartEmbed, contentId);
 
     res
       .status(200)
