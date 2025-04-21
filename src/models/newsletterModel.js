@@ -10,28 +10,29 @@ export const Newsletter = {
         "sl_newsletter_issues.issue_id AS issueId",
         "month",
         "year",
-        db.raw("COUNT(newsletter_id) AS articleCount"),
-        db.raw(
-          "COUNT(DISTINCT CASE WHEN section > 0 THEN section END) AS readyArticles"
-        ),
-        db.raw("SUM(section = 0) as unassigned_count")
+        "is_published",        "sl_newsletter_issues.created_at as issueCreatedAt",
+        db.raw("COUNT(sl_newsletters.newsletter_id) AS articleCount"),
+        db.raw("COUNT(DISTINCT CASE WHEN section > 0 THEN section END) AS assigned"),
+        db.raw("SUM(CASE WHEN section = 0 THEN 1 ELSE 0 END) as unassigned_count")
       )
-      .where({ year })
-      .innerJoin("sl_newsletters", {
+      .leftJoin("sl_newsletters", {
         "sl_newsletters.issue_id": "sl_newsletter_issues.issue_id",
       })
-      .groupBy("sl_newsletter_issues.issue_id")
+      .where("sl_newsletter_issues.year", year)
+      .groupBy("sl_newsletter_issues.issue_id", "month", "year")
       .orderBy("month", "desc");
-
+  
     return rows.map((row) => ({
       issueId: row.issueId,
       month: row.month,
       year: row.year,
-      articleCount: row.articleCount,
-      readyArticles: row.readyArticles,
-      unassigned: Number(row.unassigned_count),
+      is_published: row.is_published,
+      articleCount: Number(row.articleCount) || 0,
+      assigned: Number(row.assigned) || 0,
+      unassigned: Number(row.unassigned_count) || 0,      issueCreatedAt: row.issueCreatedAt,
     }));
   },
+  
 
   getCurrentlyPublishedIssue: async () => {
     const rows = await issuesTable()
@@ -39,11 +40,13 @@ export const Newsletter = {
         "sl_newsletter_issues.issue_id AS issueId",
         "month",
         "year",
+        "is_published",
+        "sl_newsletter_issues.created_at as issueCreatedAt",
         db.raw("COUNT(newsletter_id) AS articleCount"),
         db.raw(
-          "COUNT(DISTINCT CASE WHEN section > 0 THEN section END) AS readyArticles"
+          "COUNT(DISTINCT CASE WHEN section > 0 THEN section END) AS assigned"
         ),
-        db.raw("SUM(section = 0) as unassigned_count")
+        db.raw("SUM(section = 0) as unassigned_count"),
       )
       .innerJoin("sl_newsletters", {
         "sl_newsletters.issue_id": "sl_newsletter_issues.issue_id",
@@ -55,11 +58,44 @@ export const Newsletter = {
       issueId: row.issueId,
       month: row.month,
       year: row.year,
+      is_published: row.is_published,
       articleCount: row.articleCount,
-      readyArticles: row.readyArticles,
+      assigned: row.assigned,
       unassigned: Number(row.unassigned_count),
+      issueCreatedAt: row.issueCreatedAt,
     }))[0];
   },
+
+  getOldestPublishedIssue: async () => {
+    const row = await issuesTable()
+      .select(
+        "sl_newsletter_issues.issue_id AS issueId",
+        "month",
+        "year",
+        "is_published",        "sl_newsletter_issues.created_at as issueCreatedAt",
+        db.raw("COUNT(newsletter_id) AS articleCount"),
+        db.raw("COUNT(DISTINCT CASE WHEN section > 0 THEN section END) AS assigned"),
+        db.raw("SUM(section = 0) as unassigned_count")
+      )
+      .leftJoin("sl_newsletters", {
+        "sl_newsletters.issue_id": "sl_newsletter_issues.issue_id",
+      })
+      .groupBy("sl_newsletter_issues.issue_id", "month", "year")
+      .orderBy("sl_newsletter_issues.created_at", "asc")
+      .first(); // returns a single row (object)
+  
+    return {
+      issueId: row.issueId,
+      month: row.month,
+      year: row.year,
+      is_published: row.is_published,
+      articleCount: row.articleCount,
+      assigned: row.assigned,
+      unassigned: Number(row.unassigned_count),      issueCreatedAt: row.issueCreatedAt,
+    };
+  },
+  
+  
 
   insertIssue: async (newIssue) => {
     return issuesTable().insert(newIssue);
