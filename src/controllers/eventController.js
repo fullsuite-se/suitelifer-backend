@@ -14,9 +14,9 @@ export const getAllEvents = async (req, res) => {
 
 export const insertEvent = async (req, res) => {
   try {
-    const { title, dateTime, description, userId } = req.body;
+    const { title, description, dateStart, dateEnd, userId } = req.body;
 
-    if ((!title, !dateTime, !description, !userId)) {
+    if ((!title, !description, !dateStart, !userId)) {
       res
         .status(400)
         .json({ success: false, message: "Missing required fields" });
@@ -25,8 +25,9 @@ export const insertEvent = async (req, res) => {
     const newEvent = {
       event_id: uuidv7(),
       title,
-      date_time: dateTime,
       description,
+      date_start: dateStart,
+      date_end: dateEnd ?? null,
       created_at: now(),
       created_by: userId,
     };
@@ -38,6 +39,25 @@ export const insertEvent = async (req, res) => {
       .json({ success: true, message: "Event added successfully" });
   } catch (err) {
     console.log(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const updateEvent = async (req, res) => {
+  try {
+    const { title, description, dateStart, dateEnd, userId } = req.body;
+
+    if ((!title, !description, !dateStart, !userId)) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            "Missing required fields: title, description, date start, or user id",
+        });
+    }
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
