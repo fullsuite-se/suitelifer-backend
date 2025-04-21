@@ -15,6 +15,17 @@ export const getIssues = async (req, res) => {
   }
 };
 
+export const getCurrentlyPublishedIssue = async (req, res) => {
+  try {
+    const currentIssue = await Newsletter.getCurrentlyPublishedIssue();
+
+    res.status(200).json({ success: true, currentIssue });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
 export const insertIssue = async (req, res) => {
   try {
     const { month, year, userId } = req.body;
