@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 
-const verifyJWT = (req, res, next) => {
-  const token = req.cookies.accessToken;
+const verifySuperAdmin = (req, res, next) => {
+  const token = req.cookies?.accessToken;
 
   if (!token) {
     return res.status(403).json({ message: "Access Denied" });
@@ -9,6 +9,13 @@ const verifyJWT = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+    if (decoded.role !== "SUPER ADMIN") {
+      return res
+        .status(403)
+        .json({ message: "Access Denied: Admins/Super Admin only" });
+    }
+
     req.user = decoded;
     next();
   } catch (err) {
@@ -16,4 +23,4 @@ const verifyJWT = (req, res, next) => {
   }
 };
 
-export default verifyJWT;
+export default verifySuperAdmin;

@@ -29,6 +29,14 @@ export const updateUserPassword = async (req, res) => {
     const { plaintext } = await compactDecrypt(payloadEncrypted, privateKey);
     const payload = JSON.parse(new TextDecoder().decode(plaintext));
 
+    // Checking if yung token is still valid
+    if (Date.now() / 1000 > payload.exp) {
+      return res.status(400).json({
+        isSuccess: false,
+        message: "Verification code has expired. Please request a new one.",
+      });
+    }
+
     const user = await Auth.getVerificationCodeById(payload.id);
 
     const isMatch = await bcrypt.compare(payload.code, user.verification_code);

@@ -1,22 +1,26 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { Auth } from "../models/authModel.js";
-import { verifyRecaptchaToken } from "../utils/verifyRecaptchaToken.js";
 import transporter from "../utils/nodemailer.js";
 import { User } from "../models/userModel.js";
 import { v7 as uuidv7 } from "uuid";
 import { db } from "../config/db.js";
 import crypto from "crypto";
 import { compactDecrypt, CompactEncrypt, importPKCS8, importSPKI } from "jose";
+import { verifyRecaptchaToken } from "../utils/verifyRecaptchaToken.js";
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
   const user = await Auth.authenticate(email);
 
+  if (!user) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
   const isMatch = await bcrypt.compare(password, user.user_password);
 
-  if (!isMatch || !user) {
+  if (!isMatch) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
@@ -64,13 +68,16 @@ export const login = async (req, res) => {
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    // sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    sameSite: "strict",
+    // sameSite: "strict",
   });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    // sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    sameSite: "strict",
   });
 
   res.json({ accessToken });
@@ -79,7 +86,8 @@ export const logout = (req, res) => {
   res.cookie("accessToken", "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    // sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    sameSite: "strict",
     path: "/",
     expires: new Date(0), // Expire immediately
   });
@@ -87,7 +95,8 @@ export const logout = (req, res) => {
   res.cookie("refreshToken", "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    // sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    sameSite: "strict",
     path: "/",
     expires: new Date(0),
   });
@@ -269,7 +278,8 @@ export const sendPasswordResetLink = async (req, res) => {
 
     const publicKeyPEM = process.env.JWE_PUBLIC_KEY;
     const publicKey = await importSPKI(publicKeyPEM, "RSA-OAEP");
-    const payload = JSON.stringify({ code: code, id: user.user_id });
+    const exp = Math.floor(Date.now() / 1000 + 15 * 60);
+    const payload = JSON.stringify({ code: code, id: user.user_id, exp: exp });
     const jwe = await new CompactEncrypt(new TextEncoder().encode(payload))
       .setProtectedHeader({ alg: "RSA-OAEP", enc: "A256GCM" })
       .encrypt(publicKey);
@@ -354,7 +364,8 @@ export const refreshToken = async (req, res) => {
       res.cookie("accessToken", newAccessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+        // sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+        sameSite: "strict",
       });
 
       res.json({ accessToken: newAccessToken });
