@@ -68,9 +68,6 @@ typings/
 .cache/
 
 # .gitignore
-/public/robots.txt
-/public/sitemap.xml
-
 # vuepress build output
 .vuepress/dist/
 
