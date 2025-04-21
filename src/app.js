@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
+import path from "path";
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
@@ -19,6 +20,7 @@ import faqsRoutes from "./routes/faqsRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import newsletterRoutes from "./routes/newsletterRoutes.js";
 import certificationRoutes from "./routes/certificationRoutes.js";
+import generateSiteMap from "./utils/generateSiteMap.js";
 
 const app = express();
 dotenv.config();
@@ -26,7 +28,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(helmet());
-app.use(express.static("public"));
+
+const srcFolder = path.dirname(new URL(import.meta.url).pathname);
+const publicFolder = path.join(srcFolder, "..", "public");
+app.use(express.static(publicFolder));
 
 app.use(
   cors({
@@ -50,5 +55,7 @@ app.use("/api", faqsRoutes);
 app.use("/api", contactRoutes);
 app.use("/api", newsletterRoutes);
 app.use("/api", certificationRoutes);
+
+// generateSiteMap();
 
 export default app;
