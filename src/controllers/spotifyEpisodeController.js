@@ -29,9 +29,10 @@ export const getPlaylists = async (req, res) => {
   }
 };
 
-export const getEpisodes = async (req, res) => {
+export const getEmbeds = async (req, res) => {
   try {
-    const episodes = await SpotifyEmbed.getAllEmbeds();
+    const { embedType } = req.query;
+    const episodes = await SpotifyEmbed.getAllEmbeds(embedType);
     res.status(200).json({ success: true, data: episodes });
   } catch (err) {
     console.error("Error fetching episodes:", err.message);
@@ -41,6 +42,7 @@ export const getEpisodes = async (req, res) => {
     });
   }
 };
+
 
 export const insertEpisode = async (req, res) => {
   try {
