@@ -28,6 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(helmet());
+app.use(express.static("public"));
 
 app.use(
   cors({
