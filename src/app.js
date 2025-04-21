@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
+import path from "path";
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
@@ -26,6 +27,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(helmet());
+
+const srcFolder = path.dirname(new URL(import.meta.url).pathname);
+const publicFolder = path.join(srcFolder, "..", "public");
+app.use(express.static(publicFolder));
 
 app.use(
   cors({
