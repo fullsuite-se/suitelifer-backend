@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
 import path from "path";
+import generateSitemap from "./scripts/generateSitemap.js";
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
@@ -54,5 +55,7 @@ app.use("/api", faqsRoutes);
 app.use("/api", contactRoutes);
 app.use("/api", newsletterRoutes);
 app.use("/api", certificationRoutes);
+
+generateSitemap();
 
 export default app;
