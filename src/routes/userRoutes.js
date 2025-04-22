@@ -14,15 +14,15 @@ router.get("/get-users", verifyToken, verifySuperAdmin, getUsers);
 
 router.patch(
   "/update-user-type",
-//   verifyToken,
-//   verifySuperAdmin,
+  verifyToken,
+  verifySuperAdmin,
   updateUserType
 );
 
 router.patch(
   "/update-user-status",
-//   verifyToken,
-//   verifySuperAdmin,
+  verifyToken,
+  verifySuperAdmin,
   updateUserStatus
 );
 
