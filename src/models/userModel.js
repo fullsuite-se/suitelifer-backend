@@ -1,10 +1,23 @@
 import { db } from "../config/db.js";
 
 const userAccounts = "sl_user_accounts";
+const userAccountsTable = () => db("sl_user_accounts");
 
 export const User = {
   getAllUsers: async () => {
     return await db.select("*").from(userAccounts);
+  },
+
+  updateUserRole: async (user_type, user_id) => {
+    return await userAccountsTable().update({ user_type }).where({ user_id });
+  },
+
+  updateUserStatus: async (is_active, user_id) => {
+    return await userAccountsTable().update({ is_active }).where({ user_id });
+  },
+
+  deleteUserAccount: async (user_id) => {
+    return await userAccountsTable().where({ user_id }).del();
   },
 
   getUser: async (user_id) => {

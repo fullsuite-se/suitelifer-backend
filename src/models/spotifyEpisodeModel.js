@@ -29,9 +29,10 @@ export const SpotifyEpisode = {
       .where({ embed_type: "PLAYLIST" })
       .orderBy("created_at", "desc");
   },
+  
 
-  getAllEmbeds: async () => {
-    return await db
+  getAllEmbeds: async (embedType) => {
+    const query = db
       .select(
         "episode_id AS episodeId",
         "spotify_id AS spotifyId",
@@ -45,6 +46,12 @@ export const SpotifyEpisode = {
       .leftJoin("sl_user_accounts", {
         "sl_spotify_embeds.created_by": "sl_user_accounts.user_id",
       });
+    
+    if (embedType) {
+      query.where("embed_type", embedType);
+    }
+
+    return await query;
   },
 
   insertEmbed: async (newEpisode) => {
