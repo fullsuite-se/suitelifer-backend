@@ -26,6 +26,17 @@ export const getCurrentlyPublishedIssue = async (req, res) => {
   }
 };
 
+export const getOldestPublishedIssue = async (req, res) => {
+  try {
+    const oldestIssue = await Newsletter.getOldestPublishedIssue();
+
+    res.status(200).json({ success: true, oldestIssue });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
 export const insertIssue = async (req, res) => {
   try {
     const { month, year, userId } = req.body;

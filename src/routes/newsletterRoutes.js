@@ -2,6 +2,7 @@ import express from "express";
 import {
   deleteNewsletter,
   getCurrentlyPublishedIssue,
+  getOldestPublishedIssue,
   getIssues,
   getNewsletters,
   insertIssue,
@@ -13,6 +14,8 @@ import {
 const router = express.Router();
 
 router.get("/issues", getIssues);
+
+router.get("/issues/oldest", getOldestPublishedIssue);
 
 router.get("/issues/current", getCurrentlyPublishedIssue);
 
