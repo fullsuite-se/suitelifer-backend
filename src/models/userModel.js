@@ -9,7 +9,11 @@ export const User = {
   },
 
   updateUserRole: async (user_type, user_id) => {
-    return await userAccountsTable.update({ user_type }).where({ user_id });
+    return await userAccountsTable().update({ user_type }).where({ user_id });
+  },
+
+  updateUserStatus: async (is_active, user_id) => {
+    return await userAccountsTable().update({ is_active }).where({ user_id });
   },
 
   getUser: async (user_id) => {
