@@ -42,8 +42,6 @@ app.use(helmet());
 const currentPath = fileURLToPath(import.meta.url);
 const currentDirectory = path.dirname(currentPath);
 const publicFolder = path.join(currentDirectory, "..", "public");
-console.log(publicFolder);
-
 app.use(express.static(publicFolder));
 
 // Start cron jobs; update the sitemap (SEO)
