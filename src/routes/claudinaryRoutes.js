@@ -3,7 +3,7 @@ import upload from "../utils/multer.js";
 import {
   uploadAndSaveImages,
   uploadImage,
-} from "../controllers/claudinaryController.js";
+} from "../controllers/cloudinaryController.js";
 import verifyToken from "../middlewares/verifyToken.js";
 
 const router = express.Router();
