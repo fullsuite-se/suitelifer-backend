@@ -56,6 +56,30 @@ export const updateUserStatus = async (req, res) => {
   }
 };
 
+export const deleteUserAccount = async (req, res) => {
+  try {
+    const { accountId } = req.body;
+
+    if (!accountId) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Missing required field: account id",
+        });
+    }
+
+    await User.deleteUserAccount(accountId);
+
+    res
+      .status(200)
+      .json({ success: true, message: "User Account Deleted Successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
 export const updateUserPassword = async (req, res) => {
   const { newPassword, payloadEncrypted } = req.body;
 

@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  deleteUserAccount,
   getUsers,
   updateUserPassword,
   updateUserStatus,
@@ -24,6 +25,13 @@ router.patch(
   verifyToken,
   verifySuperAdmin,
   updateUserStatus
+);
+
+router.patch(
+  "/delete-user-account",
+  verifyToken,
+  verifySuperAdmin,
+  deleteUserAccount
 );
 
 router.post("/update-password", updateUserPassword);

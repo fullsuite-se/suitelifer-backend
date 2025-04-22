@@ -16,6 +16,10 @@ export const User = {
     return await userAccountsTable().update({ is_active }).where({ user_id });
   },
 
+  deleteUserAccount: async (user_id) => {
+    return await userAccountsTable().where({ user_id }).del();
+  },
+
   getUser: async (user_id) => {
     return await db
       .select("*")
