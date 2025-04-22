@@ -13,6 +13,28 @@ export const getUsers = async (req, res) => {
   }
 };
 
+export const updateUserType = async (req, res) => {
+  try {
+    const { userType, accountId } = req.body;
+
+    if (!userType || !accountId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing Required Fields: user type or user id",
+      });
+    }
+
+    await User.updateUserRole(userType, accountId);
+
+    return res
+      .status(200)
+      .json({ success: true, message: "User Type Updated Successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
 export const updateUserPassword = async (req, res) => {
   const { newPassword, payloadEncrypted } = req.body;
 
