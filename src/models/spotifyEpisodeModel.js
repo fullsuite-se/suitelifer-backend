@@ -29,6 +29,7 @@ export const SpotifyEpisode = {
       .where({ embed_type: "PLAYLIST" })
       .orderBy("created_at", "desc");
   },
+  
 
   getAllEmbeds: async (embedType) => {
     const query = db
