@@ -33,7 +33,7 @@ export const Testimonial = {
       .from("sl_testimonials")
       .innerJoin("sl_user_accounts", {
         "sl_testimonials.created_by": "sl_user_accounts.user_id",
-      });
+      }).orderBy("sl_testimonials.created_at", "desc");
   },
 
   insertTestimonial: async (newTestimonial) => {
