@@ -72,7 +72,8 @@ export const Newsletter = {
         "sl_newsletter_issues.issue_id AS issueId",
         "month",
         "year",
-        "is_published",        "sl_newsletter_issues.created_at as issueCreatedAt",
+        "is_published",
+        "sl_newsletter_issues.created_at as issueCreatedAt",
         db.raw("COUNT(newsletter_id) AS articleCount"),
         db.raw("COUNT(DISTINCT CASE WHEN section > 0 THEN section END) AS assigned"),
         db.raw("SUM(section = 0) as unassigned_count")
@@ -81,8 +82,8 @@ export const Newsletter = {
         "sl_newsletters.issue_id": "sl_newsletter_issues.issue_id",
       })
       .groupBy("sl_newsletter_issues.issue_id", "month", "year")
-      .orderBy("sl_newsletter_issues.created_at", "asc")
-      .first(); // returns a single row (object)
+      .orderBy("year", "asc")
+      .first(); 
   
     return {
       issueId: row.issueId,
