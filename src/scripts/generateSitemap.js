@@ -4,21 +4,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { toSlug } from "../utils/slugUrl.js";
 
-{
-  /* <url>
-<loc>https://www.suitelifer.com/careers</loc>
-<lastmod>2025-04-21</lastmod>
-<changefreq>monthly</changefreq>
-<priority>0.8</priority>
-</url>
-<url>
-<loc>https://www.suitelifer.com/newsletter</loc>
-<lastmod>2025-04-21</lastmod>
-<changefreq>weekly</changefreq>
-<priority>0.8</priority>
-</url> */
-}
-
 const generateCareerUrls = async () => {
   const today = new Date().toISOString().split("T")[0];
 
@@ -38,7 +23,9 @@ const generateCareerUrls = async () => {
 
   jobs.forEach((job) => {
     const url = `<url>
-<loc>https://www.suitelifer.com/careers/${toSlug(job.jobTitle)}</loc>
+<loc>https://www.suitelifer.com/careers/${toSlug(job.jobTitle)}?id=${
+      job.jobId
+    }</loc>
 <lastmod>${today}</lastmod>
 <changefreq>monthly</changefreq>
 <priority>0.8</priority>
@@ -95,9 +82,7 @@ const generateSitemap = async () => {
     const careers = await generateCareerUrls();
     const newsletters = await generateNewsletterUrls();
     console.log(careers);
-    console.log(newsletters);
-
-    return;
+    // console.log(newsletters);
 
     const newSitemap = `<?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">
@@ -125,7 +110,6 @@ const generateSitemap = async () => {
         <changefreq>yearly</changefreq>
         <priority>0.8</priority>
       </url>
-      ${newsletter}
       ${careers}
     </urlset>`;
 
@@ -134,10 +118,6 @@ const generateSitemap = async () => {
     } catch (error) {
       console.error(error);
     }
-
-    // console.log(
-    //   sitemap.slice(0, urlsetIndex) + newUrlEntry + sitemap.slice(urlsetIndex)
-    // );
   } catch (error) {
     console.error(error);
   }
