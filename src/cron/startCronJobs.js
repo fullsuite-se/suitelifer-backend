@@ -1,9 +1,11 @@
 import { CronJob } from "cron";
+import generateSitemap from "../scripts/generateSitemap.js";
+
 const startCronJobs = () => {
   new CronJob(
-    "* * * * * *",
-    function () {
-      console.log("You will see this message every second");
+    "0 7 * * 5",
+    async function () {
+      await generateSitemap();
     },
     null,
     true,
