@@ -7,7 +7,7 @@ import { Auth } from "../models/authModel.js";
 export const getUsers = async (req, res) => {
   try {
     const users = await User.getAllUsers();
-    res.json(users);
+    res.json({ success: true, users });
   } catch (err) {
     console.log(err);
   }
@@ -61,12 +61,10 @@ export const deleteUserAccount = async (req, res) => {
     const { accountId } = req.body;
 
     if (!accountId) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Missing required field: account id",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Missing required field: account id",
+      });
     }
 
     await User.deleteUserAccount(accountId);
