@@ -5,7 +5,19 @@ const userAccountsTable = () => db("sl_user_accounts");
 
 export const User = {
   getAllUsers: async () => {
-    return await db.select("*").from(userAccounts);
+    return await userAccountsTable()
+      .select(
+        "user_id AS userId",
+        "user_email AS userEmail",
+        "user_type AS userType",
+        db.raw(
+          "CONCAT(first_name, ' ', LEFT(middle_name, 1), '. ', last_name) AS fullName"
+        ),
+        "is_verified AS isVerified",
+        "is_active AS isActive",
+        "sl_user_accounts.created_at AS createdAt"
+      )
+      .orderBy("fullName");
   },
 
   updateUserRole: async (user_type, user_id) => {
