@@ -5,7 +5,7 @@ import { v7 as uuidv7 } from "uuid";
 export const getAllEvents = async (req, res) => {
   try {
     const events = await Event.getAllEvents();
-    res.status(200).json(events);
+    res.status(200).json({ success: true, events });
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: "Internal Server Error" });
@@ -48,14 +48,32 @@ export const updateEvent = async (req, res) => {
     const { title, description, dateStart, dateEnd, userId } = req.body;
 
     if ((!title, !description, !dateStart, !userId)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Missing required fields: title, description, date start, or user id",
+      });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const deleteEvent = async (req, res) => {
+  try {
+    const { eventId } = req.body;
+
+    if (!eventId)
       return res
         .status(400)
-        .json({
-          success: false,
-          message:
-            "Missing required fields: title, description, date start, or user id",
-        });
-    }
+        .json({ success: false, message: "Missing required field: event id" });
+
+    await Event.deleteEvent(eventId);
+
+    res
+      .status(200)
+      .json({ succes: true, message: "Event Deleted Successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal Server Error" });
