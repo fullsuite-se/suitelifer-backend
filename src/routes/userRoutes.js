@@ -11,17 +11,18 @@ import verifySuperAdmin from "../middlewares/verifySuperAdmin.js";
 
 const router = express.Router();
 
-router.get("/get-users", verifyToken, verifySuperAdmin, getUsers);
+// router.get("/get-users", verifyToken, verifySuperAdmin, getUsers);
+router.get("/users", getUsers);
 
 router.patch(
-  "/update-user-type",
+  "/users/type",
   verifyToken,
   verifySuperAdmin,
   updateUserType
 );
 
 router.patch(
-  "/update-user-status",
+  "/users/status",
   verifyToken,
   verifySuperAdmin,
   updateUserStatus
