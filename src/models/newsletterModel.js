@@ -102,6 +102,13 @@ export const Newsletter = {
     return issuesTable().insert(newIssue);
   },
 
+  findIssueByMonthAndYear: async (month, year) => {
+    return await issuesTable()
+      .select("issue_id")
+      .where({ month, year })
+      .first();
+  },
+
   updateCurrentlyPublished: async (issue_id) => {
     await issuesTable().update({ is_published: 0 });
 
