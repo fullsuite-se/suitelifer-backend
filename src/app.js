@@ -44,8 +44,8 @@ const currentDirectory = path.dirname(currentPath);
 const publicFolder = path.join(currentDirectory, "..", "public");
 app.use(express.static(publicFolder));
 
-// Start cron jobs; update the sitemap (SEO)
-// startCronJobs();
+// Start cron jobs; update the sitemap (for the SEO)
+startCronJobs();
 
 app.use("/api", authRoutes);
 app.use("/api", userRoutes);
