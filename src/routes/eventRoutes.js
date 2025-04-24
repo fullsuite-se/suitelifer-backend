@@ -2,6 +2,8 @@ import express from "express";
 import {
   deleteEvent,
   getAllEvents,
+  getTodayEvents,
+  getUpcomingEvents,
   insertEvent,
   updateEvent,
 } from "../controllers/eventController.js";
@@ -10,7 +12,11 @@ import verifyAdmin from "../middlewares/verifyAdmin.js";
 
 const router = express.Router();
 
-router.get("/events", verifyToken, getAllEvents);
+router.get("/events", getAllEvents);
+
+router.get("/events/today", getTodayEvents);
+
+router.get("/events/upcoming", getUpcomingEvents);
 
 router.post("/events", verifyToken, verifyAdmin, insertEvent);
 
