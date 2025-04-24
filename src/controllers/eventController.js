@@ -1,3 +1,4 @@
+import moment from "moment";
 import { Event } from "../models/eventModel.js";
 import { now } from "../utils/date.js";
 import { v7 as uuidv7 } from "uuid";
@@ -12,12 +13,40 @@ export const getAllEvents = async (req, res) => {
   }
 };
 
+export const getTodayEvents = async (req, res) => {
+  try {
+    const today = moment().format("YYYY-MM-DD");
+
+    const todayEvents = await Event.getTodayEvents(today);
+
+    return res.status(200).json({ success: true, todayEvents });
+
+    return res.status(200);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const getUpcomingEvents = async (req, res) => {
+  try {
+    const today = moment().format("YYYY-MM-DD");
+
+    const upcomingEvents = await Event.getUpcomingEvents(today);
+
+    return res.status(200).json({ success: true, upcomingEvents });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 export const insertEvent = async (req, res) => {
   try {
-    const { title, description, dateStart, dateEnd, userId } = req.body;
+    const { title, description, start, end, userId } = req.body;
 
-    if ((!title, !description, !dateStart, !userId)) {
-      res
+    if ((!title, !description, !start, !userId)) {
+      return res
         .status(400)
         .json({ success: false, message: "Missing required fields" });
     }
@@ -26,8 +55,9 @@ export const insertEvent = async (req, res) => {
       event_id: uuidv7(),
       title,
       description,
-      date_start: dateStart,
-      date_end: dateEnd ?? null,
+      date_start: new Date(start).toISOString().slice(0, 19).replace("T", " "),
+      date_end:
+        new Date(end).toISOString().slice(0, 19).replace("T", " ") ?? null,
       created_at: now(),
       created_by: userId,
     };
