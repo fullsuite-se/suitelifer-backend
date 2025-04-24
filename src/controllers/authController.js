@@ -24,6 +24,13 @@ export const login = async (req, res) => {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
+  if (!user.is_active) {
+    return res.status(403).json({
+      message: "Account has been deactivated.",
+      isNotActive: true,
+    });
+  }
+
   if (!user.is_verified) {
     // Verify Verification Attempt
     const { attempt } = await Auth.getVerificationCodeAttempt(user.user_id);
