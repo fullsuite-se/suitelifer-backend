@@ -40,7 +40,14 @@ export const getOldestPublishedIssue = async (req, res) => {
 export const insertIssue = async (req, res) => {
   try {
     const { month, year, userId } = req.body;
-
+    const existing = await Newsletter.findIssueByMonthAndYear(month, year);
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        month: month,
+        year: year,
+      });
+    }
     const newIssue = {
       issue_id: uuidv7(),
       month,
@@ -59,6 +66,7 @@ export const insertIssue = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+
 
 export const updateCurrentlyPublished = async (req, res) => {
   try {
@@ -94,6 +102,24 @@ export const getNewsletters = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+
+export const getNewsletterById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const newsletter = await Newsletter.getNewsletterById(id);
+
+    if (!newsletter) {
+      return res.status(404).json({ success: false, message: "Newsletter not found" });
+    }
+
+    res.status(200).json({ success: true, newsletter });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
 
 export const insertNewsletter = async (req, res) => {
   try {
