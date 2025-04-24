@@ -80,7 +80,9 @@ export const deleteCert = async (req, res) => {
 
     await Certification.deleteCertification(certId);
 
-    res.status(200).json({ success: true, message: "Certification Deleted Successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Certification Deleted Successfully" });
   } catch (error) {
     console.error("Server error while deleting cert:", error);
     res.status(500).json({ message: "Failed to delete certification", error });
