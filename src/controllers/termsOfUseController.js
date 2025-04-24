@@ -14,25 +14,20 @@ export const getAllTerms = async (req, res) => {
 };
 
 export const addTerms = async (req, res) => {
-  const { title, description: description, userId } = req.body;
-  if (!title || !description || !userId) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Missing required fields" });
-  }
-
-  const newTerms = {
-    terms_id: uuidv7(),
-    title,
-    description: description,
-    created_at: now(),
-    created_by: userId,
-  };
-
   try {
+    const { title, description, userId } = req.body;
+    const newTerms = {
+      terms_id: uuidv7(),
+      title,
+      description,
+      created_at: now(),
+      created_by: userId,
+    };
+
     await TermsOfUse.addTerms(newTerms);
     res.status(201).json({ success: true, message: "Terms added" });
   } catch (error) {
+    console.error("Error adding terms:", error);
     res
       .status(500)
       .json({ success: false, message: "Failed to add terms", error });
