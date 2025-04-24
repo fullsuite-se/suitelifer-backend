@@ -9,8 +9,8 @@ export const Event = {
         "event_id AS eventId",
         "title",
         "description",
-        "date_start AS dateStart",
-        "date_end AS dateEnd",
+        "date_start AS start",
+        "date_end AS end",
         "sl_events.created_at AS createdAt",
         db.raw(
           "CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy"
@@ -27,8 +27,8 @@ export const Event = {
         "event_id AS eventId",
         "title",
         "description",
-        "date_start AS dateStart",
-        "date_end AS dateEnd",
+        "date_start AS start",
+        "date_end AS end",
         "sl_events.created_at AS createdAt",
         db.raw(
           `CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy`
@@ -49,8 +49,8 @@ export const Event = {
         "event_id AS eventId",
         "title",
         "description",
-        "date_start AS dateStart",
-        "date_end AS dateEnd",
+        "date_start AS start",
+        "date_end AS end",
         "sl_events.created_at AS createdAt",
         db.raw(
           `CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy`
