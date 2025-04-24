@@ -10,9 +10,13 @@ export const User = {
         "user_id AS userId",
         "user_email AS userEmail",
         "user_type AS userType",
-        db.raw(
-          "CONCAT(first_name, ' ', LEFT(middle_name, 1), '. ', last_name) AS fullName"
-        ),
+        db.raw(`
+          CONCAT(
+            first_name, ' ',
+            IF(middle_name IS NOT NULL AND middle_name != '', CONCAT(LEFT(middle_name, 1), '. '), ''),
+            last_name
+          ) AS fullName
+        `),
         "is_verified AS isVerified",
         "is_active AS isActive",
         "sl_user_accounts.created_at AS createdAt"
