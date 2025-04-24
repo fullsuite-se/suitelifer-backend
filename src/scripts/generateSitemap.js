@@ -60,28 +60,9 @@ const generateSitemap = async () => {
     "public",
     "sitemap.xml"
   );
-  // const newsletterPath = path.join(
-  //   currentDirectory,
-  //   "../../",
-  //   "public",
-  //   "newsletter.xml"
-  // );
-  // const careersPath = path.join(
-  //   currentDirectory,
-  //   "../../",
-  //   "public",
-  //   "careers.xml"
-  // );
-
   try {
-    // const sitemap = await fs.readFile(sitemapPath, { encoding: "utf8" });
-    // const newsletter = await fs.readFile(newsletterPath, { encoding: "utf8" });
-    // const careers = await fs.readFile(careersPath, { encoding: "utf8" });
-    // const urlsetIndex = sitemap.indexOf("</urlset>");
-
     const careers = await generateCareerUrls();
     const newsletters = await generateNewsletterUrls();
-    console.log(careers);
     // console.log(newsletters);
 
     const newSitemap = `<?xml version="1.0" encoding="UTF-8"?>

@@ -23,6 +23,7 @@ import newsletterRoutes from "./routes/newsletterRoutes.js";
 import certificationRoutes from "./routes/certificationRoutes.js";
 import auditLogRoutes from "./routes/auditLogRoutes.js";
 import { fileURLToPath } from "url";
+import termsOfUseRoutes from "./routes/termsOfUseRoutes.js";
 
 const app = express();
 dotenv.config();
@@ -44,8 +45,8 @@ const currentDirectory = path.dirname(currentPath);
 const publicFolder = path.join(currentDirectory, "..", "public");
 app.use(express.static(publicFolder));
 
-// Start cron jobs; update the sitemap (SEO)
-// startCronJobs();
+// Start cron jobs; update the sitemap (for the SEO)
+startCronJobs();
 
 app.use("/api", authRoutes);
 app.use("/api", userRoutes);
@@ -62,5 +63,6 @@ app.use("/api", contactRoutes);
 app.use("/api", newsletterRoutes);
 app.use("/api", certificationRoutes);
 app.use("/api", auditLogRoutes);
+app.use("/api", termsOfUseRoutes);
 
 export default app;
