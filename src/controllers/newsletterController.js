@@ -103,6 +103,24 @@ export const getNewsletters = async (req, res) => {
   }
 };
 
+export const getNewsletterById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const newsletter = await Newsletter.getNewsletterById(id);
+
+    if (!newsletter) {
+      return res.status(404).json({ success: false, message: "Newsletter not found" });
+    }
+
+    res.status(200).json({ success: true, newsletter });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+
 export const insertNewsletter = async (req, res) => {
   try {
     const { title, article, section, pseudonym, userId, issueId } = req.body;
