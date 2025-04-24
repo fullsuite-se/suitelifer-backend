@@ -114,11 +114,12 @@ export const Newsletter = {
 
     return await issuesTable().update({ is_published: 1 }).where({ issue_id });
   },
+  
 
   getIssueNewsletters: async (issue_id) => {
-    return newsletterTable()
+    const results = await newsletterTable()
       .select(
-        "newsletter_id AS newsletterId",
+        "sl_newsletters.newsletter_id AS newsletterId",
         "title",
         "article",
         "pseudonym",
@@ -126,15 +127,76 @@ export const Newsletter = {
         "sl_newsletters.created_at AS createdAt",
         db.raw(
           "CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy"
-        )
+        ),
+        db.raw(`GROUP_CONCAT(sl_newsletter_images.image_url) AS images`)
       )
       .join("sl_user_accounts", {
         "sl_newsletters.created_by": "sl_user_accounts.user_id",
       })
+      .leftJoin("sl_newsletter_images", {
+        "sl_newsletter_images.newsletter_id": "sl_newsletters.newsletter_id",
+      })
       .where({ issue_id })
-      .orderBy("section", "desc");
+      .groupBy(
+        "sl_newsletters.newsletter_id",
+        "sl_newsletters.title",
+        "sl_newsletters.article",
+        "sl_newsletters.pseudonym",
+        "sl_newsletters.section",
+        "sl_newsletters.created_at",
+        "sl_user_accounts.first_name",
+        "sl_user_accounts.middle_name",
+        "sl_user_accounts.last_name"
+      )
+      .orderBy("section", "asc");
+  
+    return results.map((row) => ({
+      ...row,
+      images: row.images ? row.images.split(",") : [],
+    }));
   },
-
+  getNewsletterById: async (newsletterId) => {
+    const result = await newsletterTable()
+      .select(
+        "sl_newsletters.newsletter_id AS newsletterId",
+        "title",
+        "article",
+        "pseudonym",
+        "section",
+        "sl_newsletters.created_at AS createdAt",
+        db.raw(
+          "CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy"
+        ),
+        db.raw(`GROUP_CONCAT(sl_newsletter_images.image_url) AS images`)
+      )
+      .join("sl_user_accounts", {
+        "sl_newsletters.created_by": "sl_user_accounts.user_id",
+      })
+      .leftJoin("sl_newsletter_images", {
+        "sl_newsletter_images.newsletter_id": "sl_newsletters.newsletter_id",
+      })
+      .where("sl_newsletters.newsletter_id", newsletterId)
+      .groupBy(
+        "sl_newsletters.newsletter_id",
+        "sl_newsletters.title",
+        "sl_newsletters.article",
+        "sl_newsletters.pseudonym",
+        "sl_newsletters.section",
+        "sl_newsletters.created_at",
+        "sl_user_accounts.first_name",
+        "sl_user_accounts.middle_name",
+        "sl_user_accounts.last_name"
+      )
+      .first();
+  
+    if (!result) return null;
+  
+    return {
+      ...result,
+      images: result.images ? result.images.split(",") : [],
+    };
+  },
+  
   insertNewsletter: async (newNewsletter) => {
     return await newsletterTable().insert(newNewsletter);
   },

@@ -5,6 +5,7 @@ import {
   getOldestPublishedIssue,
   getIssues,
   getNewsletters,
+  getNewsletterById,
   insertIssue,
   insertNewsletter,
   updateCurrentlyPublished,
@@ -24,6 +25,8 @@ router.post("/issues", insertIssue);
 router.patch("/issues", updateCurrentlyPublished);
 
 router.get("/newsletter", getNewsletters);
+
+router.get("/newsletter/:id", getNewsletterById);
 
 router.post("/newsletter", insertNewsletter);
 
