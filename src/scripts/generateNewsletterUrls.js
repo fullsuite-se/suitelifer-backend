@@ -20,7 +20,7 @@ const generateNewsletterUrls = async () => {
   const current = response.data.currentIssue;
 
   const newslettersRes = await axios.get(
-    `https://api.suitelifer.com/api/newsletter?issueId=${current.issueId}`
+    `${process.env.SUITELIFER_API_BASE_URL}/api/newsletter?issueId=${current.issueId}`
   );
 
   const newsletters = newslettersRes.data.newsletters;
