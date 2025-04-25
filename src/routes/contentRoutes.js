@@ -3,7 +3,6 @@ import {
   getAbout,
   getAllContent,
   getCareers,
-  getContact,
   getHome,
   insertContent,
   patchAbout,
@@ -26,8 +25,6 @@ router.patch("/content/about", verifyToken, verifyAdmin, patchAbout);
 router.get("/content/careers", getCareers);
 
 router.patch("/content/careers", patchCareers);
-
-router.get("/content/contact", getContact);
 
 router.get("/content", getAllContent);
 
