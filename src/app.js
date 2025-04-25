@@ -24,6 +24,7 @@ import certificationRoutes from "./routes/certificationRoutes.js";
 import auditLogRoutes from "./routes/auditLogRoutes.js";
 import { fileURLToPath } from "url";
 import termsOfUseRoutes from "./routes/termsOfUseRoutes.js";
+import privacyPolicyRoutes from "./routes/privacyPolicyRoutes.js";
 
 const app = express();
 dotenv.config();
@@ -64,5 +65,5 @@ app.use("/api", newsletterRoutes);
 app.use("/api", certificationRoutes);
 app.use("/api", auditLogRoutes);
 app.use("/api", termsOfUseRoutes);
-
+app.use("/api", privacyPolicyRoutes);
 export default app;
