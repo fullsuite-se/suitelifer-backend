@@ -4,12 +4,12 @@ import { v7 as uuidv7 } from "uuid";
 
 export const getAllPolicy = async (req, res) => {
   try {
-    const policies = await PrivacyPolicy.getAllPolicies();
-    res.status(200).json({ success: true, policies });
+    const policy = await PrivacyPolicy.getAllPolicies();
+    res.status(200).json({ success: true, policy });
   } catch (error) {
     res
       .status(500)
-      .json({ success: false, message: "Error fetching policies", error });
+      .json({ success: false, message: "Error fetching policy", error });
   }
 };
 
