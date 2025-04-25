@@ -11,29 +11,13 @@ import verifySuperAdmin from "../middlewares/verifySuperAdmin.js";
 
 const router = express.Router();
 
-// router.get("/get-users", verifyToken, verifySuperAdmin, getUsers);
-router.get("/users", getUsers);
+router.get("/users", verifyToken, verifySuperAdmin, getUsers);
 
-router.patch(
-  "/users/type",
-  verifyToken,
-  verifySuperAdmin,
-  updateUserType
-);
+router.patch("/users/type", verifyToken, verifySuperAdmin, updateUserType);
 
-router.patch(
-  "/users/status",
-  verifyToken,
-  verifySuperAdmin,
-  updateUserStatus
-);
+router.patch("/users/status", verifyToken, verifySuperAdmin, updateUserStatus);
 
-router.patch(
-  "/delete-user-account",
-  verifyToken,
-  verifySuperAdmin,
-  deleteUserAccount
-);
+router.delete("/users", verifyToken, verifySuperAdmin, deleteUserAccount);
 
 router.post("/update-password", updateUserPassword);
 
