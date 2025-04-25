@@ -21,9 +21,4 @@ router.put("/testimonials", verifyToken, verifyAdmin, editTestimonial);
 
 router.delete("/testimonials", verifyToken, verifyAdmin, deleteTestimonial);
 
-router.post("/add-testimonial", insertTestimonial);
-
-router.post("/edit-testimonial", editTestimonial);
-
-router.post("/delete-testimonial", deleteTestimonial);
 export default router;
