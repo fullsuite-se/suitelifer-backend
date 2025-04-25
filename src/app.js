@@ -53,9 +53,9 @@ app.use("/api", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", spotifyRoutes);
 app.use("/api", eventRoutes);
-app.use("/api", blogRoutes);
+app.use("/api", blogRoutes); // POSTPONE POSTMAN DOCU FOR NOW
 app.use("/api", contentRoutes);
-app.use("/api", cloudinaryRoutes);
+app.use("/api", cloudinaryRoutes); // POSTPONE POSTMAN DOCU FOR NOW
 app.use("/api", personalityTestRoutes);
 app.use("/api", testimonialRoutes);
 app.use("/api", courseRoutes);
