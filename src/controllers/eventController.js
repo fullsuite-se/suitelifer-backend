@@ -75,15 +75,29 @@ export const insertEvent = async (req, res) => {
 
 export const updateEvent = async (req, res) => {
   try {
-    const { title, description, dateStart, dateEnd, userId } = req.body;
+    const { eventId, title, description, start, end, userId } = req.body;
 
-    if ((!title, !description, !dateStart, !userId)) {
+    if ((!eventId, !title, !description, !start, !userId)) {
       return res.status(400).json({
         success: false,
         message:
-          "Missing required fields: title, description, date start, or user id",
+          "Missing required fields: event id, title, description, date start, or user id",
       });
     }
+
+    const updates = {
+      title,
+      description,
+      date_start: new Date(start).toISOString().slice(0, 19).replace("T", " "),
+      date_end:
+        new Date(end).toISOString().slice(0, 19).replace("T", " ") ?? null,
+    };
+
+    await Event.updateEvent(eventId, updates);
+
+    res
+      .status(200)
+      .json({ success: true, message: "Event Updated Successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal Server Error" });
