@@ -78,7 +78,7 @@ export const insertEpisode = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Episode added successfully",
+      message: `${embedType} added successfully`,
     });
   } catch (err) {
     console.error("Error inserting episode:", err.message);
@@ -125,13 +125,13 @@ export const updateEpisode = async (req, res) => {
     if (!updatedEpisode) {
       return res.status(404).json({
         success: false,
-        message: "Episode not found or not updated",
+        message: `${embedType} not found or not updated`,
       });
     }
 
     res.status(200).json({
       success: true,
-      message: "Episode updated successfully",
+      message: `${embedType} updated successfully`,
       data: updateEpisode,
     });
   } catch (err) {
@@ -159,13 +159,13 @@ export const deleteEpisode = async (req, res) => {
     if (!deletedEpisode) {
       return res.status(404).json({
         success: false,
-        message: "Episode not found or already deleted",
+        message: `Spotify link not found or already deleted`,
       });
     }
 
     res.status(200).json({
       success: true,
-      message: "Episode deleted successfully",
+      message: `Spotify link deleted successfully`,
     });
   } catch (err) {
     console.error("Error deleting episode:", err);
