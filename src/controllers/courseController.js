@@ -63,8 +63,8 @@ export const updateCourse = async (req, res) => {
       message: "Course updated successfully.",
     });
   } catch (error) {
-    console.log("Error Updating Course.");
-    console.log(error);
+    console.log("Error Updating Course.", error);
+    
   }
 };
 
@@ -93,7 +93,7 @@ export const deleteCourse = async (req, res) => {
       message: "Course deleted successfully.",
     });
   } catch (error) {
-    console.log("Error Deleting Job Course.", error);
+    console.log("Unable to Delete Job Course.", error);
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
