@@ -4,7 +4,6 @@ import { v7 as uuidv7 } from "uuid";
 
 export const addEmployeeBlog = async (req, res) => {
   const data = req.body;
-  // TODO: DELETE THIS USER ID ON THE DATABASE WHEN IN PRODUCTION
   const userId = "0dbde766-f898-11ef-a725-0af0d960a833";
 
   const blog = {
@@ -55,13 +54,13 @@ export const getAllEmployeeBlogs = async (req, res) => {
     const blogs = await Blogs.getAllEmployeeBlogs();
     res.status(200).json(blogs);
   } catch (err) {
-    console.log(err);
+    console.log("Unable to fetch Employee Blogs", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
 export const deleteEmployeeBlog = async (req, res) => {
-  console.log("Incoming delete payload:", req.body);
+  console.log("Unable to delete Employee Blog", error);
   const { eblog_id } = req.body;
 
   if (!eblog_id) {

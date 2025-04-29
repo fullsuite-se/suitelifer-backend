@@ -9,7 +9,7 @@ export const getUsers = async (req, res) => {
     const users = await User.getAllUsers();
     res.json({ success: true, users });
   } catch (err) {
-    console.log(err);
+    console.log("Unable to fetch Users",err);
   }
 };
 
