@@ -10,10 +10,15 @@ export const Newsletter = {
         "sl_newsletter_issues.issue_id AS issueId",
         "month",
         "year",
-        "is_published",        "sl_newsletter_issues.created_at as issueCreatedAt",
+        "is_published",
+        "sl_newsletter_issues.created_at as issueCreatedAt",
         db.raw("COUNT(sl_newsletters.newsletter_id) AS articleCount"),
-        db.raw("COUNT(DISTINCT CASE WHEN section > 0 THEN section END) AS assigned"),
-        db.raw("SUM(CASE WHEN section = 0 THEN 1 ELSE 0 END) as unassigned_count")
+        db.raw(
+          "COUNT(DISTINCT CASE WHEN section > 0 THEN section END) AS assigned"
+        ),
+        db.raw(
+          "SUM(CASE WHEN section = 0 THEN 1 ELSE 0 END) as unassigned_count"
+        )
       )
       .leftJoin("sl_newsletters", {
         "sl_newsletters.issue_id": "sl_newsletter_issues.issue_id",
@@ -21,7 +26,7 @@ export const Newsletter = {
       .where("sl_newsletter_issues.year", year)
       .groupBy("sl_newsletter_issues.issue_id", "month", "year")
       .orderBy("month", "desc");
-  
+
     return rows.map((row) => ({
       issueId: row.issueId,
       month: row.month,
@@ -29,10 +34,10 @@ export const Newsletter = {
       is_published: row.is_published,
       articleCount: Number(row.articleCount) || 0,
       assigned: Number(row.assigned) || 0,
-      unassigned: Number(row.unassigned_count) || 0,      issueCreatedAt: row.issueCreatedAt,
+      unassigned: Number(row.unassigned_count) || 0,
+      issueCreatedAt: row.issueCreatedAt,
     }));
   },
-  
 
   getCurrentlyPublishedIssue: async () => {
     const rows = await issuesTable()
@@ -46,7 +51,7 @@ export const Newsletter = {
         db.raw(
           "COUNT(DISTINCT CASE WHEN section > 0 THEN section END) AS assigned"
         ),
-        db.raw("SUM(section = 0) as unassigned_count"),
+        db.raw("SUM(section = 0) as unassigned_count")
       )
       .innerJoin("sl_newsletters", {
         "sl_newsletters.issue_id": "sl_newsletter_issues.issue_id",
@@ -75,7 +80,9 @@ export const Newsletter = {
         "is_published",
         "sl_newsletter_issues.created_at as issueCreatedAt",
         db.raw("COUNT(newsletter_id) AS articleCount"),
-        db.raw("COUNT(DISTINCT CASE WHEN section > 0 THEN section END) AS assigned"),
+        db.raw(
+          "COUNT(DISTINCT CASE WHEN section > 0 THEN section END) AS assigned"
+        ),
         db.raw("SUM(section = 0) as unassigned_count")
       )
       .leftJoin("sl_newsletters", {
@@ -83,8 +90,8 @@ export const Newsletter = {
       })
       .groupBy("sl_newsletter_issues.issue_id", "month", "year")
       .orderBy("year", "asc")
-      .first(); 
-  
+      .first();
+
     return {
       issueId: row.issueId,
       month: row.month,
@@ -92,11 +99,10 @@ export const Newsletter = {
       is_published: row.is_published,
       articleCount: row.articleCount,
       assigned: row.assigned,
-      unassigned: Number(row.unassigned_count),      issueCreatedAt: row.issueCreatedAt,
+      unassigned: Number(row.unassigned_count),
+      issueCreatedAt: row.issueCreatedAt,
     };
   },
-  
-  
 
   insertIssue: async (newIssue) => {
     return issuesTable().insert(newIssue);
@@ -114,7 +120,6 @@ export const Newsletter = {
 
     return await issuesTable().update({ is_published: 1 }).where({ issue_id });
   },
-  
 
   getIssueNewsletters: async (issue_id) => {
     const results = await newsletterTable()
@@ -149,7 +154,7 @@ export const Newsletter = {
         "sl_user_accounts.last_name"
       )
       .orderBy("section", "asc");
-  
+
     return results.map((row) => ({
       ...row,
       images: row.images ? row.images.split(",") : [],
@@ -164,9 +169,13 @@ export const Newsletter = {
         "pseudonym",
         "section",
         "sl_newsletters.created_at AS createdAt",
-        db.raw(
-          "CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy"
-        ),
+        db.raw(`
+          CONCAT(
+            first_name, ' ',
+            IF(middle_name IS NOT NULL AND middle_name != '', CONCAT(LEFT(middle_name, 1), '. '), ''),
+            last_name
+          ) AS createdBy
+        `),
         db.raw(`GROUP_CONCAT(sl_newsletter_images.image_url) AS images`)
       )
       .join("sl_user_accounts", {
@@ -188,15 +197,15 @@ export const Newsletter = {
         "sl_user_accounts.last_name"
       )
       .first();
-  
+
     if (!result) return null;
-  
+
     return {
       ...result,
       images: result.images ? result.images.split(",") : [],
     };
   },
-  
+
   insertNewsletter: async (newNewsletter) => {
     return await newsletterTable().insert(newNewsletter);
   },
