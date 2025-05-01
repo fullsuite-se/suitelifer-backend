@@ -8,7 +8,7 @@ export const getAllEvents = async (req, res) => {
     const events = await Event.getAllEvents();
     res.status(200).json({ success: true, events });
   } catch (err) {
-    console.log(err);
+    console.log("Unable to fetch Events", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
@@ -23,7 +23,7 @@ export const getTodayEvents = async (req, res) => {
 
     return res.status(200);
   } catch (err) {
-    console.log(err);
+    console.log("Unable to fetch today's Events", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
@@ -36,7 +36,7 @@ export const getUpcomingEvents = async (req, res) => {
 
     return res.status(200).json({ success: true, upcomingEvents });
   } catch (err) {
-    console.log(err);
+    console.log("Unable to fetch Upcoming Events", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
@@ -68,7 +68,7 @@ export const insertEvent = async (req, res) => {
       .status(201)
       .json({ success: true, message: "Event added successfully" });
   } catch (err) {
-    console.log(err);
+    console.log("Unable to add Event",err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };

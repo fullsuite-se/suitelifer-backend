@@ -1,6 +1,4 @@
 export const youtubeLinkToEmbed = (url) => {
-  console.log(url);
-
   if (url.includes("watch?v=")) {
     return url.replace("watch?v=", "embed/");
   } else {

@@ -10,9 +10,13 @@ export const PrivacyPolicy = {
         "title",
         "description",
         "sl_privacy_policy.created_at AS createdAt",
-        db.raw(
-          "CONCAT(first_name, ' ', LEFT(middle_name, 1), '. ', last_name) AS createdBy"
-        )
+        db.raw(`
+          CONCAT(
+            first_name, ' ',
+            IF(middle_name IS NOT NULL AND middle_name != '', CONCAT(LEFT(middle_name, 1), '. '), ''),
+            last_name
+          ) AS createdBy
+        `)
       )
       .from("sl_privacy_policy")
       .innerJoin("sl_user_accounts", {
