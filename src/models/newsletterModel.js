@@ -131,6 +131,7 @@ export const Newsletter = {
         "pseudonym",
         "section",
         "sl_newsletters.created_at AS createdAt",
+        "sl_newsletters.issue_id AS issueId",
         db.raw(
           "CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy"
         ),
@@ -226,6 +227,11 @@ export const Newsletter = {
 
   deleteNewsletter: async (newsletter_id) => {
     return await newsletterTable().where({ newsletter_id }).del();
+  },
+  deleteNewsletterImage: async (newsletter_id) => {
+    return await newsletterImagesTable()
+      .where({ newsletter_id })
+      .del();
   },
 
   insertNewsletterImage: async (newImage) => {

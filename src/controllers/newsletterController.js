@@ -268,7 +268,7 @@ export const updateNewsletter = async (req, res) => {
 
 export const deleteNewsletter = async (req, res) => {
   try {
-    const { newsletterId } = req.body;
+    const { newsletterId, images } = req.body;
 
     if (!newsletterId) {
       return res.status(400).json({
@@ -279,6 +279,12 @@ export const deleteNewsletter = async (req, res) => {
 
     await Newsletter.deleteNewsletter(newsletterId);
 
+    if (images && Array.isArray(images)) {
+      const deletePromises = images.map((image) =>
+        Newsletter.deleteNewsletterImage(image)
+      );
+      await Promise.all(deletePromises);
+    }
     res.status(200).json({
       success: true,
       message: "Newsletter Article Deleted Successfully",
