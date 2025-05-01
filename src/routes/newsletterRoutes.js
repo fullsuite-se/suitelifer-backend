@@ -11,6 +11,7 @@ import {
   updateCurrentlyPublished,
   updateNewsletter,
   insertNewsletterImages,
+  deleteNewsletterImageByImageUrlCon,
 } from "../controllers/newsletterController.js";
 
 const router = express.Router();
@@ -35,5 +36,10 @@ router.post("/newsletterImages", insertNewsletterImages);
 router.put("/newsletter", updateNewsletter);
 
 router.delete("/newsletter", deleteNewsletter);
+
+router.delete(
+  "/delete-newsletter-by-imageurl",
+  deleteNewsletterImageByImageUrlCon
+);
 
 export default router;

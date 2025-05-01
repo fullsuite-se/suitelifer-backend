@@ -294,3 +294,23 @@ export const deleteNewsletter = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+
+export const deleteNewsletterImageByImageUrlCon = async (req, res) => {
+  try {
+    const {  image_url } = req.body;
+    if (!image_url) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required field",
+      });
+    }
+    await Newsletter.deleteNewsletterImageByImageUrl(image_url);
+    res.status(200).json({
+      success: true,
+      message: "Newsletter Image Deleted Successfully",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
