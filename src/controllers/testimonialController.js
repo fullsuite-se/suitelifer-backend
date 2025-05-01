@@ -46,8 +46,6 @@ export const insertTestimonial = async (req, res) => {
       created_by: userId,
     };
 
-    console.log(newTestimonial);
-
     await Testimonial.insertTestimonial(newTestimonial);
 
     res
@@ -69,15 +67,6 @@ export const editTestimonial = async (req, res) => {
       isShown,
       employeeImageUrl,
     } = req.body;
-
-    console.log(
-      testimonialId,
-      employeeName,
-      position,
-      testimony,
-      isShown,
-      employeeImageUrl
-    );
 
     if (
       !testimonialId ||

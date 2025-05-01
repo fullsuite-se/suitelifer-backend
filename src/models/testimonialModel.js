@@ -26,14 +26,19 @@ export const Testimonial = {
         "is_shown as isShown",
         "employee_image_url as employeeImageUrl",
         "sl_testimonials.created_at as createdAt",
-        db.raw(
-          "CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy"
-        )
+        db.raw(`
+          CONCAT(
+            first_name, ' ',
+            IF(middle_name IS NOT NULL AND middle_name != '', CONCAT(LEFT(middle_name, 1), '. '), ''),
+            last_name
+          ) AS createdBy
+        `)
       )
       .from("sl_testimonials")
       .innerJoin("sl_user_accounts", {
         "sl_testimonials.created_by": "sl_user_accounts.user_id",
-      }).orderBy("sl_testimonials.created_at", "desc");
+      })
+      .orderBy("sl_testimonials.created_at", "desc");
   },
 
   insertTestimonial: async (newTestimonial) => {

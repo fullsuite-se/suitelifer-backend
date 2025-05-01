@@ -13,6 +13,8 @@ export const Newsletter = {
         "year",
         "is_published",
         "sl_newsletter_issues.created_at as issueCreatedAt",
+        "is_published",
+        "sl_newsletter_issues.created_at as issueCreatedAt",
         db.raw("COUNT(sl_newsletters.newsletter_id) AS articleCount"),
         db.raw(
           "COUNT(DISTINCT CASE WHEN section > 0 THEN section END) AS assigned"
@@ -171,9 +173,13 @@ export const Newsletter = {
         "pseudonym",
         "section",
         "sl_newsletters.created_at AS createdAt",
-        db.raw(
-          "CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy"
-        ),
+        db.raw(`
+          CONCAT(
+            first_name, ' ',
+            IF(middle_name IS NOT NULL AND middle_name != '', CONCAT(LEFT(middle_name, 1), '. '), ''),
+            last_name
+          ) AS createdBy
+        `),
         db.raw(`GROUP_CONCAT(sl_newsletter_images.image_url) AS images`)
       )
       .join("sl_user_accounts", {

@@ -1,7 +1,6 @@
 import express from "express";
 import {
   getAbout,
-  getAllContent,
   getCareers,
   getHome,
   insertContent,
@@ -25,8 +24,6 @@ router.patch("/content/about", verifyToken, verifyAdmin, patchAbout);
 router.get("/content/careers", getCareers);
 
 router.patch("/content/careers", patchCareers);
-
-router.get("/content", getAllContent);
 
 router.post("/add-content", verifyToken, verifyAdmin, insertContent);
 
