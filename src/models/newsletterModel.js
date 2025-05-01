@@ -2,6 +2,7 @@ import { db } from "../config/db.js";
 
 const issuesTable = () => db("sl_newsletter_issues");
 const newsletterTable = () => db("sl_newsletters");
+const newsletterImagesTable = () => db("sl_newsletter_images");
 
 export const Newsletter = {
   getIssues: async (year) => {
@@ -10,6 +11,8 @@ export const Newsletter = {
         "sl_newsletter_issues.issue_id AS issueId",
         "month",
         "year",
+        "is_published",
+        "sl_newsletter_issues.created_at as issueCreatedAt",
         "is_published",
         "sl_newsletter_issues.created_at as issueCreatedAt",
         db.raw("COUNT(sl_newsletters.newsletter_id) AS articleCount"),
@@ -130,6 +133,7 @@ export const Newsletter = {
         "pseudonym",
         "section",
         "sl_newsletters.created_at AS createdAt",
+        "sl_newsletters.issue_id AS issueId",
         db.raw(
           "CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy"
         ),
@@ -206,6 +210,19 @@ export const Newsletter = {
     };
   },
 
+  findNewsletterBySection: async (section, issue_id) => {
+    return await newsletterTable()
+      .select("newsletter_id")
+      .where({ section, issue_id })
+      .first();
+  },
+
+  makeNewsletterUnassigned: async (newsletterId) => {
+    return await newsletterTable()
+      .update({ section: 0 })
+      .where({ newsletter_id: newsletterId });
+  },
+
   insertNewsletter: async (newNewsletter) => {
     return await newsletterTable().insert(newNewsletter);
   },
@@ -216,5 +233,14 @@ export const Newsletter = {
 
   deleteNewsletter: async (newsletter_id) => {
     return await newsletterTable().where({ newsletter_id }).del();
+  },
+  deleteNewsletterImage: async (newsletter_id) => {
+    return await newsletterImagesTable()
+      .where({ newsletter_id })
+      .del();
+  },
+
+  insertNewsletterImage: async (newImage) => {
+    return await newsletterImagesTable().insert(newImage);
   },
 };

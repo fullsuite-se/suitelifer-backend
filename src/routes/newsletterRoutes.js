@@ -10,6 +10,7 @@ import {
   insertNewsletter,
   updateCurrentlyPublished,
   updateNewsletter,
+  insertNewsletterImages,
 } from "../controllers/newsletterController.js";
 
 const router = express.Router();
@@ -29,6 +30,7 @@ router.get("/newsletter", getNewsletters);
 router.get("/newsletter/:id", getNewsletterById);
 
 router.post("/newsletter", insertNewsletter);
+router.post("/newsletterImages", insertNewsletterImages);
 
 router.put("/newsletter", updateNewsletter);
 
