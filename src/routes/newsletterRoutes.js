@@ -12,6 +12,7 @@ import {
   updateNewsletter,
   insertNewsletterImages,
   deleteNewsletterImageByImageUrlCon,
+  unpublishIssue,
 } from "../controllers/newsletterController.js";
 
 const router = express.Router();
@@ -25,6 +26,8 @@ router.get("/issues/current", getCurrentlyPublishedIssue);
 router.post("/issues", insertIssue);
 
 router.patch("/issues", updateCurrentlyPublished);
+
+router.patch("/issues/unpublish", unpublishIssue);
 
 router.get("/newsletter", getNewsletters);
 
