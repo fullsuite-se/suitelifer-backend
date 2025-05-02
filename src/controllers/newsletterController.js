@@ -99,6 +99,25 @@ export const updateCurrentlyPublished = async (req, res) => {
   }
 };
 
+export const unpublishIssue = async (req, res) => {
+  try {
+    const { issueId } = req.body;
+    if (!issueId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required field: issue id" });
+    }
+    await Newsletter.unpublishIssue(issueId);
+    res.status(200).json({
+      success: true,
+      message: "Newsletter Issue Unpublished Successfully",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
 export const getNewsletters = async (req, res) => {
   try {
     const { issueId } = req.query;
