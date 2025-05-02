@@ -249,8 +249,29 @@ export const insertNewsletterImages = async (req, res) => {
 
 export const updateNewsletter = async (req, res) => {
   try {
-    const { newsletterId, title, article, section, pseudonym, userId } =
-      req.body;
+    const {
+      newsletterId,
+      title,
+      article,
+      section,
+      pseudonym,
+      userId,
+      issueId,
+    } = req.body;
+
+    const existingNewsletter = await Newsletter.findNewsletterBySection(
+      Number(section),
+      issueId
+    );
+    console.log("existingNewsletter", existingNewsletter);
+    console.log(existingNewsletter?.newsletter_id);
+    if (existingNewsletter && existingNewsletter?.newsletter_id) {
+      await Newsletter.makeNewsletterUnassigned(
+        existingNewsletter.newsletter_id
+      );
+    } else {
+      console.log("No existing newsletter found for this section");
+    }
 
     if (
       !title ||
@@ -316,7 +337,7 @@ export const deleteNewsletter = async (req, res) => {
 
 export const deleteNewsletterImageByImageUrlCon = async (req, res) => {
   try {
-    const {  image_url } = req.body;
+    const { image_url } = req.body;
     if (!image_url) {
       return res.status(400).json({
         success: false,
