@@ -125,6 +125,10 @@ export const Newsletter = {
     return await issuesTable().update({ is_published: 1 }).where({ issue_id });
   },
 
+  unpublishIssue: async (issue_id) => {
+    return await issuesTable().update({ is_published: 0 }).where({ issue_id });
+  },
+
   getIssueNewsletters: async (issue_id) => {
     const results = await newsletterTable()
       .select(
