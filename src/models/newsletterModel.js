@@ -1,4 +1,5 @@
 import { db } from "../config/db.js";
+import { deleteNewsletter } from "../controllers/newsletterController.js";
 
 const issuesTable = () => db("sl_newsletter_issues");
 const newsletterTable = () => db("sl_newsletters");
@@ -243,4 +244,11 @@ export const Newsletter = {
   insertNewsletterImage: async (newImage) => {
     return await newsletterImagesTable().insert(newImage);
   },
+
+  deleteNewsletterImageByImageUrl: async (imageUrl) => {
+    return await newsletterImagesTable()
+      .where({ image_url: imageUrl })
+      .del();
+  }
+  
 };
