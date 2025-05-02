@@ -36,8 +36,8 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
 app.use(helmet());
 
@@ -66,4 +66,11 @@ app.use("/api", certificationRoutes);
 app.use("/api", auditLogRoutes);
 app.use("/api", termsOfUseRoutes);
 app.use("/api", privacyPolicyRoutes);
+
+app.use("/", (req, res) => {
+  res.send(
+    "<pre>Hello, human!\n\nAuthors:\nDomingo, Hernani\nSalcedo, Lance Jericho\nGalano, Dan\nAlvaro, Allen James\nSantiago, Melbraei</pre>"
+  );
+});
+
 export default app;
