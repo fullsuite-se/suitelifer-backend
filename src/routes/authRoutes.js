@@ -9,6 +9,7 @@ import {
   sendAccountVerificationLink,
   verifyAccountVerificationLink,
   verifyApplication,
+  sendInquiryEmail,
 } from "../controllers/authController.js";
 import verifyToken from "../middlewares/verifyToken.js";
 import { recaptcha } from "../middlewares/recaptcha.js";
@@ -26,6 +27,8 @@ router.post("/send-account-verification-link", sendAccountVerificationLink);
 router.get("/verify-account-verification-link", verifyAccountVerificationLink);
 
 router.post("/send-password-reset-link", sendPasswordResetLink);
+
+router.post("/send-inquiry-email", sendInquiryEmail);
 
 router.get("/refresh-token", refreshToken);
 
