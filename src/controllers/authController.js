@@ -260,6 +260,108 @@ export const verifyAccountVerificationLink = async (req, res) => {
   }
 };
 
+export const sendInquiryEmail = async (req, res) => {
+  const { fullName, receiver_email, sender_email, subject, message, type } =
+    req.body;
+  if (!fullName || !receiver_email || !sender_email || !subject || !message) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
+
+  try {
+    const user = await User.getUserByEmail(sender_email);
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ isSuccess: false, message: "Email not found or invalid" });
+    }
+
+    const code = crypto.randomBytes(4).toString("hex").toUpperCase();
+    const hashedCode = await bcrypt.hash(code, 10);
+
+    const data = {
+      code_id: uuidv7(),
+      user_id: user.user_id,
+      verification_code: hashedCode,
+      created_at: db.fn.now(),
+      expires_at: db.raw("NOW() + INTERVAL 15 MINUTE"),
+    };
+
+    const publicKeyPEM = process.env.JWE_PUBLIC_KEY;
+    const publicKey = await importSPKI(publicKeyPEM, "RSA-OAEP");
+    const exp = Math.floor(Date.now() / 1000 + 15 * 60);
+    const payload = JSON.stringify({ code: code, id: user.user_id, exp: exp });
+    const jwe = await new CompactEncrypt(new TextEncoder().encode(payload))
+      .setProtectedHeader({ alg: "RSA-OAEP", enc: "A256GCM" })
+      .encrypt(publicKey);
+
+    await Auth.addVerificationCode(data);
+    await transporter.sendMail({
+      from: process.env.NODEMAILER_USER,
+      to: receiver_email,
+      replyTo: sender_email,
+      subject: subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9;">
+<h2 style="color: #0097b2; font-size: 24px; margin-bottom: 20px;">
+  ${type === "podcast" ? "New Podcast Inquiry" : "New Job Inquiry"}
+</h2>
+
+  
+  <div style="margin-bottom: 15px;">
+    <p style="font-size: 16px; margin: 0; font-weight: bold;">Full Name:</p>
+    <p style="font-size: 16px; color: #555;">${fullName}</p>
+  </div>
+  
+  <div style="margin-bottom: 15px;">
+    <p style="font-size: 16px; margin: 0; font-weight: bold;">Email Address:</p>
+    <p style="font-size: 16px; color: #555;">${sender_email}</p>
+  </div>
+  
+  <div style="margin-bottom: 15px;">
+    <p style="font-size: 16px; margin: 0; font-weight: bold;">Subject:</p>
+    <p style="font-size: 16px; color: #555;">${subject}</p>
+  </div>
+  
+  <div style="margin-bottom: 20px;">
+    <p style="font-size: 16px; margin: 0; font-weight: bold;">Message:</p>
+    <p style="font-size: 16px; color: #555;">${message}</p>
+  </div>
+  
+  <div style="border-top: 1px solid #ddd; margin-top: 20px; padding-top: 10px;">
+   <p style="font-size: 14px; color: #777;">
+  This inquiry was made through the submission form on 
+  <a 
+          href="${
+            type === "podcast"
+              ? "https://suitelifer.com/podcast#inquiry"
+              : "https://suitelifer.com/contact"
+          }" 
+          target="_blank" 
+          style="color: #0097b2; text-decoration: none;">
+          ${
+            type === "podcast"
+              ? "Suitelifer’s podcast page"
+              : "Suitelifer’s contact page"
+          }
+        </a>.
+</p>
+  </div>
+</div>
+
+      `,
+    });
+
+    res.status(200).json({
+      isSuccess: true,
+      message: "Inquiry email sent successfully!",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 export const sendPasswordResetLink = async (req, res) => {
   const { email } = req.body;
 
