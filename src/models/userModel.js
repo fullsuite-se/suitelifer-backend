@@ -4,6 +4,9 @@ const userAccounts = "sl_user_accounts";
 const userAccountsTable = () => db("sl_user_accounts");
 
 export const User = {
+  addUser: async (userData) => {
+    return await userAccountsTable().insert(userData);
+  },
   getAllUsers: async () => {
     return await userAccountsTable()
       .select(

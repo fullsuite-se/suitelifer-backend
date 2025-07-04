@@ -4,6 +4,35 @@ import bcrypt from "bcrypt";
 import { compactDecrypt, importPKCS8 } from "jose";
 import { Auth } from "../models/authModel.js";
 
+export const addUser = async (req, res) => {
+  try {
+    const { userEmail, userPassword, userType, firstName, lastName, middleName, profilePic, isVerified, isActive } = req.body;
+
+    if (!userEmail || !userType || !firstName || !lastName || !userPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    const newUser = {
+      user_email: userEmail,
+      user_type: userType,
+      first_name: firstName,
+      last_name: lastName,
+      middle_name: middleName,
+      user_password: userPassword,
+    };
+
+    await User.addUser(newUser);
+
+    res.status(201).json({ success: true, message: "User added successfully" });
+  } catch (err) {
+    console.error("Error adding user:", err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
 export const getUsers = async (req, res) => {
   try {
     const users = await User.getAllUsers();
