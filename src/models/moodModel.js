@@ -175,5 +175,21 @@ export const Mood = {
       .orderBy('date');
 
     return result;
+  },
+
+  // Get all mood data (for admin/testing purposes)
+  getAllMoodData: async (limit = 50, offset = 0) => {
+    return await db(moodTable)
+      .select(
+        'id',
+        'user_id',
+        'mood_level',
+        'notes',
+        'created_at',
+        'updated_at'
+      )
+      .orderBy('created_at', 'desc')
+      .limit(limit)
+      .offset(offset);
   }
 };

@@ -26,6 +26,7 @@ import { fileURLToPath } from "url";
 import termsOfUseRoutes from "./routes/termsOfUseRoutes.js";
 import privacyPolicyRoutes from "./routes/privacyPolicyRoutes.js";
 import moodRoutes from "./routes/moodRoutes.js";
+import testMoodRoutes from "./routes/testMoodRoutes.js";
 
 const app = express();
 dotenv.config();
@@ -68,6 +69,7 @@ app.use("/api", auditLogRoutes);
 app.use("/api", termsOfUseRoutes);
 app.use("/api", privacyPolicyRoutes);
 app.use("/api", moodRoutes);
+app.use("/api", testMoodRoutes);
 
 app.use("/", (req, res) => {
   res.send(
