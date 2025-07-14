@@ -11,7 +11,10 @@
     "populate-products": "node src/scripts/populateProducts.js",
     "create-test-user": "node src/scripts/createTestUser.js",
     "create-admin": "node src/scripts/createAdminUser.js",
-    "seed-suitebite": "node src/scripts/seedSuitebiteData.js"
+    "seed-suitebite": "node src/scripts/seedSuitebiteData.js",
+    "backup-cheer-data": "node src/scripts/backupCheerData.js",
+    "migrate-cheer-schema": "node src/scripts/migrateToNewCheerSchema.js",
+    "rollback-cheer-migration": "node src/scripts/rollbackCheerMigration.js"
   },
   "repository": {
     "type": "git",

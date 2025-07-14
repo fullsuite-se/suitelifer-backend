@@ -1,8 +1,9 @@
 -- ============================================================================
 -- OPTIMIZED SHOP SYSTEM SCHEMA FOR MYSQL
 -- Created: 2025-07-10
--- Updated: 2025-01-27
--- Description: Complete schema for shop, products, heartbits, cart, and orders
+-- Updated: 2025-07-14
+-- Description: Complete schema for shop, products, heartbits, cart, orders, and cheer-a-peer system
+-- Features: E-commerce, Points/Rewards, Peer Recognition, Social Interactions
 -- ============================================================================
 
 -- Set MySQL mode for compatibility
@@ -228,6 +229,97 @@ CREATE TABLE `sl_monthly_limits` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
+-- USER POINTS TABLE (Alternative points system)
+-- ============================================================================
+CREATE TABLE `sl_user_points` (
+  `user_id` varchar(36) NOT NULL,
+  `available_points` int DEFAULT 0,
+  `total_earned` int DEFAULT 0,
+  `total_spent` int DEFAULT 0,
+  `monthly_cheer_limit` int DEFAULT 100,
+  `monthly_cheer_used` int DEFAULT 0,
+  `last_monthly_reset` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`),
+  KEY `sl_user_points_user_id_index` (`user_id`),
+  KEY `sl_user_points_total_earned_index` (`total_earned`),
+  CONSTRAINT `sl_user_points_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ============================================================================
+-- CHEERS TABLE (Peer-to-peer recognition system)
+-- ============================================================================
+CREATE TABLE `sl_cheers` (
+  `cheer_id` varchar(36) NOT NULL,
+  `from_user_id` varchar(36) DEFAULT NULL,
+  `to_user_id` varchar(36) DEFAULT NULL,
+  `points` int DEFAULT 1,
+  `message` text,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`cheer_id`),
+  KEY `sl_cheers_from_user_id_created_at_index` (`from_user_id`,`created_at`),
+  KEY `sl_cheers_to_user_id_created_at_index` (`to_user_id`,`created_at`),
+  CONSTRAINT `sl_cheers_from_user_id_foreign` FOREIGN KEY (`from_user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `sl_cheers_to_user_id_foreign` FOREIGN KEY (`to_user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ============================================================================
+-- CHEER COMMENTS TABLE
+-- ============================================================================
+CREATE TABLE `sl_cheer_comments` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `cheer_id` varchar(36) DEFAULT NULL,
+  `user_id` varchar(36) DEFAULT NULL,
+  `comment` text,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `sl_cheer_comments_user_id_foreign` (`user_id`),
+  KEY `sl_cheer_comments_cheer_id_created_at_index` (`cheer_id`,`created_at`),
+  CONSTRAINT `sl_cheer_comments_cheer_id_foreign` FOREIGN KEY (`cheer_id`) REFERENCES `sl_cheers` (`cheer_id`) ON DELETE CASCADE,
+  CONSTRAINT `sl_cheer_comments_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ============================================================================
+-- CHEER LIKES TABLE
+-- ============================================================================
+CREATE TABLE `sl_cheer_likes` (
+  `cheer_id` varchar(36) NOT NULL,
+  `user_id` varchar(36) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`cheer_id`,`user_id`),
+  KEY `sl_cheer_likes_cheer_id_index` (`cheer_id`),
+  KEY `sl_cheer_likes_user_id_index` (`user_id`),
+  CONSTRAINT `sl_cheer_likes_cheer_id_foreign` FOREIGN KEY (`cheer_id`) REFERENCES `sl_cheers` (`cheer_id`) ON DELETE CASCADE,
+  CONSTRAINT `sl_cheer_likes_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ============================================================================
+-- TRANSACTIONS TABLE (General purpose transaction log)
+-- ============================================================================
+CREATE TABLE `sl_transactions` (
+  `transaction_id` varchar(36) NOT NULL,
+  `from_user_id` varchar(36) DEFAULT NULL,
+  `to_user_id` varchar(36) DEFAULT NULL,
+  `type` enum('earned','spent','given','received','bonus','admin_grant','admin_deduct') DEFAULT NULL,
+  `amount` int DEFAULT NULL,
+  `description` varchar(500) DEFAULT NULL,
+  `message` text,
+  `metadata` json DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`transaction_id`),
+  KEY `sl_transactions_to_user_id_created_at_index` (`to_user_id`,`created_at`),
+  KEY `sl_transactions_from_user_id_created_at_index` (`from_user_id`,`created_at`),
+  KEY `sl_transactions_type_created_at_index` (`type`,`created_at`),
+  CONSTRAINT `sl_transactions_from_user_id_foreign` FOREIGN KEY (`from_user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE SET NULL,
+  CONSTRAINT `sl_transactions_to_user_id_foreign` FOREIGN KEY (`to_user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ============================================================================
 -- CARTS TABLE
 -- ============================================================================
 CREATE TABLE `sl_carts` (
@@ -359,6 +451,13 @@ CREATE INDEX `idx_transactions_user_type_date` ON `sl_heartbits_transactions` (`
 CREATE INDEX `idx_products_category_active` ON `sl_products` (`category_id`, `is_active`);
 CREATE INDEX `idx_user_heartbits_balance_active` ON `sl_user_heartbits` (`heartbits_balance`, `is_suspended`);
 
+-- Cheer system performance indexes
+CREATE INDEX `idx_cheers_points_date` ON `sl_cheers` (`points`, `created_at`);
+CREATE INDEX `idx_transactions_amount_type` ON `sl_transactions` (`amount`, `type`);
+CREATE INDEX `idx_user_points_monthly_reset` ON `sl_user_points` (`last_monthly_reset`);
+CREATE INDEX `idx_cheer_comments_created_at` ON `sl_cheer_comments` (`created_at`);
+CREATE INDEX `idx_cheer_likes_created_at` ON `sl_cheer_likes` (`created_at`);
+
 -- ============================================================================
 -- VIEWS FOR COMMON QUERIES (Optional)
 -- ============================================================================
@@ -401,6 +500,39 @@ JOIN `sl_user_accounts` u ON o.user_id = u.user_id
 LEFT JOIN `sl_order_items` oi ON o.order_id = oi.order_id
 GROUP BY o.order_id, u.user_id, u.first_name, u.last_name, u.user_email;
 
+-- View for cheers with user details
+CREATE VIEW `v_cheers_with_users` AS
+SELECT 
+    c.*,
+    from_user.first_name as from_first_name,
+    from_user.last_name as from_last_name,
+    from_user.user_email as from_email,
+    to_user.first_name as to_first_name,
+    to_user.last_name as to_last_name,
+    to_user.user_email as to_email,
+    (SELECT COUNT(*) FROM sl_cheer_likes cl WHERE cl.cheer_id = c.cheer_id) as likes_count,
+    (SELECT COUNT(*) FROM sl_cheer_comments cc WHERE cc.cheer_id = c.cheer_id) as comments_count
+FROM `sl_cheers` c
+LEFT JOIN `sl_user_accounts` from_user ON c.from_user_id = from_user.user_id
+LEFT JOIN `sl_user_accounts` to_user ON c.to_user_id = to_user.user_id;
+
+-- View for user points summary (alternative to heartbits)
+CREATE VIEW `v_user_points_summary` AS
+SELECT 
+    u.user_id,
+    u.first_name,
+    u.last_name,
+    u.user_email,
+    up.available_points,
+    up.total_earned,
+    up.total_spent,
+    up.monthly_cheer_limit,
+    up.monthly_cheer_used,
+    up.last_monthly_reset
+FROM `sl_user_accounts` u
+LEFT JOIN `sl_user_points` up ON u.user_id = up.user_id
+WHERE u.is_active = 1;
+
 -- ============================================================================
 -- TRIGGERS FOR DATA CONSISTENCY (Optional)
 -- ============================================================================
@@ -432,6 +564,62 @@ BEGIN
             updated_at = CURRENT_TIMESTAMP
         WHERE user_id = NEW.user_id;
     END IF;
+END$$
+
+-- Trigger to sync cheer transactions with general transactions table
+CREATE TRIGGER `tr_sync_cheer_to_transactions`
+AFTER INSERT ON `sl_cheers`
+FOR EACH ROW
+BEGIN
+    -- Insert transaction for the giver (points spent)
+    INSERT INTO sl_transactions (
+        transaction_id,
+        from_user_id,
+        to_user_id,
+        type,
+        amount,
+        description,
+        message,
+        metadata,
+        created_at,
+        updated_at
+    ) VALUES (
+        CONCAT(NEW.cheer_id, '-given'),
+        NEW.from_user_id,
+        NEW.to_user_id,
+        'given',
+        NEW.points,
+        CONCAT('Cheered ', NEW.points, ' heartbits'),
+        NEW.message,
+        JSON_OBJECT('type', 'cheer', 'cheer_id', NEW.cheer_id),
+        NEW.created_at,
+        NEW.updated_at
+    );
+    
+    -- Insert transaction for the receiver (points received)
+    INSERT INTO sl_transactions (
+        transaction_id,
+        from_user_id,
+        to_user_id,
+        type,
+        amount,
+        description,
+        message,
+        metadata,
+        created_at,
+        updated_at
+    ) VALUES (
+        CONCAT(NEW.cheer_id, '-received'),
+        NEW.from_user_id,
+        NEW.to_user_id,
+        'received',
+        NEW.points,
+        CONCAT('Received ', NEW.points, ' points from cheer'),
+        NEW.message,
+        JSON_OBJECT('type', 'cheer', 'cheer_id', NEW.cheer_id),
+        NEW.created_at,
+        NEW.updated_at
+    );
 END$$
 DELIMITER ;
 

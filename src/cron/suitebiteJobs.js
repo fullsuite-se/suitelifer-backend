@@ -151,11 +151,11 @@ export const startSuitebiteJobs = () => {
       const statDate = yesterday.toISOString().split('T')[0];
 
       // Calculate daily statistics
-      const [cheersData] = await db('sl_cheer_post')
-        .count('cheer_post_id as total_cheers')
-        .sum('heartbits_given as total_heartbits')
-        .countDistinct('cheerer_id as active_cheerers')
-        .where(db.raw('DATE(posted_at)'), statDate);
+      const [cheersData] = await db('sl_cheers')
+        .count('cheer_id as total_cheers')
+        .sum('points as total_heartbits')
+        .countDistinct('from_user_id as active_cheerers')
+        .where(db.raw('DATE(created_at)'), statDate);
 
       const [ordersData] = await db('sl_orders')
         .count('order_id as total_orders')
@@ -205,14 +205,14 @@ export const startSuitebiteJobs = () => {
       for (const user of users) {
         try {
           // Calculate user stats for current month
-          const [cheerStats] = await db('sl_cheer_post')
+          const [cheerStats] = await db('sl_cheers')
             .select(
-              db.raw('COUNT(CASE WHEN cheerer_id = ? THEN 1 END) as cheers_sent', [user.user_id]),
-              db.raw('COUNT(CASE WHEN cheeree_id = ? THEN 1 END) as cheers_received', [user.user_id]),
-              db.raw('SUM(CASE WHEN cheerer_id = ? THEN heartbits_given ELSE 0 END) as heartbits_given', [user.user_id]),
-              db.raw('SUM(CASE WHEN cheeree_id = ? THEN heartbits_given ELSE 0 END) as heartbits_earned', [user.user_id])
+              db.raw('COUNT(CASE WHEN from_user_id = ? THEN 1 END) as cheers_sent', [user.user_id]),
+              db.raw('COUNT(CASE WHEN to_user_id = ? THEN 1 END) as cheers_received', [user.user_id]),
+              db.raw('SUM(CASE WHEN from_user_id = ? THEN points ELSE 0 END) as heartbits_given', [user.user_id]),
+              db.raw('SUM(CASE WHEN to_user_id = ? THEN points ELSE 0 END) as heartbits_earned', [user.user_id])
             )
-            .where(db.raw('DATE_FORMAT(posted_at, "%Y-%m")'), currentMonth);
+            .where(db.raw('DATE_FORMAT(created_at, "%Y-%m")'), currentMonth);
 
           const [orderStats] = await db('sl_orders')
             .count('order_id as orders_placed')
@@ -220,13 +220,13 @@ export const startSuitebiteJobs = () => {
             .where('user_id', user.user_id)
             .where(db.raw('DATE_FORMAT(ordered_at, "%Y-%m")'), currentMonth);
 
-          const [lastActivity] = await db('sl_cheer_post')
-            .select(db.raw('MAX(posted_at) as last_activity'))
+          const [lastActivity] = await db('sl_cheers')
+            .select(db.raw('MAX(created_at) as last_activity'))
             .where(function() {
-              this.where('cheerer_id', user.user_id)
-                  .orWhere('cheeree_id', user.user_id);
+              this.where('from_user_id', user.user_id)
+                  .orWhere('to_user_id', user.user_id);
             })
-            .where(db.raw('DATE_FORMAT(posted_at, "%Y-%m")'), currentMonth);
+            .where(db.raw('DATE_FORMAT(created_at, "%Y-%m")'), currentMonth);
 
           // Insert or update monthly stats
           await db('sl_user_monthly_stats')
@@ -329,9 +329,9 @@ export const startSuitebiteJobs = () => {
         .count('order_id as count')
         .where('status', 'pending');
 
-      // Check for flagged posts
-      const [flaggedPostsCount] = await db('sl_cheer_post')
-        .count('cheer_post_id as count')
+      // Check for flagged posts (note: new schema doesn't have flagged posts, so this will be 0)
+      const [flaggedPostsCount] = await db('sl_cheers')
+        .count('cheer_id as count')
         .where('is_flagged', true)
         .where('is_visible', true);
 

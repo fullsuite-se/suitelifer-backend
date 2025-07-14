@@ -1,13 +1,13 @@
 import { db } from "../config/db.js";
 import { v7 as uuidv7 } from "uuid";
 
-// Table references based on the official Suitebite schema
+// Table references based on the new Suitebite schema
 const usersTable = () => db("sl_user_accounts");
-const userHeartbitsTable = () => db("sl_user_heartbits"); // Main heartbits table
-const cheerPostTable = () => db("sl_cheer_post");
+const userPointsTable = () => db("sl_user_points"); // New points table
+const cheersTable = () => db("sl_cheers"); // New cheers table
 const cheerCommentsTable = () => db("sl_cheer_comments");
-const cheerDesignationTable = () => db("sl_cheer_designation");
 const cheerLikesTable = () => db("sl_cheer_likes");
+const transactionsTable = () => db("sl_transactions"); // New transactions table
 const productsTable = () => db("sl_products"); // Updated: using unified products table
 const categoriesTable = () => db("sl_shop_categories"); // Added categories table
 const cartsTable = () => db("sl_carts");
@@ -22,6 +22,8 @@ const variationTypesTable = () => db("sl_variation_types");
 const variationOptionsTable = () => db("sl_variation_options");
 const productVariationsTable = () => db("sl_product_variations");
 const productVariationOptionsTable = () => db("sl_product_variation_options");
+
+const userHeartbitsTable = () => db("sl_user_heartbits");
 
 export {
   productsTable,
@@ -41,149 +43,195 @@ export const Suitebite = {
     return user;
   },
 
-  getUserHeartbits: async (user_id) => {
-    return await userHeartbitsTable()
-      .select("heartbits_balance", "total_heartbits_earned", "total_heartbits_spent")
+  getUserPoints: async (user_id) => {
+    return await userPointsTable()
+      .select("available_points", "total_earned", "total_spent", "monthly_cheer_limit", "monthly_cheer_used")
       .where("user_id", user_id)
       .first();
   },
 
-  updateUserHeartbits: async (user_id, heartbits_amount) => {
-    // Check if heartbits record exists
-    const existing = await userHeartbitsTable().where("user_id", user_id).first();
+  updateUserPoints: async (user_id, points_amount) => {
+    // Check if points record exists
+    const existing = await userPointsTable().where("user_id", user_id).first();
     
     if (existing) {
-      if (heartbits_amount > 0) {
-        // Earning heartbits
-        return await userHeartbitsTable()
+      if (points_amount > 0) {
+        // Earning points
+        return await userPointsTable()
           .where("user_id", user_id)
           .update({
-            heartbits_balance: db.raw("heartbits_balance + ?", [heartbits_amount]),
-            total_heartbits_earned: db.raw("total_heartbits_earned + ?", [heartbits_amount])
+            available_points: db.raw("available_points + ?", [points_amount]),
+            total_earned: db.raw("total_earned + ?", [points_amount])
           });
       } else {
-        // Spending heartbits
-        return await userHeartbitsTable()
+        // Spending points
+        return await userPointsTable()
           .where("user_id", user_id)
           .update({
-            heartbits_balance: db.raw("heartbits_balance + ?", [heartbits_amount]),
-            total_heartbits_spent: db.raw("total_heartbits_spent + ?", [Math.abs(heartbits_amount)])
+            available_points: db.raw("available_points + ?", [points_amount]),
+            total_spent: db.raw("total_spent + ?", [Math.abs(points_amount)])
           });
       }
     } else {
-      return await userHeartbitsTable().insert({
+      return await userPointsTable().insert({
         user_id: user_id,
-        heartbits_balance: Math.max(0, heartbits_amount),
-        total_heartbits_earned: Math.max(0, heartbits_amount),
-        total_heartbits_spent: 0
+        available_points: Math.max(0, points_amount),
+        total_earned: Math.max(0, points_amount),
+        total_spent: 0,
+        monthly_cheer_limit: 100,
+        monthly_cheer_used: 0
       });
     }
   },
 
-  // ========== CHEER DESIGNATION OPERATIONS ==========
-
-  addCheerDesignation: async (post_id, peer_id, heartbits_given) => {
-    return await cheerDesignationTable().insert({
-      cheer_post_id: post_id,
-      peer_id,
-      heartbits_given
-    });
+  // Backward compatibility method
+  getUserHeartbits: async (user_id) => {
+    const points = await userPointsTable()
+      .select("available_points as heartbits_balance", "total_earned as total_heartbits_earned", "total_spent as total_heartbits_spent")
+      .where("user_id", user_id)
+      .first();
+    return points;
   },
 
-  // ========== CHEER POST OPERATIONS ==========
+  updateUserHeartbits: async (user_id, heartbits_amount) => {
+    return await Suitebite.updateUserPoints(user_id, heartbits_amount);
+  },
 
+  // ========== CHEER OPERATIONS ==========
+
+  createCheer: async (cheerData) => {
+    return await cheersTable().insert(cheerData);
+  },
+
+  // Backward compatibility method
   createCheerPost: async (cheerData) => {
-    return await cheerPostTable().insert(cheerData);
+    // Transform old format to new format
+    const newCheerData = {
+      cheer_id: cheerData.cheer_post_id || uuidv7(),
+      from_user_id: cheerData.cheerer_id,
+      to_user_id: cheerData.peer_id,
+      points: cheerData.heartbits_given || 1,
+      message: cheerData.cheer_message || "",
+      created_at: cheerData.posted_at || cheerData.created_at,
+      updated_at: cheerData.updated_at || cheerData.created_at
+    };
+    return await cheersTable().insert(newCheerData);
   },
 
-  getCheerPosts: async (page = 1, limit = 10, user_id = null) => {
+  getCheers: async (page = 1, limit = 10, user_id = null) => {
     const offset = (page - 1) * limit;
     
-    let query = cheerPostTable()
+    let query = cheersTable()
       .select(
-        "sl_cheer_post.*",
-        "cheerer.first_name as cheerer_first_name",
-        "cheerer.last_name as cheerer_last_name",
-        "cheerer.profile_pic as cheerer_profile_pic",
-        "peer.first_name as peer_first_name",
-        "peer.last_name as peer_last_name",
-        "peer.profile_pic as peer_profile_pic",
-        db.raw("(SELECT COUNT(*) FROM sl_cheer_likes WHERE cheer_post_id = sl_cheer_post.cheer_post_id) as likes_count"),
-        db.raw("(SELECT COUNT(*) FROM sl_cheer_comments WHERE cheer_post_id = sl_cheer_post.cheer_post_id) as comments_count")
+        "sl_cheers.*",
+        "from_user.first_name as from_user_first_name",
+        "from_user.last_name as from_user_last_name",
+        "from_user.profile_pic as from_user_profile_pic",
+        "to_user.first_name as to_user_first_name",
+        "to_user.last_name as to_user_last_name",
+        "to_user.profile_pic as to_user_profile_pic",
+        db.raw("(SELECT COUNT(*) FROM sl_cheer_likes WHERE cheer_id = sl_cheers.cheer_id) as likes_count"),
+        db.raw("(SELECT COUNT(*) FROM sl_cheer_comments WHERE cheer_id = sl_cheers.cheer_id) as comments_count")
       )
-      .leftJoin("sl_user_accounts as cheerer", "sl_cheer_post.cheerer_id", "cheerer.user_id")
-      .leftJoin("sl_user_accounts as peer", "sl_cheer_post.peer_id", "peer.user_id");
+      .leftJoin("sl_user_accounts as from_user", "sl_cheers.from_user_id", "from_user.user_id")
+      .leftJoin("sl_user_accounts as to_user", "sl_cheers.to_user_id", "to_user.user_id");
 
     if (user_id) {
       query = query.where(function() {
-        this.where("sl_cheer_post.cheerer_id", user_id)
-            .orWhere("sl_cheer_post.peer_id", user_id);
+        this.where("sl_cheers.from_user_id", user_id)
+            .orWhere("sl_cheers.to_user_id", user_id);
       });
     }
 
-    const posts = await query
-      .orderBy("sl_cheer_post.posted_at", "desc")
+    const cheers = await query
+      .orderBy("sl_cheers.created_at", "desc")
       .limit(limit)
       .offset(offset);
 
-    // Get additional recipients for each post
-    for (let post of posts) {
-      const additionalRecipients = await cheerDesignationTable()
-        .select(
-          "sl_cheer_designation.peer_id",
-          "sl_cheer_designation.heartbits_given",
-          "additional_peer.first_name as additional_first_name",
-          "additional_peer.last_name as additional_last_name",
-          "additional_peer.profile_pic as additional_profile_pic"
-        )
-        .leftJoin("sl_user_accounts as additional_peer", "sl_cheer_designation.peer_id", "additional_peer.user_id")
-        .where("sl_cheer_designation.cheer_post_id", post.cheer_post_id);
-
-      post.additional_recipients = additionalRecipients || [];
-    }
-
-    return posts;
+    return cheers;
   },
 
-  getCheerPostById: async (post_id) => {
-    const post = await cheerPostTable()
+  // Backward compatibility method
+  getCheerPosts: async (page = 1, limit = 10, user_id = null) => {
+    const cheers = await Suitebite.getCheers(page, limit, user_id);
+    
+    // Transform to old format for backward compatibility
+    return cheers.map(cheer => ({
+      cheer_post_id: cheer.cheer_id,
+      cheerer_id: cheer.from_user_id,
+      peer_id: cheer.to_user_id,
+      heartbits_given: cheer.points,
+      cheer_message: cheer.message,
+      posted_at: cheer.created_at,
+      created_at: cheer.created_at,
+      updated_at: cheer.updated_at,
+      cheerer_first_name: cheer.from_user_first_name,
+      cheerer_last_name: cheer.from_user_last_name,
+      cheerer_profile_pic: cheer.from_user_profile_pic,
+      peer_first_name: cheer.to_user_first_name,
+      peer_last_name: cheer.to_user_last_name,
+      peer_profile_pic: cheer.to_user_profile_pic,
+      likes_count: cheer.likes_count,
+      comments_count: cheer.comments_count,
+      additional_recipients: [] // Simplified to 1-to-1 cheers
+    }));
+  },
+
+  getCheerById: async (cheer_id) => {
+    const cheer = await cheersTable()
       .select(
-        "sl_cheer_post.*",
-        "cheerer.first_name as cheerer_first_name",
-        "cheerer.last_name as cheerer_last_name",
-        "cheerer.profile_pic as cheerer_profile_pic",
-        "peer.first_name as peer_first_name",
-        "peer.last_name as peer_last_name",
-        "peer.profile_pic as peer_profile_pic",
-        db.raw("(SELECT COUNT(*) FROM sl_cheer_likes WHERE cheer_post_id = sl_cheer_post.cheer_post_id) as likes_count"),
-        db.raw("(SELECT COUNT(*) FROM sl_cheer_comments WHERE cheer_post_id = sl_cheer_post.cheer_post_id) as comments_count")
+        "sl_cheers.*",
+        "from_user.first_name as from_user_first_name",
+        "from_user.last_name as from_user_last_name",
+        "from_user.profile_pic as from_user_profile_pic",
+        "to_user.first_name as to_user_first_name",
+        "to_user.last_name as to_user_last_name",
+        "to_user.profile_pic as to_user_profile_pic",
+        db.raw("(SELECT COUNT(*) FROM sl_cheer_likes WHERE cheer_id = sl_cheers.cheer_id) as likes_count"),
+        db.raw("(SELECT COUNT(*) FROM sl_cheer_comments WHERE cheer_id = sl_cheers.cheer_id) as comments_count")
       )
-      .leftJoin("sl_user_accounts as cheerer", "sl_cheer_post.cheerer_id", "cheerer.user_id")
-      .leftJoin("sl_user_accounts as peer", "sl_cheer_post.peer_id", "peer.user_id")
-      .where("sl_cheer_post.cheer_post_id", post_id)
+      .leftJoin("sl_user_accounts as from_user", "sl_cheers.from_user_id", "from_user.user_id")
+      .leftJoin("sl_user_accounts as to_user", "sl_cheers.to_user_id", "to_user.user_id")
+      .where("sl_cheers.cheer_id", cheer_id)
       .first();
 
-    if (post) {
-      // Get likes and comments for this post
-      post.likes = await Suitebite.getCheerLikes(post_id);
-      post.comments = await Suitebite.getCheerComments(post_id);
-
-      // Get additional recipients for group cheers
-      const additionalRecipients = await cheerDesignationTable()
-        .select(
-          "sl_cheer_designation.peer_id",
-          "sl_cheer_designation.heartbits_given",
-          "additional_peer.first_name as additional_first_name",
-          "additional_peer.last_name as additional_last_name",
-          "additional_peer.profile_pic as additional_profile_pic"
-        )
-        .leftJoin("sl_user_accounts as additional_peer", "sl_cheer_designation.peer_id", "additional_peer.user_id")
-        .where("sl_cheer_designation.cheer_post_id", post_id);
-
-      post.additional_recipients = additionalRecipients || [];
+    if (cheer) {
+      // Get likes and comments for this cheer
+      cheer.likes = await Suitebite.getCheerLikes(cheer_id);
+      cheer.comments = await Suitebite.getCheerComments(cheer_id);
     }
 
-    return post;
+    return cheer;
+  },
+
+  // Backward compatibility method
+  getCheerPostById: async (post_id) => {
+    const cheer = await Suitebite.getCheerById(post_id);
+    
+    if (!cheer) return null;
+    
+    // Transform to old format for backward compatibility
+    return {
+      cheer_post_id: cheer.cheer_id,
+      cheerer_id: cheer.from_user_id,
+      peer_id: cheer.to_user_id,
+      heartbits_given: cheer.points,
+      cheer_message: cheer.message,
+      posted_at: cheer.created_at,
+      created_at: cheer.created_at,
+      updated_at: cheer.updated_at,
+      cheerer_first_name: cheer.from_user_first_name,
+      cheerer_last_name: cheer.from_user_last_name,
+      cheerer_profile_pic: cheer.from_user_profile_pic,
+      peer_first_name: cheer.to_user_first_name,
+      peer_last_name: cheer.to_user_last_name,
+      peer_profile_pic: cheer.to_user_profile_pic,
+      likes_count: cheer.likes_count,
+      comments_count: cheer.comments_count,
+      likes: cheer.likes,
+      comments: cheer.comments,
+      additional_recipients: [] // Simplified to 1-to-1 cheers
+    };
   },
 
   // ========== CHEER COMMENTS OPERATIONS ==========
@@ -192,7 +240,7 @@ export const Suitebite = {
     return await cheerCommentsTable().insert(commentData);
   },
 
-  getCheerComments: async (post_id) => {
+  getCheerComments: async (cheer_id) => {
     return await cheerCommentsTable()
       .select(
         "sl_cheer_comments.*",
@@ -200,38 +248,38 @@ export const Suitebite = {
         "commenter.last_name as commenter_last_name",
         "commenter.profile_pic as commenter_profile_pic"
       )
-      .leftJoin("sl_user_accounts as commenter", "sl_cheer_comments.commenter_id", "commenter.user_id")
-      .where("cheer_post_id", post_id)
-      .orderBy("commented_at", "asc");
+      .leftJoin("sl_user_accounts as commenter", "sl_cheer_comments.user_id", "commenter.user_id")
+      .where("sl_cheer_comments.cheer_id", cheer_id)
+      .orderBy("sl_cheer_comments.created_at", "asc");
   },
 
   // ========== CHEER LIKES OPERATIONS ==========
 
-  toggleCheerLike: async (post_id, user_id) => {
+  toggleCheerLike: async (cheer_id, user_id) => {
     const existing = await cheerLikesTable()
-      .where("cheer_post_id", post_id)
-      .where("liker_id", user_id)
+      .where("cheer_id", cheer_id)
+      .where("user_id", user_id)
       .first();
 
     if (existing) {
       // Unlike
       await cheerLikesTable()
-        .where("cheer_post_id", post_id)
-        .where("liker_id", user_id)
+        .where("cheer_id", cheer_id)
+        .where("user_id", user_id)
         .del();
       return { action: "unliked" };
     } else {
       // Like
       await cheerLikesTable().insert({
-        cheer_post_id: post_id,
-        liker_id: user_id
+        cheer_id: cheer_id,
+        user_id: user_id
       });
       return { action: "liked" };
     }
   },
 
-  // Get users who liked a specific post
-  getCheerLikes: async (post_id) => {
+  // Get users who liked a specific cheer
+  getCheerLikes: async (cheer_id) => {
     return await cheerLikesTable()
       .select(
         "sl_cheer_likes.*",
@@ -239,9 +287,35 @@ export const Suitebite = {
         "liker.last_name as liker_last_name",
         "liker.profile_pic as liker_profile_pic"
       )
-      .leftJoin("sl_user_accounts as liker", "sl_cheer_likes.liker_id", "liker.user_id")
-      .where("cheer_post_id", post_id)
-      .orderBy("liked_at", "desc");
+      .leftJoin("sl_user_accounts as liker", "sl_cheer_likes.user_id", "liker.user_id")
+      .where("sl_cheer_likes.cheer_id", cheer_id)
+      .orderBy("sl_cheer_likes.created_at", "desc");
+  },
+
+  // ========== TRANSACTIONS OPERATIONS ==========
+
+  createTransaction: async (transactionData) => {
+    return await transactionsTable().insert(transactionData);
+  },
+
+  getUserTransactions: async (user_id, page = 1, limit = 20) => {
+    const offset = (page - 1) * limit;
+    
+    return await transactionsTable()
+      .select("*")
+      .where(function() {
+        this.where("from_user_id", user_id)
+            .orWhere("to_user_id", user_id);
+      })
+      .orderBy("created_at", "desc")
+      .limit(limit)
+      .offset(offset);
+  },
+
+  getTransactionById: async (transaction_id) => {
+    return await transactionsTable()
+      .where("transaction_id", transaction_id)
+      .first();
   },
 
   // ========== PRODUCTS OPERATIONS ==========
@@ -1088,55 +1162,55 @@ export const Suitebite = {
   // ========== LEADERBOARD OPERATIONS ==========
 
   getLeaderboard: async (type = "received", period = "all", limit = 10) => {
-    let query = cheerPostTable()
+    let query = cheersTable()
       .select(
-        type === "given" ? "cheerer_id as user_id" : "peer_id as user_id",
+        type === "given" ? "from_user_id as user_id" : "to_user_id as user_id",
         "user.first_name",
         "user.last_name",
         "user.profile_pic",
-        db.raw("SUM(heartbits_given) as total_heartbits"),
+        db.raw("SUM(points) as total_heartbits"),
         db.raw("COUNT(*) as cheer_count")
       )
       .leftJoin("sl_user_accounts as user", 
-        type === "given" ? "sl_cheer_post.cheerer_id" : "sl_cheer_post.peer_id", 
+        type === "given" ? "sl_cheers.from_user_id" : "sl_cheers.to_user_id", 
         "user.user_id"
       );
 
     // Add time period filter
     if (period === "day") {
-      query = query.where("sl_cheer_post.posted_at", ">=", db.raw("CURDATE()"));
+      query = query.where("sl_cheers.created_at", ">=", db.raw("CURDATE()"));
     } else if (period === "week") {
-      query = query.where("sl_cheer_post.posted_at", ">=", db.raw("DATE_SUB(NOW(), INTERVAL 7 DAY)"));
+      query = query.where("sl_cheers.created_at", ">=", db.raw("DATE_SUB(NOW(), INTERVAL 7 DAY)"));
     } else if (period === "month") {
-      query = query.where("sl_cheer_post.posted_at", ">=", db.raw("DATE_SUB(NOW(), INTERVAL 30 DAY)"));
+      query = query.where("sl_cheers.created_at", ">=", db.raw("DATE_SUB(NOW(), INTERVAL 30 DAY)"));
     } else if (period === "year") {
-      query = query.where("sl_cheer_post.posted_at", ">=", db.raw("DATE_SUB(NOW(), INTERVAL 365 DAY)"));
+      query = query.where("sl_cheers.created_at", ">=", db.raw("DATE_SUB(NOW(), INTERVAL 365 DAY)"));
     }
     // For "all" period, no date filter is applied
 
     return await query
-      .groupBy(type === "given" ? "cheerer_id" : "peer_id")
+      .groupBy(type === "given" ? "from_user_id" : "to_user_id")
       .orderBy("total_heartbits", "desc")
       .limit(limit);
   },
 
   getMonthlyLeaderboard: async (month, year, type = "received", limit = 10) => {
-    return await cheerPostTable()
+    return await cheersTable()
       .select(
-        type === "given" ? "cheerer_id as user_id" : "peer_id as user_id",
+        type === "given" ? "from_user_id as user_id" : "to_user_id as user_id",
         "user.first_name",
         "user.last_name",
         "user.profile_pic",
-        db.raw("SUM(heartbits_given) as total_heartbits"),
+        db.raw("SUM(points) as total_heartbits"),
         db.raw("COUNT(*) as cheer_count")
       )
       .leftJoin("sl_user_accounts as user", 
-        type === "given" ? "sl_cheer_post.cheerer_id" : "sl_cheer_post.peer_id", 
+        type === "given" ? "sl_cheers.from_user_id" : "sl_cheers.to_user_id", 
         "user.user_id"
       )
-      .whereRaw("MONTH(sl_cheer_post.posted_at) = ?", [month])
-      .whereRaw("YEAR(sl_cheer_post.posted_at) = ?", [year])
-      .groupBy(type === "given" ? "cheerer_id" : "peer_id")
+      .whereRaw("MONTH(sl_cheers.created_at) = ?", [month])
+      .whereRaw("YEAR(sl_cheers.created_at) = ?", [year])
+      .groupBy(type === "given" ? "from_user_id" : "to_user_id")
       .orderBy("total_heartbits", "desc")
       .limit(limit);
   },
@@ -1146,19 +1220,19 @@ export const Suitebite = {
   getPeersWhoCheered: async (user_id, limit = 10, page = 1) => {
     const offset = (page - 1) * limit;
     
-    return await cheerPostTable()
+    return await cheersTable()
       .select(
         "cheerer.user_id",
         "cheerer.first_name",
         "cheerer.last_name", 
         "cheerer.profile_pic",
-        db.raw("SUM(sl_cheer_post.heartbits_given) as points"),
+        db.raw("SUM(sl_cheers.points) as points"),
         db.raw("COUNT(*) as cheer_count"),
-        db.raw("MAX(sl_cheer_post.posted_at) as last_cheer_date")
+        db.raw("MAX(sl_cheers.created_at) as last_cheer_date")
       )
-      .leftJoin("sl_user_accounts as cheerer", "sl_cheer_post.cheerer_id", "cheerer.user_id")
-      .where("sl_cheer_post.peer_id", user_id)
-      .groupBy("sl_cheer_post.cheerer_id")
+      .leftJoin("sl_user_accounts as cheerer", "sl_cheers.from_user_id", "cheerer.user_id")
+      .where("sl_cheers.to_user_id", user_id)
+      .groupBy("sl_cheers.from_user_id")
       .orderBy("last_cheer_date", "desc")
       .limit(limit)
       .offset(offset);
@@ -1169,26 +1243,25 @@ export const Suitebite = {
   getCheerPostsForAdmin: async (page = 1, limit = 20, search = null, date_from = null, date_to = null) => {
     const offset = (page - 1) * limit;
     
-    let query = cheerPostTable()
+    let query = cheersTable()
       .select(
-        "sl_cheer_post.*",
+        "sl_cheers.*",
         "cheerer.first_name as cheerer_first_name",
         "cheerer.last_name as cheerer_last_name",
         "cheerer.user_email as cheerer_email",
         "peer.first_name as peer_first_name",
         "peer.last_name as peer_last_name",
         "peer.user_email as peer_email",
-        db.raw("(SELECT COUNT(*) FROM sl_cheer_likes WHERE cheer_post_id = sl_cheer_post.cheer_post_id) as likes_count"),
-        db.raw("(SELECT COUNT(*) FROM sl_cheer_comments WHERE cheer_post_id = sl_cheer_post.cheer_post_id) as comments_count")
+        db.raw("(SELECT COUNT(*) FROM sl_cheer_likes WHERE cheer_id = sl_cheers.cheer_id) as likes_count"),
+        db.raw("(SELECT COUNT(*) FROM sl_cheer_comments WHERE cheer_id = sl_cheers.cheer_id) as comments_count")
       )
-      .leftJoin("sl_user_accounts as cheerer", "sl_cheer_post.cheerer_id", "cheerer.user_id")
-      .leftJoin("sl_user_accounts as peer", "sl_cheer_post.peer_id", "peer.user_id");
+      .leftJoin("sl_user_accounts as cheerer", "sl_cheers.from_user_id", "cheerer.user_id")
+      .leftJoin("sl_user_accounts as peer", "sl_cheers.to_user_id", "peer.user_id");
 
     // Add search filter
     if (search) {
       query = query.where(function() {
-        this.where("sl_cheer_post.post_body", "like", `%${search}%`)
-            .orWhere("sl_cheer_post.hashtags", "like", `%${search}%`)
+        this.where("sl_cheers.message", "like", `%${search}%`)
             .orWhere("cheerer.first_name", "like", `%${search}%`)
             .orWhere("cheerer.last_name", "like", `%${search}%`)
             .orWhere("peer.first_name", "like", `%${search}%`)
@@ -1198,14 +1271,14 @@ export const Suitebite = {
 
     // Add date filters
     if (date_from) {
-      query = query.where("sl_cheer_post.posted_at", ">=", date_from);
+      query = query.where("sl_cheers.created_at", ">=", date_from);
     }
     if (date_to) {
-      query = query.where("sl_cheer_post.posted_at", "<=", date_to);
+      query = query.where("sl_cheers.created_at", "<=", date_to);
     }
 
     return await query
-      .orderBy("sl_cheer_post.posted_at", "desc")
+      .orderBy("sl_cheers.created_at", "desc")
       .limit(limit)
       .offset(offset);
   },
@@ -1280,10 +1353,10 @@ export const Suitebite = {
         "sl_user_heartbits.total_heartbits_earned",
         "sl_user_heartbits.total_heartbits_spent",
         "sl_user_heartbits.is_suspended",
-        db.raw("(SELECT COUNT(*) FROM sl_cheer_post WHERE cheerer_id = sl_user_accounts.user_id) as cheers_sent"),
-        db.raw("(SELECT COUNT(*) FROM sl_cheer_post WHERE peer_id = sl_user_accounts.user_id) as cheers_received"),
-        db.raw("(SELECT SUM(heartbits_given) FROM sl_cheer_post WHERE cheerer_id = sl_user_accounts.user_id) as total_heartbits_given"),
-        db.raw("(SELECT SUM(heartbits_given) FROM sl_cheer_post WHERE peer_id = sl_user_accounts.user_id) as total_heartbits_received")
+        db.raw("(SELECT COUNT(*) FROM sl_cheers WHERE from_user_id = sl_user_accounts.user_id) as cheers_sent"),
+        db.raw("(SELECT COUNT(*) FROM sl_cheers WHERE to_user_id = sl_user_accounts.user_id) as cheers_received"),
+        db.raw("(SELECT SUM(points) FROM sl_cheers WHERE from_user_id = sl_user_accounts.user_id) as total_heartbits_given"),
+        db.raw("(SELECT SUM(points) FROM sl_cheers WHERE to_user_id = sl_user_accounts.user_id) as total_heartbits_received")
       )
       .leftJoin("sl_user_heartbits", "sl_user_accounts.user_id", "sl_user_heartbits.user_id")
       .where("sl_user_accounts.user_type", "in", ["EMPLOYEE", "ADMIN"]);
@@ -1369,17 +1442,17 @@ export const Suitebite = {
       .where("user_type", "in", ["EMPLOYEE", "ADMIN"])
       .where("is_active", true);
 
-    const [activeUsers] = await cheerPostTable()
-      .countDistinct("cheerer_id as count")
-      .where("posted_at", ">=", dateFilter);
+    const [activeUsers] = await cheersTable()
+      .countDistinct("from_user_id as count")
+      .where("created_at", ">=", dateFilter);
 
-    const [totalCheers] = await cheerPostTable()
-      .count("cheer_post_id as count")
-      .where("posted_at", ">=", dateFilter);
+    const [totalCheers] = await cheersTable()
+      .count("cheer_id as count")
+      .where("created_at", ">=", dateFilter);
 
-    const [totalHeartbits] = await cheerPostTable()
-      .sum("heartbits_given as total")
-      .where("posted_at", ">=", dateFilter);
+    const [totalHeartbits] = await cheersTable()
+      .sum("points as total")
+      .where("created_at", ">=", dateFilter);
 
     const [totalProducts] = await productsTable()
       .count("product_id as count")
@@ -1394,30 +1467,37 @@ export const Suitebite = {
       .where("ordered_at", ">=", dateFilter);
 
     // Get top cheerers
-    const topCheerers = await cheerPostTable()
+    const topCheerers = await cheersTable()
       .select(
-        "cheerer_id as user_id",
+        "from_user_id as user_id",
         "user.first_name",
         "user.last_name",
         db.raw("COUNT(*) as cheer_count"),
-        db.raw("SUM(heartbits_given) as total_heartbits")
+        db.raw("SUM(points) as total_heartbits")
       )
-      .leftJoin("sl_user_accounts as user", "sl_cheer_post.cheerer_id", "user.user_id")
-      .where("posted_at", ">=", dateFilter)
-      .groupBy("cheerer_id")
+      .leftJoin("sl_user_accounts as user", "sl_cheers.from_user_id", "user.user_id")
+      .where("created_at", ">=", dateFilter)
+      .groupBy("from_user_id")
       .orderBy("total_heartbits", "desc")
       .limit(5);
 
     // Get daily activity for the period
-    const dailyActivity = await cheerPostTable()
+    const dailyActivity = await cheersTable()
       .select(
-        db.raw("DATE(posted_at) as date"),
+        db.raw("DATE(created_at) as date"),
         db.raw("COUNT(*) as cheers"),
-        db.raw("SUM(heartbits_given) as heartbits")
+        db.raw("SUM(points) as heartbits")
       )
-      .where("posted_at", ">=", dateFilter)
-      .groupBy(db.raw("DATE(posted_at)"))
+      .where("created_at", ">=", dateFilter)
+      .groupBy(db.raw("DATE(created_at)"))
       .orderBy("date", "desc");
+
+    // Add cancelled orders count
+    const [cancelledOrdersData] = await ordersTable()
+      .count('order_id as cancelled_orders')
+      .where('status', 'cancelled')
+      .where('ordered_at', '>=', dateFilter);
+    const cancelledOrdersCount = cancelledOrdersData.cancelled_orders || 0;
 
     return {
       period,
@@ -1428,7 +1508,8 @@ export const Suitebite = {
         total_heartbits: totalHeartbits.total || 0,
         total_products: totalProducts.count,
         total_orders: totalOrders.count,
-        total_points_spent: totalPointsSpent.total || 0
+        total_points_spent: totalPointsSpent.total || 0,
+        cancelled_orders: cancelledOrdersCount
       },
       top_cheerers: topCheerers,
       daily_activity: dailyActivity
@@ -1856,16 +1937,23 @@ export const Suitebite = {
       SELECT 
         COUNT(DISTINCT cp.cheerer_id) as active_users,
         COUNT(cp.cheer_post_id) as total_interactions,
-        AVG(cp.heartbits_given) as avg_heartbits_per_interaction,
-        SUM(CASE WHEN cp.is_flagged = true THEN 1 ELSE 0 END) as flagged_content,
+        AVG(cp.points) as avg_heartbits_per_interaction,
+    
         COUNT(DISTINCT o.user_id) as purchasing_users,
         SUM(o.total_points) as total_points_spent
-      FROM sl_cheer_post cp
-      LEFT JOIN sl_orders o ON DATE(cp.posted_at) = DATE(o.ordered_at)
-      WHERE cp.posted_at >= ?
+      FROM sl_cheers cp
+      LEFT JOIN sl_orders o ON DATE(cp.created_at) = DATE(o.ordered_at)
+      WHERE cp.created_at >= ?
     `, [dateFilter]);
 
     analytics.system_performance = systemMetrics[0];
+
+    // Add cancelled orders count
+    const [cancelledOrdersData] = await ordersTable()
+      .count('order_id as cancelled_orders')
+      .where('status', 'cancelled')
+      .where('ordered_at', '>=', dateFilter);
+    const cancelledOrdersCount = cancelledOrdersData.cancelled_orders || 0;
 
     // User engagement distribution
     const engagementDistribution = await db.raw(`
@@ -1877,10 +1965,10 @@ export const Suitebite = {
         END as engagement_level,
         COUNT(*) as user_count
       FROM (
-        SELECT cheerer_id, COUNT(*) as cheer_count
-        FROM sl_cheer_post 
-        WHERE posted_at >= ?
-        GROUP BY cheerer_id
+        SELECT from_user_id, COUNT(*) as cheer_count
+        FROM sl_cheers 
+        WHERE created_at >= ?
+        GROUP BY from_user_id
       ) user_cheers
       GROUP BY engagement_level
     `, [dateFilter]);
@@ -1902,15 +1990,15 @@ export const Suitebite = {
 
     if (include_trends) {
       // Growth trends
-      const weeklyTrends = await cheerPostTable()
+      const weeklyTrends = await cheersTable()
         .select(
-          db.raw("YEARWEEK(posted_at) as week"),
+          db.raw("YEARWEEK(created_at) as week"),
           db.raw("COUNT(*) as cheers"),
-          db.raw("COUNT(DISTINCT cheerer_id) as active_users"),
-          db.raw("SUM(heartbits_given) as total_heartbits")
+          db.raw("COUNT(DISTINCT from_user_id) as active_users"),
+          db.raw("SUM(points) as total_heartbits")
         )
-        .where("posted_at", ">=", db.raw("DATE_SUB(NOW(), INTERVAL 12 WEEK)"))
-        .groupBy(db.raw("YEARWEEK(posted_at)"))
+        .where("created_at", ">=", db.raw("DATE_SUB(NOW(), INTERVAL 12 WEEK)"))
+        .groupBy(db.raw("YEARWEEK(created_at)"))
         .orderBy("week");
 
       analytics.weekly_trends = weeklyTrends;
@@ -1918,13 +2006,13 @@ export const Suitebite = {
 
     if (include_predictions) {
       // Simple prediction based on recent trends (basic linear regression)
-      const recentData = await cheerPostTable()
+      const recentData = await cheersTable()
         .select(
-          db.raw("DATE(posted_at) as date"),
+          db.raw("DATE(created_at) as date"),
           db.raw("COUNT(*) as daily_cheers")
         )
-        .where("posted_at", ">=", db.raw("DATE_SUB(NOW(), INTERVAL 30 DAY)"))
-        .groupBy(db.raw("DATE(posted_at)"))
+        .where("created_at", ">=", db.raw("DATE_SUB(NOW(), INTERVAL 30 DAY)"))
+        .groupBy(db.raw("DATE(created_at)"))
         .orderBy("date");
 
       // Calculate simple trend prediction
@@ -1962,7 +2050,7 @@ export const Suitebite = {
 
       case "optimize_database":
         // Optimize tables
-        await db.raw("OPTIMIZE TABLE sl_cheer_post, sl_orders, sl_admin_actions");
+        await db.raw("OPTIMIZE TABLE sl_cheers, sl_orders, sl_admin_actions");
         results.tables_optimized = true;
         break;
 
@@ -1983,14 +2071,14 @@ export const Suitebite = {
     
     switch (data_type) {
       case "cheers":
-        query = cheerPostTable()
+        query = cheersTable()
           .select(
-            "cheer_post_id",
-            "cheerer_id",
-            "peer_id", 
-            "post_body",
-            "heartbits_given",
-            "posted_at",
+            "cheer_id",
+            "from_user_id",
+            "to_user_id", 
+            "message",
+            "points",
+            "created_at",
             "is_flagged"
           );
         if (!include_pii) {
@@ -2041,14 +2129,14 @@ export const Suitebite = {
     if (date_from) {
       const dateColumn = data_type === "orders" ? "ordered_at" : 
                         data_type === "audit_logs" ? "performed_at" : 
-                        data_type === "users" ? "created_at" : "posted_at";
+                        data_type === "users" ? "created_at" : "created_at";
       query = query.where(dateColumn, ">=", date_from);
     }
 
     if (date_to) {
       const dateColumn = data_type === "orders" ? "ordered_at" : 
                         data_type === "audit_logs" ? "performed_at" : 
-                        data_type === "users" ? "created_at" : "posted_at";
+                        data_type === "users" ? "created_at" : "created_at";
       query = query.where(dateColumn, "<=", date_to);
     }
 

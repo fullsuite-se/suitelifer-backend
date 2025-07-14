@@ -1,43 +1,34 @@
 import { Suitebite, productsTable, orderItemsTable, ordersTable, cartItemsTable } from "../models/suitebiteModel.js";
 import { db } from "../config/db.js";
+import { v7 as uuidv7 } from "uuid";
+import HeartbitsUtils from "../utils/heartbitsUtils.js";
 
 // ========== CHEER POST ENDPOINTS ==========
 
 export const createCheerPost = async (req, res) => {
   try {
-    const { peer_id, post_body, heartbits_given, hashtags, additional_peers } = req.body;
-    const cheerer_id = req.user.id; // Changed from req.user.user_id
-    const current_month = new Date().toISOString().slice(0, 7); // YYYY-MM format
+    const { peer_id, post_body, heartbits_given, hashtags } = req.body;
+    const from_user_id = req.user.id;
+    const to_user_id = peer_id;
 
-    // Validate heartbits (ensure positive and within reasonable limits)
+    // Validate points (ensure positive and within reasonable limits)
     if (!heartbits_given || heartbits_given <= 0 || heartbits_given > 100) {
       return res.status(400).json({ 
         success: false, 
-        message: "Heartbits must be between 1 and 100" 
+        message: "Points must be between 1 and 100" 
       });
     }
 
     // Check if sender is trying to send to themselves
-    if (cheerer_id === peer_id) {
+    if (from_user_id === to_user_id) {
       return res.status(400).json({ 
         success: false, 
         message: "Cannot send cheers to yourself" 
       });
     }
 
-    // Check monthly limits
-    const monthlyLimit = await Suitebite.getMonthlyLimit(cheerer_id, current_month);
-    const totalHeartbitsToSend = heartbits_given + (additional_peers ? additional_peers.length * heartbits_given : 0);
-    
-    if (monthlyLimit && (monthlyLimit.heartbits_sent + totalHeartbitsToSend) > monthlyLimit.heartbits_limit) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Monthly heartbits limit exceeded" 
-      });
-    }
-
     // Check if peer exists
-    const peerExists = await Suitebite.getUserById(peer_id);
+    const peerExists = await Suitebite.getUserById(to_user_id);
     if (!peerExists) {
       return res.status(404).json({ 
         success: false, 
@@ -45,37 +36,87 @@ export const createCheerPost = async (req, res) => {
       });
     }
 
-    const cheerPostData = {
-      cheerer_id,
-      peer_id,
-      post_body: post_body || "",
-      heartbits_given,
-      hashtags: hashtags || "",
-      posted_at: new Date()
-    };
-
-    const [post_id] = await Suitebite.createCheerPost(cheerPostData);
-
-    // Update peer's heartbits
-    await Suitebite.updateUserHeartbits(peer_id, heartbits_given);
-
-    // Add additional peers if specified (group cheer)
-    if (additional_peers && additional_peers.length > 0) {
-      for (const additional_peer_id of additional_peers) {
-        if (additional_peer_id !== cheerer_id && additional_peer_id !== peer_id) {
-          await Suitebite.addCheerDesignation(post_id, additional_peer_id, heartbits_given);
-          await Suitebite.updateUserHeartbits(additional_peer_id, heartbits_given);
-        }
-      }
+    // Check sender's available points
+    const senderPoints = await Suitebite.getUserPoints(from_user_id);
+    if (!senderPoints || senderPoints.available_points < heartbits_given) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Insufficient points to send cheer" 
+      });
     }
 
-    // Update monthly limits
-    await Suitebite.updateMonthlyLimit(cheerer_id, current_month, totalHeartbitsToSend);
+    // Check monthly limit
+    const monthlyLimitCheck = await HeartbitsUtils.checkMonthlyLimit(from_user_id, heartbits_given);
+    if (!monthlyLimitCheck.withinLimit) {
+      return res.status(400).json({
+        success: false,
+        message: `Monthly limit exceeded. You have sent ${monthlyLimitCheck.sent} heartbits this month with a limit of ${monthlyLimitCheck.limit}. You can send ${monthlyLimitCheck.remaining} more heartbits this month.`
+      });
+    }
+
+    // Create the cheer
+    const cheerData = {
+      cheer_id: uuidv7(),
+      from_user_id,
+      to_user_id,
+      points: heartbits_given,
+      message: post_body || "",
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+
+    await Suitebite.createCheer(cheerData);
+
+    // Create transactions
+    const fromTransactionId = uuidv7();
+    const toTransactionId = uuidv7();
+
+    // Transaction from sender
+    await Suitebite.createTransaction({
+      transaction_id: fromTransactionId,
+      from_user_id,
+      to_user_id,
+      type: "given",
+      amount: heartbits_given,
+      description: `Cheered ${heartbits_given} points`,
+      message: post_body || "",
+      metadata: JSON.stringify({
+        type: "cheer",
+        cheer_id: cheerData.cheer_id
+      }),
+      created_at: new Date(),
+      updated_at: new Date()
+    });
+
+    // Transaction to receiver
+    await Suitebite.createTransaction({
+      transaction_id: toTransactionId,
+      from_user_id,
+      to_user_id,
+      type: "received",
+      amount: heartbits_given,
+      description: `Received ${heartbits_given} points from cheer`,
+      message: post_body || "",
+      metadata: JSON.stringify({
+        type: "cheer",
+        cheer_id: cheerData.cheer_id
+      }),
+      created_at: new Date(),
+      updated_at: new Date()
+    });
+
+    // Update points for both users
+    await Suitebite.updateUserPoints(from_user_id, -heartbits_given);
+    await Suitebite.updateUserPoints(to_user_id, heartbits_given);
+
+    // Update monthly limit for the sender
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    await Suitebite.updateMonthlyLimit(from_user_id, currentMonth, heartbits_given);
 
     res.status(201).json({ 
       success: true, 
       message: "Cheer posted successfully!",
-      post_id
+      cheer_id: cheerData.cheer_id
     });
   } catch (err) {
     console.error(err);
@@ -1387,20 +1428,23 @@ export const searchUsers = async (req, res) => {
 
 export const getUserHeartbits = async (req, res) => {
   try {
-    const user_id = req.user.id; // Changed from req.user.user_id
+    const user_id = req.user.id;
 
-    let heartbitsData = await Suitebite.getUserHeartbits(user_id);
+    let pointsData = await Suitebite.getUserPoints(user_id);
     
-    // If user doesn't have heartbits record, initialize with 0
-    if (!heartbitsData) {
-      await Suitebite.updateUserHeartbits(user_id, 0); // This will create the record
-      heartbitsData = await Suitebite.getUserHeartbits(user_id);
+    // If user doesn't have points record, initialize with 0
+    if (!pointsData) {
+      await Suitebite.updateUserPoints(user_id, 0); // This will create the record
+      pointsData = await Suitebite.getUserPoints(user_id);
     }
     
     res.status(200).json({ 
       success: true, 
-      heartbits_balance: heartbitsData?.heartbits_balance || 0,
-      total_heartbits: heartbitsData?.total_heartbits || 0
+      heartbits_balance: pointsData?.available_points || 0,
+      total_earned: pointsData?.total_earned || 0,
+      total_spent: pointsData?.total_spent || 0,
+      monthly_limit: pointsData?.monthly_cheer_limit || 100,
+      monthly_used: pointsData?.monthly_cheer_used || 0
     });
   } catch (err) {
     console.error(err);
@@ -1943,7 +1987,12 @@ export const getAdvancedSystemAnalytics = async (req, res) => {
       include_predictions === "true"
     );
     
-    res.status(200).json({ success: true, analytics });
+    // Spread overview fields to the top level for easier access
+    res.status(200).json({ 
+      success: true, 
+      ...analytics.overview,
+      analytics
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
