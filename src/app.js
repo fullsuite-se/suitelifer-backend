@@ -22,6 +22,7 @@ import contactRoutes from "./routes/contactRoutes.js";
 import newsletterRoutes from "./routes/newsletterRoutes.js";
 import certificationRoutes from "./routes/certificationRoutes.js";
 import auditLogRoutes from "./routes/auditLogRoutes.js";
+import suitebiteRoutes from "./routes/suitebiteRoutes.js";
 import { fileURLToPath } from "url";
 import termsOfUseRoutes from "./routes/termsOfUseRoutes.js";
 import privacyPolicyRoutes from "./routes/privacyPolicyRoutes.js";
@@ -33,7 +34,7 @@ dotenv.config();
 
 app.use(
   cors({
-    origin: [process.env.VITE_API_BASE_URL, process.env.LIVE_URL],
+    origin: [process.env.VITE_API_BASE_URL, process.env.LIVE_URL, "http://localhost:5173"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
@@ -66,6 +67,7 @@ app.use("/api", contactRoutes);
 app.use("/api", newsletterRoutes);
 app.use("/api", certificationRoutes);
 app.use("/api", auditLogRoutes);
+app.use("/api/suitebite", suitebiteRoutes);
 app.use("/api", termsOfUseRoutes);
 app.use("/api", privacyPolicyRoutes);
 app.use("/api", moodRoutes);

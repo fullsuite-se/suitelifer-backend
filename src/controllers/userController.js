@@ -9,7 +9,12 @@ export const getUsers = async (req, res) => {
     const users = await User.getAllUsers();
     res.json({ success: true, users });
   } catch (err) {
-    console.log("Unable to fetch Users",err);
+    console.log("Unable to fetch Users", err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error - Unable to fetch users",
+      error: err.message 
+    });
   }
 };
 
