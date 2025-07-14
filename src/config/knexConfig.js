@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+const PORT = process.env.PORT;
 const DB_HOST = process.env.DB_HOST;
 const DB_PORT = process.env.DB_PORT;
 const DB_USER = process.env.DB_USER;
@@ -46,5 +47,14 @@ t0YLZ+d00ve174KaIwSmhMfSXAkFTEAqXznmMjsOL7JCXnChRRj0JZCezHNQWNfA
     },
     connectTimeout: 60000,
   },
-  pool: { min: 2, max: 10 },
+  pool: { 
+    min: 0, 
+    max: 5,
+    acquireTimeoutMillis: 60000,
+    createTimeoutMillis: 30000,
+    destroyTimeoutMillis: 5000,
+    idleTimeoutMillis: 30000,
+    reapIntervalMillis: 1000,
+    createRetryIntervalMillis: 200
+  },
 };
