@@ -1444,15 +1444,15 @@ export const Suitebite = {
 
     const [activeUsers] = await cheersTable()
       .countDistinct("from_user_id as count")
-      .where("created_at", ">=", dateFilter);
+      .where("sl_cheers.created_at", ">=", dateFilter);
 
     const [totalCheers] = await cheersTable()
       .count("cheer_id as count")
-      .where("created_at", ">=", dateFilter);
+      .where("sl_cheers.created_at", ">=", dateFilter);
 
     const [totalHeartbits] = await cheersTable()
       .sum("points as total")
-      .where("created_at", ">=", dateFilter);
+      .where("sl_cheers.created_at", ">=", dateFilter);
 
     const [totalProducts] = await productsTable()
       .count("product_id as count")
@@ -1460,11 +1460,11 @@ export const Suitebite = {
 
     const [totalOrders] = await ordersTable()
       .count("order_id as count")
-      .where("ordered_at", ">=", dateFilter);
+      .where("sl_orders.ordered_at", ">=", dateFilter);
 
     const [totalPointsSpent] = await ordersTable()
       .sum("total_points as total")
-      .where("ordered_at", ">=", dateFilter);
+      .where("sl_orders.ordered_at", ">=", dateFilter);
 
     // Get top cheerers
     const topCheerers = await cheersTable()
@@ -1476,7 +1476,7 @@ export const Suitebite = {
         db.raw("SUM(points) as total_heartbits")
       )
       .leftJoin("sl_user_accounts as user", "sl_cheers.from_user_id", "user.user_id")
-      .where("created_at", ">=", dateFilter)
+      .where("sl_cheers.created_at", ">=", dateFilter)
       .groupBy("from_user_id")
       .orderBy("total_heartbits", "desc")
       .limit(5);
@@ -1484,19 +1484,19 @@ export const Suitebite = {
     // Get daily activity for the period
     const dailyActivity = await cheersTable()
       .select(
-        db.raw("DATE(created_at) as date"),
+        db.raw("DATE(sl_cheers.created_at) as date"),
         db.raw("COUNT(*) as cheers"),
         db.raw("SUM(points) as heartbits")
       )
-      .where("created_at", ">=", dateFilter)
-      .groupBy(db.raw("DATE(created_at)"))
+      .where("sl_cheers.created_at", ">=", dateFilter)
+      .groupBy(db.raw("DATE(sl_cheers.created_at)"))
       .orderBy("date", "desc");
 
     // Add cancelled orders count
     const [cancelledOrdersData] = await ordersTable()
       .count('order_id as cancelled_orders')
       .where('status', 'cancelled')
-      .where('ordered_at', '>=', dateFilter);
+      .where('sl_orders.ordered_at', '>=', dateFilter);
     const cancelledOrdersCount = cancelledOrdersData.cancelled_orders || 0;
 
     return {
