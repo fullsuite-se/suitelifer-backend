@@ -18,6 +18,7 @@ import {
   addProduct,
   updateProduct,
   deleteProduct,
+  getProductOrderUsage,
   
   // Categories endpoints
   getAllCategories,
@@ -36,6 +37,8 @@ import {
   addProductVariation,
   updateProductVariation,
   deleteProductVariation,
+  deleteVariationType,
+  deleteVariationOption,
   
   // Cart endpoints
   getCart,
@@ -49,6 +52,7 @@ import {
   getOrderHistory,
   getOrderById,
   getAllOrders,
+  updateOrderStatus,
   cancelOrder,
   approveOrder,
   completeOrder,
@@ -125,6 +129,7 @@ router.get("/products/:id", verifyToken, getProductById);
 router.post("/products", verifyToken, verifyAdmin, addProduct);
 router.put("/products/:id", verifyToken, verifyAdmin, updateProduct);
 router.delete("/products/:id", verifyToken, verifyAdmin, deleteProduct);
+router.get("/products/:id/order-usage", verifyToken, getProductOrderUsage);
 
 // Categories routes
 router.get("/categories", verifyToken, getAllCategories);
@@ -145,11 +150,15 @@ router.post("/admin/variations/products", verifyToken, verifyAdmin, addProductVa
 router.put("/admin/variations/products/:variation_id", verifyToken, verifyAdmin, updateProductVariation);
 router.delete("/admin/variations/products/:variation_id", verifyToken, verifyAdmin, deleteProductVariation);
 
+// Admin routes for variation types/options
+router.delete('/admin/variations/types/:variation_type_id', verifyToken, verifyAdmin, deleteVariationType);
+router.delete('/admin/variations/options/:option_id', verifyToken, verifyAdmin, deleteVariationOption);
+
 // Cart routes
 router.get("/cart", verifyToken, getCart);
 router.post("/cart/add", verifyToken, addToCart);
-router.put("/cart/update/:itemId", verifyToken, updateCartItem);
-router.delete("/cart/remove/:itemId", verifyToken, removeFromCart);
+router.put("/cart/update/:cart_item_id", verifyToken, updateCartItem);
+router.delete("/cart/remove/:cart_item_id", verifyToken, removeFromCart);
 router.delete("/cart/clear", verifyToken, clearCart);
 
 // Orders routes
@@ -158,6 +167,7 @@ router.get("/orders/history", verifyToken, getOrderHistory);
 router.get("/orders/:id", verifyToken, getOrderById);
 router.put("/orders/:order_id/cancel", verifyToken, cancelOrder);
 router.get("/admin/orders", verifyToken, verifyAdmin, getAllOrders);
+router.put("/admin/orders/:order_id/status", verifyToken, verifyAdmin, updateOrderStatus);
 router.put("/admin/orders/:order_id/approve", verifyToken, verifyAdmin, approveOrder);
 router.put("/admin/orders/:order_id/complete", verifyToken, verifyAdmin, completeOrder);
 router.delete("/admin/orders/:order_id", verifyToken, verifyAdmin, deleteOrder);

@@ -718,7 +718,7 @@ export const deleteCategory = async (req, res) => {
 export const getVariationTypes = async (req, res) => {
   try {
     const variationTypes = await Suitebite.getVariationTypes();
-    res.status(200).json({ success: true, variationTypes });
+    res.status(200).json({ success: true, variation_types: variationTypes });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -730,7 +730,7 @@ export const getVariationOptions = async (req, res) => {
   try {
     const { variation_type_id } = req.query;
     const variationOptions = await Suitebite.getVariationOptions(variation_type_id);
-    res.status(200).json({ success: true, variationOptions });
+    res.status(200).json({ success: true, variation_options: variationOptions });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -769,7 +769,7 @@ export const getProductsWithVariations = async (req, res) => {
 // Add new variation type (Admin only)
 export const addVariationType = async (req, res) => {
   try {
-    const { type_name, type_label, sort_order = 0 } = req.body;
+    const { type_name, type_label } = req.body;
 
     if (!type_name || !type_label) {
       return res.status(400).json({ 
@@ -780,8 +780,7 @@ export const addVariationType = async (req, res) => {
 
     const variationTypeId = await Suitebite.addVariationType({
       type_name,
-      type_label,
-      sort_order
+      type_label
     });
 
     res.status(201).json({ 
@@ -987,9 +986,9 @@ export const getCart = async (req, res) => {
   try {
     const user_id = req.user.id; // Changed from req.user.user_id
 
-    const cartItems = await Suitebite.getCartItems(user_id);
+    const cart = await Suitebite.getCart(user_id);
     
-    res.status(200).json({ success: true, cartItems });
+    res.status(200).json({ success: true, data: cart });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -998,7 +997,7 @@ export const getCart = async (req, res) => {
 
 export const addToCart = async (req, res) => {
   try {
-    const { product_id, quantity = 1, variation_id } = req.body;
+    const { product_id, quantity = 1, variations = [] } = req.body;
     const user_id = req.user.id; // Changed from req.user.user_id
 
     // Check if product exists and is available
@@ -1010,22 +1009,24 @@ export const addToCart = async (req, res) => {
       });
     }
 
-    // If variation is specified, validate it
-    if (variation_id) {
-      const variation = await Suitebite.getProductVariationById(variation_id);
-      if (!variation || variation.product_id !== product_id || !variation.is_active) {
-        return res.status(404).json({ 
-          success: false, 
-          message: "Product variation not found or unavailable" 
-        });
+    // Validate variations if provided
+    if (variations.length > 0) {
+      for (const variation of variations) {
+        if (!variation.variation_type_id || !variation.option_id) {
+          return res.status(400).json({ 
+            success: false, 
+            message: "Invalid variation data" 
+          });
+        }
       }
     }
 
-    await Suitebite.addToCart(user_id, product_id, quantity, variation_id);
+    const cartItemId = await Suitebite.addToCart(user_id, product_id, quantity, variations);
 
     res.status(201).json({ 
       success: true, 
-      message: "Item added to cart successfully!" 
+      message: "Item added to cart successfully!",
+      data: { cart_item_id: cartItemId }
     });
   } catch (err) {
     console.error(err);
@@ -1035,9 +1036,8 @@ export const addToCart = async (req, res) => {
 
 export const updateCartItem = async (req, res) => {
   try {
-    const user_id = req.user.id; // Changed from req.user.user_id
-    const { itemId } = req.params;
-    const { quantity, variation_id, variation_details } = req.body;
+    const { cart_item_id } = req.params;
+    const { quantity, variations = [] } = req.body;
 
     if (!quantity || quantity < 1) {
       return res.status(400).json({ 
@@ -1046,14 +1046,19 @@ export const updateCartItem = async (req, res) => {
       });
     }
 
-    const result = await Suitebite.updateCartItem(itemId, user_id, quantity, variation_id, variation_details);
-    
-    if (!result) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Cart item not found" 
-      });
+    // Validate variations if provided
+    if (variations.length > 0) {
+      for (const variation of variations) {
+        if (!variation.variation_type_id || !variation.option_id) {
+          return res.status(400).json({ 
+            success: false, 
+            message: "Invalid variation data" 
+          });
+        }
+      }
     }
+
+    await Suitebite.updateCartItem(cart_item_id, quantity, variations);
 
     res.status(200).json({ 
       success: true, 
@@ -1067,17 +1072,9 @@ export const updateCartItem = async (req, res) => {
 
 export const removeFromCart = async (req, res) => {
   try {
-    const user_id = req.user.id; // Changed from req.user.user_id
-    const { itemId } = req.params;
+    const { cart_item_id } = req.params;
 
-    const result = await Suitebite.removeFromCart(itemId, user_id);
-    
-    if (!result) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Cart item not found" 
-      });
-    }
+    await Suitebite.removeFromCart(cart_item_id);
 
     res.status(200).json({ 
       success: true, 
@@ -1110,50 +1107,22 @@ export const clearCart = async (req, res) => {
 export const checkout = async (req, res) => {
   try {
     const user_id = req.user.id;
-    const { items: selectedItems } = req.body;
 
-    // If no selected items provided, get all cart items (backward compatibility)
-    let cartItems;
-    if (!selectedItems || selectedItems.length === 0) {
-      cartItems = await Suitebite.getCartItems(user_id);
-      if (!cartItems || cartItems.length === 0) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Cart is empty" 
-        });
-      }
-    } else {
-      // Use the selected items from frontend
-      cartItems = selectedItems;
-    }
-
-    // Validate cart items and calculate total points needed
-    let totalPoints = 0;
-    const validationErrors = [];
-    
-    for (const item of cartItems) {
-      // Check if product still exists and is active
-      const product = await Suitebite.getProductById(item.product_id);
-      if (!product || !product.is_active) {
-        validationErrors.push(`Product "${item.product_name}" is no longer available`);
-        continue;
-      }
-
-      // Handle different field names from frontend
-      const pricePoints = item.price_points || item.points_cost || product.price_points;
-      totalPoints += pricePoints * item.quantity;
-    }
-
-    // Return validation errors if any
-    if (validationErrors.length > 0) {
+    // Get user's cart
+    const cart = await Suitebite.getCart(user_id);
+    if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
       return res.status(400).json({ 
         success: false, 
-        message: "Cart validation failed",
-        errors: validationErrors
+        message: "Cart is empty" 
       });
     }
 
-    // Check user heartbits balance
+    // Calculate total points
+    const totalPoints = cart.cartItems.reduce((total, item) => {
+      return total + (item.price_points * item.quantity);
+    }, 0);
+
+    // Check if user has enough heartbits
     const userHeartbits = await Suitebite.getUserHeartbits(user_id);
     if (!userHeartbits || userHeartbits.heartbits_balance < totalPoints) {
       const currentBalance = userHeartbits?.heartbits_balance || 0;
@@ -1167,18 +1136,35 @@ export const checkout = async (req, res) => {
       });
     }
 
-    // Create order with pending status
-    const orderData = {
-      user_id,
-      total_points: totalPoints
-    };
+    // Create order
+    const orderId = await Suitebite.createOrder(user_id, totalPoints, cart.cartItems);
 
-    const result = await Suitebite.checkout(orderData, cartItems, user_id);
+    // Deduct heartbits
+    await Suitebite.updateUserHeartbits(user_id, {
+      heartbits_balance: userHeartbits.heartbits_balance - totalPoints,
+      total_heartbits_spent: userHeartbits.total_heartbits_spent + totalPoints
+    });
+
+    // Add transaction record
+    await Suitebite.addHeartbitsTransaction({
+      user_id,
+      transaction_type: 'order_purchase',
+      points_amount: totalPoints,
+      reference_type: 'order',
+      reference_id: orderId,
+      description: `Order #${orderId} purchase`
+    });
+
+    // Clear cart
+    await Suitebite.clearCart(user_id);
 
     res.status(201).json({ 
       success: true, 
-      message: "Order placed successfully! Awaiting admin approval.",
-      order: result
+      message: "Order placed successfully!",
+      data: {
+        order_id: orderId,
+        total_points: totalPoints
+      }
     });
   } catch (err) {
     console.error('Checkout error:', err);
@@ -1294,7 +1280,7 @@ export const getOrderById = async (req, res) => {
     const { id } = req.params;
     const user_id = req.user.id; // Changed from req.user.user_id
 
-    const order = await Suitebite.getOrderById(id, user_id);
+    const order = await Suitebite.getOrderById(id);
     
     if (!order) {
       return res.status(404).json({ 
@@ -1303,7 +1289,15 @@ export const getOrderById = async (req, res) => {
       });
     }
 
-    res.status(200).json({ success: true, order });
+    // Check if user owns this order (unless admin)
+    if (order.user_id !== user_id && req.user.user_type !== 'ADMIN') {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Access denied" 
+      });
+    }
+
+    res.status(200).json({ success: true, data: order });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -1321,10 +1315,38 @@ export const getAllOrders = async (req, res) => {
 
     const orders = await Suitebite.getAllOrders(filters);
     
-    res.status(200).json({ success: true, orders });
+    res.status(200).json({ success: true, data: orders });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+// Update order status (for admins)
+export const updateOrderStatus = async (req, res) => {
+  try {
+    const { order_id } = req.params;
+    const { status, notes } = req.body;
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: "Status is required"
+      });
+    }
+
+    await Suitebite.updateOrderStatus(order_id, status, notes);
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Order status updated successfully!" 
+    });
+  } catch (err) {
+    console.error('Update order status error:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: err.message || "Failed to update order status" 
+    });
   }
 };
 
@@ -2334,5 +2356,51 @@ export const initializeAllUsersHeartbits = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+// Delete variation type (Admin only)
+export const deleteVariationType = async (req, res) => {
+  try {
+    const { variation_type_id } = req.params;
+    if (!variation_type_id) {
+      return res.status(400).json({ success: false, message: "Variation type ID is required" });
+    }
+    await Suitebite.deleteVariationType(variation_type_id);
+    res.status(200).json({ success: true, message: "Variation type deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+// Delete variation option (Admin only)
+export const deleteVariationOption = async (req, res) => {
+  try {
+    const { option_id } = req.params;
+    if (!option_id) {
+      return res.status(400).json({ success: false, message: "Option ID is required" });
+    }
+    await Suitebite.deleteVariationOption(option_id);
+    res.status(200).json({ success: true, message: "Variation option deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+// ========== PRODUCT ORDER USAGE CHECK ENDPOINT ==========
+export const getProductOrderUsage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Check if product exists in any order items
+    const orderItem = await Suitebite.getOrderItemByProductId(id);
+    res.status(200).json({
+      success: true,
+      hasOrder: !!orderItem
+    });
+  } catch (err) {
+    console.error('Error checking product order usage:', err);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 };

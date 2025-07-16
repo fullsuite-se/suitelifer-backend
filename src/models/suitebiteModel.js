@@ -21,7 +21,6 @@ const adminActionsTable = () => db("sl_admin_actions");
 const variationTypesTable = () => db("sl_variation_types");
 const variationOptionsTable = () => db("sl_variation_options");
 const productVariationsTable = () => db("sl_product_variations");
-const productVariationOptionsTable = () => db("sl_product_variation_options");
 
 const userHeartbitsTable = () => db("sl_user_heartbits");
 
@@ -363,800 +362,548 @@ export const Suitebite = {
   },
 
   addProduct: async (productData) => {
-    // Map frontend fields to database fields with proper type conversion
-    const dbData = {
-      name: productData.name,
-      description: productData.description || '',
-      price_points: parseInt(productData.price || productData.price_points) || 0,
-      category_id: productData.category_id,
-      image_url: productData.image_url || '',
-      slug: productData.slug || null,
-      is_active: productData.is_active !== undefined ? Boolean(productData.is_active) : true
-    };
-    
-    const [insertId] = await productsTable().insert(dbData);
-    return insertId;
+    const [productId] = await productsTable().insert(productData);
+    return productId;
   },
 
   updateProduct: async (product_id, updateData) => {
-    // Map frontend fields to database fields
-    const dbData = {};
-    
-    if (updateData.name) dbData.name = updateData.name;
-    if (updateData.description !== undefined) dbData.description = updateData.description;
-    
-    // Handle price mapping with proper type conversion
-    if (updateData.price !== undefined) {
-      dbData.price_points = parseInt(updateData.price) || 0;
-    } else if (updateData.price_points !== undefined) {
-      dbData.price_points = parseInt(updateData.price_points) || 0;
-    }
-    
-    if (updateData.category_id !== undefined) dbData.category_id = updateData.category_id;
-    if (updateData.image_url !== undefined) dbData.image_url = updateData.image_url;
-    if (updateData.is_active !== undefined) dbData.is_active = Boolean(updateData.is_active);
-    
-    dbData.updated_at = new Date();
-
     return await productsTable()
       .where("product_id", product_id)
-      .update(dbData);
+      .update(updateData);
   },
 
   deleteProduct: async (product_id) => {
+    // First delete related cart items
+    await cartItemsTable()
+      .where("product_id", product_id)
+      .del();
+    
+    // Delete product variations
+    await db("sl_product_variations")
+      .where("product_id", product_id)
+      .del();
+    
+    // Finally delete the product
     return await productsTable()
       .where("product_id", product_id)
       .del();
   },
 
-  // ========== CATEGORIES OPERATIONS ==========
+  // ========== PRODUCT VARIATIONS OPERATIONS ==========
+
+  getProductVariations: async (product_id) => {
+    const variations = await db("sl_product_variations")
+      .select("*")
+      .where("product_id", product_id);
+
+    for (const variation of variations) {
+      const optionLinks = await db("sl_product_variation_options")
+        .where("variation_id", variation.variation_id);
+      const optionIds = optionLinks.map(link => link.option_id);
+      if (optionIds.length > 0) {
+        const options = await db("sl_variation_options as vo")
+          .select(
+            "vo.option_id",
+            "vo.variation_type_id",
+            "vo.option_value",
+            "vo.option_label",
+            "vo.hex_color",
+            "vt.type_name",
+            "vt.type_label"
+          )
+          .leftJoin("sl_variation_types as vt", "vo.variation_type_id", "vt.variation_type_id")
+          .whereIn("vo.option_id", optionIds);
+        variation.options = options;
+      } else {
+        variation.options = [];
+      }
+    }
+    return variations;
+  },
+
+  addProductVariation: async (variationData) => {
+    // Only keep valid fields for sl_product_variations
+    const { options, product_id, is_active } = variationData;
+    // Insert the main variation
+    const [variationId] = await db("sl_product_variations").insert({ product_id, is_active });
+    // Insert each option into the join table
+    if (options && Array.isArray(options)) {
+      const optionRows = options.map(option_id => ({
+        variation_id: variationId,
+        option_id
+      }));
+      await db("sl_product_variation_options").insert(optionRows);
+    }
+    return variationId;
+  },
+
+  updateProductVariation: async (variation_id, updateData) => {
+    const { options, ...variationFields } = updateData;
+    // Update main variation fields
+    await db("sl_product_variations")
+      .where("variation_id", variation_id)
+      .update(variationFields);
+    // Update options if provided
+    if (options && Array.isArray(options)) {
+      // Remove old links
+      await db("sl_product_variation_options")
+        .where("variation_id", variation_id)
+        .del();
+      // Add new links
+      const optionRows = options.map(option_id => ({
+        variation_id,
+        option_id
+      }));
+      await db("sl_product_variation_options").insert(optionRows);
+    }
+    return true;
+  },
+
+  deleteProductVariation: async (variation_id) => {
+    // Deleting the variation will cascade and delete links
+    return await db("sl_product_variations")
+      .where("variation_id", variation_id)
+      .del();
+  },
+
+  // ========== VARIATION TYPES & OPTIONS ==========
+
+  getVariationTypes: async () => {
+    return await db("sl_variation_types")
+      .select("*")
+      .orderBy("sort_order", "asc");
+  },
+
+  getVariationOptions: async (variation_type_id = null) => {
+    let query = db("sl_variation_options as vo")
+      .select(
+        "vo.*",
+        "vt.type_name",
+        "vt.type_label"
+      )
+      .leftJoin("sl_variation_types as vt", "vo.variation_type_id", "vt.variation_type_id");
+
+    if (variation_type_id) {
+      query = query.where("vo.variation_type_id", variation_type_id);
+    }
+
+    return await query.orderBy("vo.sort_order", "asc");
+  },
+
+  addVariationType: async (typeData) => {
+    // Auto-assign sort_order
+    const maxSort = await db("sl_variation_types").max("sort_order as max").first();
+    const nextSortOrder = (maxSort && maxSort.max != null) ? maxSort.max + 1 : 1;
+    const insertData = {
+      ...typeData,
+      sort_order: nextSortOrder
+    };
+    const [typeId] = await db("sl_variation_types").insert(insertData);
+    return typeId;
+  },
+
+  addVariationOption: async (optionData) => {
+    const [optionId] = await db("sl_variation_options").insert(optionData);
+    return optionId;
+  },
+
+  // Delete a variation type and all its options and product links
+  deleteVariationType: async (variation_type_id) => {
+    // Delete all option references in cart and order item variations
+    const optionIds = await db("sl_variation_options")
+      .where("variation_type_id", variation_type_id)
+      .pluck("option_id");
+    if (optionIds.length > 0) {
+      await db("sl_cart_item_variations").whereIn("option_id", optionIds).del();
+      await db("sl_order_item_variations").whereIn("option_id", optionIds).del();
+      await db("sl_variation_options").whereIn("option_id", optionIds).del();
+    }
+    // Delete the type itself
+    return await db("sl_variation_types").where("variation_type_id", variation_type_id).del();
+  },
+
+  // Delete a variation option and remove it from all cart/order items
+  deleteVariationOption: async (option_id) => {
+    await db("sl_cart_item_variations").where("option_id", option_id).del();
+    await db("sl_order_item_variations").where("option_id", option_id).del();
+    return await db("sl_variation_options").where("option_id", option_id).del();
+  },
+
+  // ========== CART OPERATIONS ==========
+
+  getCart: async (user_id) => {
+    // Get cart
+    const cart = await cartsTable()
+      .where("user_id", user_id)
+      .first();
+
+    if (!cart) {
+      return null;
+    }
+
+    // Get cart items with product details
+    const cartItems = await cartItemsTable()
+      .select(
+        "sl_cart_items.*",
+        "sl_products.name as product_name",
+        "sl_products.price_points",
+        "sl_products.image_url",
+        "sl_shop_categories.category_name"
+      )
+      .leftJoin("sl_products", "sl_cart_items.product_id", "sl_products.product_id")
+      .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
+      .where("sl_cart_items.cart_id", cart.cart_id);
+
+    // Get variations for each cart item
+    for (const item of cartItems) {
+      const variations = await db("sl_cart_item_variations as civ")
+        .select(
+          "civ.*",
+          "vo.option_value",
+          "vo.option_label",
+          "vo.hex_color",
+          "vt.type_name",
+          "vt.type_label"
+        )
+        .leftJoin("sl_variation_options as vo", "civ.option_id", "vo.option_id")
+        .leftJoin("sl_variation_types as vt", "civ.variation_type_id", "vt.variation_type_id")
+        .where("civ.cart_item_id", item.cart_item_id);
+
+      item.variations = variations;
+    }
+
+    return {
+      cart,
+      cartItems
+    };
+  },
+
+  addToCart: async (user_id, product_id, quantity, variations = []) => {
+    // Get or create cart
+    let cart = await cartsTable()
+      .where("user_id", user_id)
+      .first();
+
+    if (!cart) {
+      const [cartId] = await cartsTable().insert({
+        user_id,
+        created_at: new Date()
+      });
+      cart = { cart_id: cartId };
+    }
+
+    // Add cart item
+    const [cartItemId] = await cartItemsTable().insert({
+        cart_id: cart.cart_id,
+        product_id,
+        quantity
+    });
+
+    // Add variations if provided
+    if (variations.length > 0) {
+      const variationData = variations.map(variation => ({
+        cart_item_id: cartItemId,
+        variation_type_id: variation.variation_type_id,
+        option_id: variation.option_id
+      }));
+
+      await db("sl_cart_item_variations").insert(variationData);
+    }
+
+    return cartItemId;
+  },
+
+  updateCartItem: async (cart_item_id, quantity, variations = []) => {
+    // Update cart item
+    await cartItemsTable()
+      .where("cart_item_id", cart_item_id)
+      .update({ quantity });
+
+    // Update variations
+    if (variations.length > 0) {
+      // Delete existing variations
+      await db("sl_cart_item_variations")
+        .where("cart_item_id", cart_item_id)
+        .del();
+
+      // Add new variations
+      const variationData = variations.map(variation => ({
+        cart_item_id,
+        variation_type_id: variation.variation_type_id,
+        option_id: variation.option_id
+      }));
+
+      await db("sl_cart_item_variations").insert(variationData);
+    }
+
+    return true;
+  },
+
+  removeFromCart: async (cart_item_id) => {
+    // Delete variations first
+    await db("sl_cart_item_variations")
+      .where("cart_item_id", cart_item_id)
+      .del();
+
+    // Delete cart item
+    return await cartItemsTable()
+      .where("cart_item_id", cart_item_id)
+      .del();
+  },
+
+  clearCart: async (user_id) => {
+      const cart = await cartsTable()
+      .where("user_id", user_id)
+        .first();
+
+    if (cart) {
+      // Delete all cart item variations
+      await db("sl_cart_item_variations")
+        .whereIn("cart_item_id", function() {
+          this.select("cart_item_id")
+            .from("sl_cart_items")
+            .where("cart_id", cart.cart_id);
+        })
+        .del();
+
+      // Delete all cart items
+      await cartItemsTable()
+        .where("cart_id", cart.cart_id)
+        .del();
+
+      // Delete cart
+      await cartsTable()
+      .where("cart_id", cart.cart_id)
+      .del();
+    }
+
+    return true;
+  },
+
+  // ========== ORDER OPERATIONS ==========
+
+  createOrder: async (user_id, total_points, cartItems) => {
+    // Create order
+    const [orderId] = await ordersTable().insert({
+      user_id,
+      total_points,
+      ordered_at: new Date(),
+      status: 'pending'
+    });
+
+    // Transfer cart items to order items
+    for (const cartItem of cartItems) {
+      const [orderItemId] = await orderItemsTable().insert({
+        order_id: orderId,
+        product_id: cartItem.product_id,
+        quantity: cartItem.quantity,
+        points_spent: cartItem.price_points * cartItem.quantity,
+        product_name: cartItem.product_name,
+        price_points: cartItem.price_points
+      });
+
+      // Transfer variations
+      if (cartItem.variations && cartItem.variations.length > 0) {
+        const variationData = cartItem.variations.map(variation => ({
+          order_item_id: orderItemId,
+          variation_type_id: variation.variation_type_id,
+          option_id: variation.option_id
+        }));
+
+        await db("sl_order_item_variations").insert(variationData);
+      }
+    }
+
+    return orderId;
+  },
+
+  getOrderById: async (order_id) => {
+      const order = await ordersTable()
+      .select("*")
+      .where("order_id", order_id)
+        .first();
+
+    if (!order) return null;
+
+    // Get order items with variations
+    const orderItems = await orderItemsTable()
+      .select("*")
+      .where("order_id", order_id);
+
+    for (const item of orderItems) {
+      const variations = await db("sl_order_item_variations as oiv")
+        .select(
+          "oiv.*",
+          "vo.option_value",
+          "vo.option_label",
+          "vo.hex_color",
+          "vt.type_name",
+          "vt.type_label"
+        )
+        .leftJoin("sl_variation_options as vo", "oiv.option_id", "vo.option_id")
+        .leftJoin("sl_variation_types as vt", "oiv.variation_type_id", "vt.variation_type_id")
+        .where("oiv.order_item_id", item.order_item_id);
+
+      item.variations = variations;
+    }
+
+    return {
+      ...order,
+      orderItems
+    };
+  },
+
+  getOrderHistory: async (user_id, page = 1, limit = 20) => {
+    const offset = (page - 1) * limit;
+
+    const orders = await ordersTable()
+      .select("*")
+      .where("user_id", user_id)
+      .orderBy("ordered_at", "desc")
+      .limit(limit)
+      .offset(offset);
+
+    // Get order items for each order
+    for (const order of orders) {
+      const orderItems = await orderItemsTable()
+        .select("*")
+        .where("order_id", order.order_id);
+
+      for (const item of orderItems) {
+        const variations = await db("sl_order_item_variations as oiv")
+          .select(
+            "oiv.*",
+            "vo.option_value",
+            "vo.option_label",
+            "vo.hex_color",
+            "vt.type_name",
+            "vt.type_label"
+          )
+          .leftJoin("sl_variation_options as vo", "oiv.option_id", "vo.option_id")
+          .leftJoin("sl_variation_types as vt", "oiv.variation_type_id", "vt.variation_type_id")
+          .where("oiv.order_item_id", item.order_item_id);
+
+        item.variations = variations;
+      }
+
+      order.orderItems = orderItems;
+    }
+
+    return orders;
+  },
+
+  getAllOrders: async (filters = {}) => {
+    let query = ordersTable()
+      .select(
+        "sl_orders.*",
+        "sl_user_accounts.first_name",
+        "sl_user_accounts.last_name",
+        "sl_user_accounts.user_email"
+      )
+      .leftJoin("sl_user_accounts", "sl_orders.user_id", "sl_user_accounts.user_id");
+
+    // Apply filters
+    if (filters.status) {
+      query = query.where("sl_orders.status", filters.status);
+    }
+    if (filters.dateFrom) {
+      query = query.where("sl_orders.ordered_at", ">=", filters.dateFrom);
+    }
+    if (filters.dateTo) {
+      query = query.where("sl_orders.ordered_at", "<=", filters.dateTo);
+    }
+
+    const orders = await query.orderBy("sl_orders.ordered_at", "desc");
+
+    // Get order items for each order
+    for (const order of orders) {
+      const orderItems = await orderItemsTable()
+        .select("*")
+        .where("order_id", order.order_id);
+
+      for (const item of orderItems) {
+        const variations = await db("sl_order_item_variations as oiv")
+      .select(
+            "oiv.*",
+            "vo.option_value",
+            "vo.option_label",
+            "vo.hex_color",
+            "vt.type_name",
+            "vt.type_label"
+          )
+          .leftJoin("sl_variation_options as vo", "oiv.option_id", "vo.option_id")
+          .leftJoin("sl_variation_types as vt", "oiv.variation_type_id", "vt.variation_type_id")
+          .where("oiv.order_item_id", item.order_item_id);
+
+        item.variations = variations;
+      }
+
+      order.orderItems = orderItems;
+    }
+
+    return orders;
+  },
+
+  updateOrderStatus: async (order_id, status, notes = null) => {
+    const updateData = { status };
+    
+    if (status === 'completed') {
+      updateData.completed_at = new Date();
+    } else if (status === 'processed') {
+      updateData.processed_at = new Date();
+    }
+    
+    if (notes) {
+      updateData.notes = notes;
+    }
+
+    return await ordersTable()
+      .where("order_id", order_id)
+      .update(updateData);
+  },
+
+  // ========== CATEGORY OPERATIONS ==========
 
   getAllCategories: async () => {
-    return await categoriesTable()
+    return await db("sl_shop_categories")
       .select("*")
       .where("is_active", true)
       .orderBy("category_name", "asc");
   },
 
   getCategoryById: async (category_id) => {
-    return await categoriesTable()
-      .select("*")
+    return await db("sl_shop_categories")
       .where("category_id", category_id)
       .first();
   },
 
   getCategoryByName: async (category_name) => {
-    return await categoriesTable()
-      .select("*")
+    return await db("sl_shop_categories")
       .where("category_name", category_name)
       .first();
   },
 
   addCategory: async (categoryData) => {
-    const [insertId] = await categoriesTable().insert(categoryData);
-    return insertId;
+    const [categoryId] = await db("sl_shop_categories").insert(categoryData);
+    return categoryId;
   },
 
   updateCategory: async (category_id, updateData) => {
-    updateData.updated_at = new Date();
-    return await categoriesTable()
+    return await db("sl_shop_categories")
       .where("category_id", category_id)
       .update(updateData);
   },
 
   deleteCategory: async (category_id) => {
-    return await categoriesTable()
+    // Update products to remove category reference
+    await productsTable()
+      .where("category_id", category_id)
+      .update({ category_id: null });
+
+    // Delete category
+    return await db("sl_shop_categories")
       .where("category_id", category_id)
       .del();
-  },
-
-  // ========== PRODUCT VARIATIONS OPERATIONS ==========
-
-  // Variation Types Management
-  getVariationTypes: async () => {
-    return await variationTypesTable()
-      .select("*")
-      .where("is_active", true)
-      .orderBy("sort_order", "asc");
-  },
-
-  getVariationTypeById: async (variation_type_id) => {
-    return await variationTypesTable()
-      .where("variation_type_id", variation_type_id)
-      .first();
-  },
-
-  addVariationType: async (typeData) => {
-    const [insertId] = await variationTypesTable().insert(typeData);
-    return insertId;
-  },
-
-  updateVariationType: async (variation_type_id, updateData) => {
-    updateData.updated_at = new Date();
-    return await variationTypesTable()
-      .where("variation_type_id", variation_type_id)
-      .update(updateData);
-  },
-
-  // Variation Options Management
-  getVariationOptions: async (variation_type_id = null) => {
-    let query = variationOptionsTable()
-      .select(
-        "sl_variation_options.*",
-        "sl_variation_types.type_name",
-        "sl_variation_types.type_label"
-      )
-      .leftJoin("sl_variation_types", "sl_variation_options.variation_type_id", "sl_variation_types.variation_type_id")
-      .where("sl_variation_options.is_active", true);
-
-    if (variation_type_id) {
-      query = query.where("sl_variation_options.variation_type_id", variation_type_id);
-    }
-
-    return await query.orderBy("sl_variation_options.option_label", "asc");
-  },
-
-  getVariationOptionById: async (option_id) => {
-    return await variationOptionsTable()
-      .select(
-        "sl_variation_options.*",
-        "sl_variation_types.type_name",
-        "sl_variation_types.type_label"
-      )
-      .leftJoin("sl_variation_types", "sl_variation_options.variation_type_id", "sl_variation_types.variation_type_id")
-      .where("sl_variation_options.option_id", option_id)
-      .first();
-  },
-
-  addVariationOption: async (optionData) => {
-    const [insertId] = await variationOptionsTable().insert(optionData);
-    return insertId;
-  },
-
-  updateVariationOption: async (option_id, updateData) => {
-    updateData.updated_at = new Date();
-    return await variationOptionsTable()
-      .where("option_id", option_id)
-      .update(updateData);
-  },
-
-  // Product Variations Management
-  getProductVariations: async (product_id) => {
-    const variations = await productVariationsTable()
-      .select("*")
-      .where("product_id", product_id)
-      .where("is_active", true)
-      .orderBy("variation_id", "asc");
-
-    // Get variation options for each variation
-    for (let variation of variations) {
-      const options = await productVariationOptionsTable()
-        .select(
-          "sl_product_variation_options.*",
-          "sl_variation_options.option_value",
-          "sl_variation_options.option_label",
-          "sl_variation_options.hex_color",
-          "sl_variation_types.type_name",
-          "sl_variation_types.type_label"
-        )
-        .leftJoin("sl_variation_options", "sl_product_variation_options.option_id", "sl_variation_options.option_id")
-        .leftJoin("sl_variation_types", "sl_variation_options.variation_type_id", "sl_variation_types.variation_type_id")
-        .where("sl_product_variation_options.variation_id", variation.variation_id);
-
-      variation.options = options;
-    }
-
-    return variations;
-  },
-
-  getProductVariationById: async (variation_id) => {
-    const variation = await productVariationsTable()
-      .where("variation_id", variation_id)
-      .first();
-
-    if (variation) {
-      // Get variation options for this variation
-      const options = await productVariationOptionsTable()
-        .select(
-          "sl_product_variation_options.*",
-          "sl_variation_options.option_value",
-          "sl_variation_options.option_label",
-          "sl_variation_options.hex_color",
-          "sl_variation_types.type_name",
-          "sl_variation_types.type_label"
-        )
-        .leftJoin("sl_variation_options", "sl_product_variation_options.option_id", "sl_variation_options.option_id")
-        .leftJoin("sl_variation_types", "sl_variation_options.variation_type_id", "sl_variation_types.variation_type_id")
-        .where("sl_product_variation_options.variation_id", variation_id);
-
-      variation.options = options;
-    }
-
-    return variation;
-  },
-
-  addProductVariation: async (variationData) => {
-    const { options, ...baseData } = variationData;
-    
-    // Insert the base variation
-    const [variationId] = await productVariationsTable().insert(baseData);
-
-    // Insert variation options if provided
-    if (options && options.length > 0) {
-      const variationOptions = options.map(optionId => ({
-        variation_id: variationId,
-        option_id: optionId
-      }));
-      
-      await productVariationOptionsTable().insert(variationOptions);
-    }
-
-    return variationId;
-  },
-
-  updateProductVariation: async (variation_id, updateData) => {
-    const { options, ...baseData } = updateData;
-    
-    // Update base variation data
-    if (Object.keys(baseData).length > 0) {
-      baseData.updated_at = new Date();
-      await productVariationsTable()
-        .where("variation_id", variation_id)
-        .update(baseData);
-    }
-
-    // Update variation options if provided
-    if (options) {
-      // Remove existing options
-      await productVariationOptionsTable()
-        .where("variation_id", variation_id)
-        .del();
-
-      // Insert new options
-      if (options.length > 0) {
-        const variationOptions = options.map(optionId => ({
-          variation_id: variation_id,
-          option_id: optionId
-        }));
-        
-        await productVariationOptionsTable().insert(variationOptions);
-      }
-    }
-
-    return variation_id;
-  },
-
-  deleteProductVariation: async (variation_id) => {
-    // Delete variation options first (foreign key constraint)
-    await productVariationOptionsTable()
-      .where("variation_id", variation_id)
-      .del();
-
-    // Delete the variation
-    return await productVariationsTable()
-      .where("variation_id", variation_id)
-      .del();
-  },
-
-  // Get products with their variations for shop display
-  getProductsWithVariations: async (activeOnly = true) => {
-    let query = productsTable()
-      .select(
-        "sl_products.product_id",
-        "sl_products.name",
-        "sl_products.description",
-        "sl_products.price_points as price",
-        "sl_products.category_id",
-        "sl_products.image_url",
-        "sl_products.is_active",
-        "sl_products.created_at",
-        "sl_products.updated_at"
-      )
-      .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
-      .select("sl_shop_categories.category_name as category");
-
-    if (activeOnly) {
-      query = query.where("sl_products.is_active", true);
-    }
-
-    const products = await query.orderBy("sl_products.name", "asc");
-
-    // Get variations for each product
-    for (let product of products) {
-      product.variations = await Suitebite.getProductVariations(product.product_id);
-    }
-
-    return products;
-  },
-
-  // ========== CART OPERATIONS ==========
-
-  getUserCart: async (user_id) => {
-    return await cartsTable()
-      .select("*")
-      .where("user_id", user_id)
-      .first();
-  },
-
-  createCart: async (user_id) => {
-    const [cart_id] = await cartsTable().insert({
-      user_id,
-      created_at: new Date()
-    });
-    return cart_id;
-  },
-
-  getCartItems: async (user_id) => {
-    const cartItems = await cartItemsTable()
-      .select(
-        "sl_cart_items.*",
-        "sl_products.name as product_name",
-        "sl_products.description as product_description",
-        "sl_products.price_points",
-        "sl_products.image_url",
-        "sl_product_variations.price_adjustment",
-        "sl_product_variations.variation_sku",
-        db.raw("((sl_products.price_points + COALESCE(sl_product_variations.price_adjustment, 0)) * sl_cart_items.quantity) as total_points")
-      )
-      .leftJoin("sl_carts", "sl_cart_items.cart_id", "sl_carts.cart_id")
-      .leftJoin("sl_products", "sl_cart_items.product_id", "sl_products.product_id")
-      .leftJoin("sl_product_variations", "sl_cart_items.variation_id", "sl_product_variations.variation_id")
-      .where("sl_carts.user_id", user_id)
-      .where("sl_products.is_active", true);
-
-    // Get variation details for each cart item
-    for (let item of cartItems) {
-      if (item.variation_id) {
-        const variation = await Suitebite.getProductVariationById(item.variation_id);
-        item.variation_details = variation;
-      }
-    }
-
-    return cartItems;
-  },
-
-  addToCart: async (user_id, product_id, quantity = 1, variation_id = null) => {
-    console.log(`🛒 Adding to cart: user_id=${user_id}, product_id=${product_id}, quantity=${quantity}, variation_id=${variation_id}`);
-    
-    // Get or create cart
-    let cart = await Suitebite.getUserCart(user_id);
-    if (!cart) {
-      console.log('📝 Creating new cart for user:', user_id);
-      const cart_id = await Suitebite.createCart(user_id);
-      cart = { cart_id };
-    }
-
-    console.log('🛒 Using cart_id:', cart.cart_id);
-
-    // Check if item already exists in cart (including variation)
-    let existingItemQuery = cartItemsTable()
-      .where("cart_id", cart.cart_id)
-      .where("product_id", product_id);
-
-    if (variation_id) {
-      existingItemQuery = existingItemQuery.where("variation_id", variation_id);
-    } else {
-      existingItemQuery = existingItemQuery.whereNull("variation_id");
-    }
-
-    const existingItem = await existingItemQuery.first();
-
-    if (existingItem) {
-      console.log('📦 Updating existing cart item quantity');
-      // Update quantity
-      return await cartItemsTable()
-        .where("cart_item_id", existingItem.cart_item_id)
-        .increment("quantity", quantity);
-    } else {
-      console.log('🆕 Adding new item to cart');
-      // Insert new item
-      const cartData = {
-        cart_id: cart.cart_id,
-        product_id,
-        quantity
-      };
-
-      if (variation_id) {
-        cartData.variation_id = variation_id;
-      }
-
-      return await cartItemsTable().insert(cartData);
-    }
-  },
-
-  updateCartItem: async (item_id, user_id, quantity, variation_id = null, variation_details = null) => {
-    try {
-      // First verify the cart item exists
-      const cartItem = await cartItemsTable()
-        .where("cart_item_id", item_id)
-        .first();
-
-      if (!cartItem) {
-        console.log(`Cart item ${item_id} not found`);
-        return null;
-      }
-
-      // Check if cart exists
-      const cart = await cartsTable()
-        .where("cart_id", cartItem.cart_id)
-        .first();
-
-      if (!cart) {
-        // Only insert if cart does not exist
-        await cartsTable().insert({
-          cart_id: cartItem.cart_id,
-          user_id: user_id,
-          created_at: new Date()
-        });
-        console.log(`Created missing cart record: ${cartItem.cart_id}`);
-      } else if (cart.user_id !== user_id) {
-        // Only update user_id if cart exists but belongs to a different user
-        await cartsTable()
-          .where("cart_id", cartItem.cart_id)
-          .update({ user_id });
-        console.log(`Updated cart ${cartItem.cart_id} to user ${user_id}`);
-      }
-
-      // Prepare update data
-      const updateData = { quantity };
-      if (variation_id !== null) updateData.variation_id = variation_id;
-      if (variation_details !== null) updateData.variation_details = JSON.stringify(variation_details);
-      const result = await cartItemsTable()
-        .where("cart_item_id", item_id)
-        .update(updateData);
-
-      console.log(`Updated cart item ${item_id} quantity to ${quantity}`);
-      return result;
-    } catch (error) {
-      console.error('Error in updateCartItem:', error);
-      return null;
-    }
-  },
-
-  removeFromCart: async (item_id, user_id) => {
-    try {
-      // First verify the cart item exists
-      const cartItem = await cartItemsTable()
-        .where("cart_item_id", item_id)
-        .first();
-
-      if (!cartItem) {
-        console.log(`Cart item ${item_id} not found`);
-        return null;
-      }
-
-      // Check if cart exists
-      const cart = await cartsTable()
-        .where("cart_id", cartItem.cart_id)
-        .first();
-
-      if (!cart) {
-        // Only insert if cart does not exist
-        await cartsTable().insert({
-          cart_id: cartItem.cart_id,
-          user_id: user_id,
-          created_at: new Date()
-        });
-        console.log(`Created missing cart record: ${cartItem.cart_id}`);
-      } else if (cart.user_id !== user_id) {
-        // Only update user_id if cart exists but belongs to a different user
-        await cartsTable()
-          .where("cart_id", cartItem.cart_id)
-          .update({ user_id });
-        console.log(`Updated cart ${cartItem.cart_id} to user ${user_id}`);
-      }
-
-      // Delete the cart item
-      const result = await cartItemsTable()
-        .where("cart_item_id", item_id)
-        .del();
-
-      console.log(`Removed cart item ${item_id}`);
-      return result;
-    } catch (error) {
-      console.error('Error in removeFromCart:', error);
-      return null;
-    }
-  },
-
-  clearCart: async (user_id) => {
-    const cart = await Suitebite.getUserCart(user_id);
-    if (!cart) {
-      return false;
-    }
-
-    return await cartItemsTable()
-      .where("cart_id", cart.cart_id)
-      .del();
-  },
-
-  // ========== ORDERS OPERATIONS ==========
-
-  checkout: async (orderData, cartItems, user_id) => {
-    const trx = await db.transaction();
-
-    try {
-      // Insert order with pending status
-      const [order_id] = await ordersTable().insert({
-        ...orderData,
-        status: 'pending',
-        ordered_at: new Date()
-      }).transacting(trx);
-
-      // Insert order items with product snapshots
-      const orderItems = cartItems.map(item => ({
-        order_id,
-        product_id: item.product_id,
-        product_name: item.product_name,
-        price_points: item.price_points || item.points_cost,
-        quantity: item.quantity,
-        variation_id: item.variation_id,
-        variation_details: item.variation_details ? JSON.stringify(item.variation_details) : null
-      }));
-
-      await orderItemsTable().insert(orderItems).transacting(trx);
-
-      // IMMEDIATELY deduct heartbits from user
-      await userHeartbitsTable()
-        .where('user_id', user_id)
-        .decrement('heartbits_balance', orderData.total_points)
-        .transacting(trx);
-
-      // Add transaction record for immediate deduction
-      await db('sl_heartbits_transactions').insert({
-        user_id: user_id,
-        transaction_type: 'order_purchase',
-        points_amount: orderData.total_points,
-        reference_id: order_id,
-        reference_type: 'order',
-        description: `Order #${order_id} purchase (pending)`,
-        created_at: new Date()
-      }).transacting(trx);
-
-      // Remove only the selected items from cart (not all items)
-      const selectedCartItemIds = cartItems.map(item => item.cart_item_id).filter(Boolean);
-      if (selectedCartItemIds.length > 0) {
-        await cartItemsTable()
-          .whereIn('cart_item_id', selectedCartItemIds)
-          .del()
-          .transacting(trx);
-      }
-
-      await trx.commit();
-
-      return {
-        order_id,
-        total_points: orderData.total_points,
-        items: orderItems,
-        status: 'pending'
-      };
-    } catch (error) {
-      await trx.rollback();
-      throw error;
-    }
-  },
-
-  // Admin order approval functions
-  approveOrder: async (order_id, admin_id) => {
-    const trx = await db.transaction();
-
-    try {
-      // Get order details
-      const order = await ordersTable()
-        .where('order_id', order_id)
-        .where('status', 'pending')
-        .first();
-
-      if (!order) {
-        throw new Error('Order not found or not pending');
-      }
-
-      // Update order status to processing (heartbits already deducted during checkout)
-      await ordersTable()
-        .where('order_id', order_id)
-        .update({
-          status: 'processing',
-          processed_at: new Date()
-        })
-        .transacting(trx);
-
-      // Update the transaction record to reflect approval
-      await db('sl_heartbits_transactions')
-        .where('reference_id', order_id)
-        .where('reference_type', 'order')
-        .update({
-          description: `Order #${order_id} purchase (approved)`
-        })
-        .transacting(trx);
-
-      await trx.commit();
-      return true;
-    } catch (error) {
-      await trx.rollback();
-      throw error;
-    }
-  },
-
-  completeOrder: async (order_id, admin_id) => {
-    return await ordersTable()
-      .where('order_id', order_id)
-      .where('status', 'processing')
-      .update({
-        status: 'completed',
-        completed_at: new Date()
-      });
-  },
-
-  cancelOrder: async (order_id, user_id, reason = null) => {
-    const trx = await db.transaction();
-
-    try {
-      // Get order details
-      const order = await ordersTable()
-        .where('order_id', order_id)
-        .where('user_id', user_id)
-        .where('status', 'pending')
-        .first();
-
-      if (!order) {
-        throw new Error('Order not found or cannot be cancelled');
-      }
-
-      // Update order status to cancelled
-      await ordersTable()
-        .where('order_id', order_id)
-        .update({
-          status: 'cancelled',
-          notes: reason || 'Cancelled by user'
-        })
-        .transacting(trx);
-
-      // REFUND heartbits since order was still pending
-      await userHeartbitsTable()
-        .where('user_id', user_id)
-        .increment('heartbits_balance', order.total_points)
-        .transacting(trx);
-
-      // Add refund transaction record
-      await db('sl_heartbits_transactions').insert({
-        user_id: user_id,
-        transaction_type: 'order_refund',
-        points_amount: order.total_points,
-        reference_id: order_id,
-        reference_type: 'order',
-        description: `Order #${order_id} refund (cancelled)`,
-        created_at: new Date()
-      }).transacting(trx);
-
-      await trx.commit();
-      return true;
-    } catch (error) {
-      await trx.rollback();
-      throw error;
-    }
-  },
-
-  deleteOrder: async (order_id, admin_id, reason = null) => {
-    const trx = await db.transaction();
-
-    try {
-      // Ensure order_id is an integer
-      order_id = parseInt(order_id, 10);
-      if (isNaN(order_id)) {
-        await trx.rollback();
-        return false;
-      }
-
-      // Get order details
-      const order = await ordersTable()
-        .where('order_id', order_id)
-        .first();
-
-      if (!order) {
-        await trx.rollback();
-        return false;
-      }
-
-      // Delete order items first
-      await orderItemsTable()
-        .where('order_id', order_id)
-        .del()
-        .transacting(trx);
-
-      // Delete the order
-      await ordersTable()
-        .where('order_id', order_id)
-        .del()
-        .transacting(trx);
-
-      await trx.commit();
-      return true;
-    } catch (error) {
-      await trx.rollback();
-      throw error;
-    }
-  },
-
-  // Get all orders for admin management
-  getAllOrders: async (filters = {}) => {
-    let query = ordersTable()
-      .select(
-        'sl_orders.*',
-        'user.first_name',
-        'user.last_name',
-        'user.user_email',
-        db.raw('COUNT(sl_order_items.order_item_id) as item_count')
-      )
-      .leftJoin('sl_user_accounts as user', 'sl_orders.user_id', 'user.user_id')
-      .leftJoin('sl_order_items', 'sl_orders.order_id', 'sl_order_items.order_id')
-      .groupBy('sl_orders.order_id', 'user.user_id', 'user.first_name', 'user.last_name', 'user.user_email');
-
-    // Apply filters
-    if (filters.status && filters.status !== 'all') {
-      query = query.where('sl_orders.status', filters.status);
-    }
-
-    if (filters.dateFrom) {
-      query = query.where('sl_orders.ordered_at', '>=', filters.dateFrom);
-    }
-
-    if (filters.dateTo) {
-      query = query.where('sl_orders.ordered_at', '<=', filters.dateTo);
-    }
-
-    return await query
-      .orderBy('sl_orders.ordered_at', 'desc');
-  },
-
-  getOrderHistory: async (user_id, page = 1, limit = 10) => {
-    const offset = (page - 1) * limit;
-
-    return await ordersTable()
-      .select(
-        "sl_orders.*",
-        db.raw("COUNT(sl_order_items.order_item_id) as item_count")
-      )
-      .leftJoin("sl_order_items", "sl_orders.order_id", "sl_order_items.order_id")
-      .where("sl_orders.user_id", user_id)
-      .groupBy("sl_orders.order_id")
-      .orderBy("sl_orders.ordered_at", "desc")
-      .limit(limit)
-      .offset(offset);
-  },
-
-  getOrderById: async (order_id, user_id = null) => {
-    let query = ordersTable()
-      .select(
-        "sl_orders.*",
-        "user.first_name as user_first_name",
-        "user.last_name as user_last_name",
-        "user.user_email as user_email"
-      )
-      .leftJoin("sl_user_accounts as user", "sl_orders.user_id", "user.user_id")
-      .where("sl_orders.order_id", order_id);
-
-    if (user_id) {
-      query = query.where("sl_orders.user_id", user_id);
-    }
-
-    const order = await query.first();
-
-    if (order) {
-      // Get order items
-      const orderItems = await orderItemsTable()
-        .select(
-          "sl_order_items.*",
-                  "sl_products.name as product_name",
-        "sl_products.description as product_description",
-        "sl_products.image_url"
-        )
-                  .leftJoin("sl_products", "sl_order_items.product_id", "sl_products.product_id")
-        .where("sl_order_items.order_id", order_id);
-
-      order.items = orderItems;
-    }
-
-    return order;
   },
 
   // ========== LEADERBOARD OPERATIONS ==========
@@ -1284,8 +1031,8 @@ export const Suitebite = {
   },
 
   deleteCheerPost: async (post_id) => {
-    return await cheerPostTable()
-      .where("cheer_post_id", post_id)
+    return await cheersTable()
+      .where("cheer_id", post_id)
       .del();
   },
 
@@ -1333,8 +1080,8 @@ export const Suitebite = {
       updateData.moderation_reason = reason;
     }
 
-    return await cheerPostTable()
-      .where("cheer_post_id", post_id)
+    return await cheersTable()
+      .where("cheer_id", post_id)
       .update(updateData);
   },
 
@@ -1634,22 +1381,22 @@ export const Suitebite = {
 
     // Engagement metrics
     if (metric === "all" || metric === "engagement") {
-      const [avgCheersPerUser] = await cheerPostTable()
-        .select(db.raw("COUNT(*) / COUNT(DISTINCT cheerer_id) as avg_cheers"))
-        .where("posted_at", ">=", dateFilter);
+      const [avgCheersPerUser] = await cheersTable()
+        .select(db.raw("COUNT(*) / COUNT(DISTINCT from_user_id) as avg_cheers"))
+        .where("created_at", ">=", dateFilter);
 
-      const [avgHeartbitsPerCheer] = await cheerPostTable()
-        .select(db.raw("AVG(heartbits_given) as avg_heartbits"))
-        .where("posted_at", ">=", dateFilter);
+      const [avgHeartbitsPerCheer] = await cheersTable()
+        .select(db.raw("AVG(points) as avg_heartbits"))
+        .where("created_at", ">=", dateFilter);
 
-      const userEngagement = await cheerPostTable()
+      const userEngagement = await cheersTable()
         .select(
-          "cheerer_id",
+          "from_user_id",
           db.raw("COUNT(*) as cheers_sent"),
-          db.raw("SUM(heartbits_given) as total_heartbits_sent")
+          db.raw("SUM(points) as total_heartbits_sent")
         )
-        .where("posted_at", ">=", dateFilter)
-        .groupBy("cheerer_id")
+        .where("created_at", ">=", dateFilter)
+        .groupBy("from_user_id")
         .orderBy("total_heartbits_sent", "desc");
 
       analytics.engagement = {
@@ -1675,7 +1422,7 @@ export const Suitebite = {
           "product.product_name",
           db.raw("COUNT(*) as orders"),
           db.raw("SUM(quantity) as total_quantity"),
-          db.raw("SUM(points_cost * quantity) as total_revenue")
+          db.raw("SUM(points_spent * quantity) as total_revenue")
         )
         .leftJoin("sl_products as product", "sl_order_items.product_id", "product.product_id")
         .leftJoin("sl_orders as orders", "sl_order_items.order_id", "orders.order_id")
@@ -1693,24 +1440,24 @@ export const Suitebite = {
 
     // Time-based patterns
     if (metric === "all" || metric === "patterns") {
-      const hourlyActivity = await cheerPostTable()
+      const hourlyActivity = await cheersTable()
         .select(
-          db.raw("HOUR(posted_at) as hour"),
+          db.raw("HOUR(created_at) as hour"),
           db.raw("COUNT(*) as cheers"),
-          db.raw("SUM(heartbits_given) as heartbits")
+          db.raw("SUM(points) as heartbits")
         )
-        .where("posted_at", ">=", dateFilter)
-        .groupBy(db.raw("HOUR(posted_at)"))
+        .where("created_at", ">=", dateFilter)
+        .groupBy(db.raw("HOUR(created_at)"))
         .orderBy("hour");
 
-      const weeklyActivity = await cheerPostTable()
+      const weeklyActivity = await cheersTable()
         .select(
-          db.raw("DAYOFWEEK(posted_at) as day_of_week"),
+          db.raw("DAYOFWEEK(created_at) as day_of_week"),
           db.raw("COUNT(*) as cheers"),
-          db.raw("SUM(heartbits_given) as heartbits")
+          db.raw("SUM(points) as heartbits")
         )
-        .where("posted_at", ">=", dateFilter)
-        .groupBy(db.raw("DAYOFWEEK(posted_at)"))
+        .where("created_at", ">=", dateFilter)
+        .groupBy(db.raw("DAYOFWEEK(created_at)"))
         .orderBy("day_of_week");
 
       analytics.patterns = {
@@ -1935,8 +1682,8 @@ export const Suitebite = {
     // System performance metrics
     const [systemMetrics] = await db.raw(`
       SELECT 
-        COUNT(DISTINCT cp.cheerer_id) as active_users,
-        COUNT(cp.cheer_post_id) as total_interactions,
+        COUNT(DISTINCT cp.from_user_id) as active_users,
+        COUNT(cp.cheer_id) as total_interactions,
         AVG(cp.points) as avg_heartbits_per_interaction,
     
         COUNT(DISTINCT o.user_id) as purchasing_users,
@@ -2170,5 +1917,23 @@ export const Suitebite = {
             .orWhere('user_email', 'like', `%${searchTerm}%`);
       })
       .limit(10);
+  },
+
+  getVariationTypeById: async (variation_type_id) => {
+    return await db("sl_variation_types")
+      .where({ variation_type_id })
+      .first();
+  },
+
+  getVariationOptionById: async (option_id) => {
+    return await db("sl_variation_options")
+      .where("option_id", option_id)
+      .first();
+  },
+
+  getOrderItemByProductId: async (product_id) => {
+    return await db("sl_order_items")
+      .where("product_id", product_id)
+      .first();
   },
 };
