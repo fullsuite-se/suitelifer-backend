@@ -660,6 +660,7 @@ export const Points = {
       name: entry.name,
       department: 'FullSuite', // Default since we don't have companies table
       email: entry.user_email,
+      avatar: entry.avatar, // <-- Add this line to include the avatar/profile_pic
       totalPoints: parseInt(entry.totalPoints) || 0
     }));
 
