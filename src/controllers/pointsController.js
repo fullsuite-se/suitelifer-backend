@@ -504,9 +504,15 @@ export const addCheerComment = async (req, res) => {
 export const getCheerComments = async (req, res) => {
   try {
     const { cheer_id } = req.params;
-    const { limit = 20, offset = 0 } = req.query;
+    let { limit = 20, offset = 0, all = false } = req.query;
 
-    const comments = await Points.getCheerComments(cheer_id, parseInt(limit), parseInt(offset));
+    let comments;
+    if (all === 'true' || all === true) {
+      // Fetch all comments for this cheer
+      comments = await Points.getCheerComments(cheer_id, Number.MAX_SAFE_INTEGER, 0);
+    } else {
+      comments = await Points.getCheerComments(cheer_id, parseInt(limit), parseInt(offset));
+    }
 
     res.status(200).json({
       success: true,
