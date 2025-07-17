@@ -143,3 +143,17 @@ export const updateUserPassword = async (req, res) => {
       .json({ isSuccess: false, message: "Invalid request" });
   }
 };
+
+async function searchUsers(req, res) {
+  const query = (req.query.q || '').toLowerCase();
+  const users = await db.query(
+    `SELECT user_id, CONCAT(first_name, ' ', last_name) AS name, email, avatar
+     FROM sl_user_accounts
+     WHERE LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR LOWER(email) LIKE ?
+     LIMIT 10`,
+    [`%${query}%`, `%${query}%`, `%${query}%`]
+  );
+  res.json({ success: true, data: users });
+}
+
+export { searchUsers };
