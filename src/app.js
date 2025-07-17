@@ -22,18 +22,33 @@ import contactRoutes from "./routes/contactRoutes.js";
 import newsletterRoutes from "./routes/newsletterRoutes.js";
 import certificationRoutes from "./routes/certificationRoutes.js";
 import auditLogRoutes from "./routes/auditLogRoutes.js";
+import suitebiteRoutes from "./routes/suitebiteRoutes.js";
 import { fileURLToPath } from "url";
 import termsOfUseRoutes from "./routes/termsOfUseRoutes.js";
 import privacyPolicyRoutes from "./routes/privacyPolicyRoutes.js";
+import pointsRoutes from "./routes/points.js";
+import moodRoutes from "./routes/moodRoutes.js";
+import testMoodRoutes from "./routes/testMoodRoutes.js";
 
 const app = express();
 dotenv.config();
 
 app.use(
   cors({
-    origin: [process.env.VITE_API_BASE_URL, process.env.LIVE_URL],
+    origin: [
+      process.env.VITE_API_BASE_URL, 
+      process.env.LIVE_URL,
+      "http://localhost:5173", // Frontend development server
+      "http://localhost:5174", // Alternative frontend port
+      "http://localhost:5175", // Alternative frontend port
+      "http://localhost:5176", // Alternative frontend port
+      "http://127.0.0.1:5173",  // Alternative localhost format
+      "http://127.0.0.1:5174",  // Alternative localhost format
+      "http://127.0.0.1:5175",  // Alternative localhost format
+      "http://127.0.0.1:5176"   // Alternative localhost format
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    credentials: true,
+    credentials: true, // This allows cookies to be sent
   })
 );
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
@@ -64,8 +79,12 @@ app.use("/api", contactRoutes);
 app.use("/api", newsletterRoutes);
 app.use("/api", certificationRoutes);
 app.use("/api", auditLogRoutes);
+app.use("/api/suitebite", suitebiteRoutes);
 app.use("/api", termsOfUseRoutes);
 app.use("/api", privacyPolicyRoutes);
+app.use("/api/points", pointsRoutes);
+app.use("/api", moodRoutes);
+app.use("/api", testMoodRoutes);
 
 app.use("/", (req, res) => {
   res.send(
