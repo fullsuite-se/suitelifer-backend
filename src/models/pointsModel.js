@@ -77,6 +77,15 @@ export const Points = {
             ELSE 
               CONCAT(from_user.first_name, ' ', from_user.last_name)
           END AS related_user
+        `, [user_id]),
+        // Join to get the "other" user's avatar
+        db.raw(`
+          CASE 
+            WHEN sl_transactions.from_user_id = ? THEN 
+              to_user.profile_pic
+            ELSE 
+              from_user.profile_pic
+          END AS related_user_avatar
         `, [user_id])
       )
       .leftJoin('sl_user_accounts as from_user', 'sl_transactions.from_user_id', 'from_user.user_id')
@@ -182,7 +191,8 @@ export const Points = {
         "sl_user_points.monthly_cheer_limit",
         "sl_user_points.monthly_cheer_used",
         db.raw("CONCAT(sl_user_accounts.first_name, ' ', sl_user_accounts.last_name) AS userName"),
-        "sl_user_accounts.user_email AS email"
+        "sl_user_accounts.user_email AS email",
+        "sl_user_accounts.profile_pic AS avatar"
       )
       .innerJoin("sl_user_accounts", "sl_user_points.user_id", "sl_user_accounts.user_id")
       .orderBy("total_earned", "desc")
