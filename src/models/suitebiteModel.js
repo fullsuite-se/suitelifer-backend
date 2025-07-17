@@ -1933,9 +1933,81 @@ export const Suitebite = {
       .first();
   },
 
+  getProductVariationById: async (variation_id) => {
+    return await db("sl_product_variations")
+      .where("variation_id", variation_id)
+      .first();
+  },
+
   getOrderItemByProductId: async (product_id) => {
     return await db("sl_order_items")
       .where("product_id", product_id)
       .first();
+  },
+
+  getProductsWithVariations: async (activeOnly = true) => {
+    // Get base products with categories
+    let query = productsTable()
+      .select(
+        "sl_products.product_id",
+        "sl_products.name",
+        "sl_products.description",
+        "sl_products.price_points as price",
+        "sl_products.category_id",
+        "sl_products.image_url",
+        "sl_products.slug",
+        "sl_products.is_active",
+        "sl_products.created_at",
+        "sl_products.updated_at"
+      )
+      .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
+      .select("sl_shop_categories.category_name as category");
+
+    if (activeOnly) {
+      query = query.where("sl_products.is_active", true);
+    }
+
+    const products = await query.orderBy("sl_products.name", "asc");
+
+    // For each product, get its variations and options
+    for (const product of products) {
+      const variations = await db("sl_product_variations")
+        .select("*")
+        .where("product_id", product.product_id)
+        .andWhere("is_active", true);
+
+      // For each variation, get its options
+      for (const variation of variations) {
+        const optionLinks = await db("sl_product_variation_options")
+          .where("variation_id", variation.variation_id);
+        
+        const optionIds = optionLinks.map(link => link.option_id);
+        
+        if (optionIds.length > 0) {
+          const options = await db("sl_variation_options as vo")
+            .select(
+              "vo.option_id",
+              "vo.variation_type_id",
+              "vo.option_value",
+              "vo.option_label",
+              "vo.hex_color",
+              "vt.type_name",
+              "vt.type_label"
+            )
+            .leftJoin("sl_variation_types as vt", "vo.variation_type_id", "vt.variation_type_id")
+            .whereIn("vo.option_id", optionIds)
+            .orderBy("vt.sort_order", "asc")
+            .orderBy("vo.sort_order", "asc");
+          
+          variation.options = options;
+        } else {
+          variation.options = [];
+        }
+      }
+      
+      product.variations = variations;
+    }
+
+    return products;
   },
 };

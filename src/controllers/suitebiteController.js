@@ -786,11 +786,44 @@ export const getProductVariations = async (req, res) => {
 // Get products with their variations for shop display
 export const getProductsWithVariations = async (req, res) => {
   try {
-    const { active_only = 'true' } = req.query;
+    const { active_only = 'true', category = null } = req.query;
     const activeOnly = active_only === 'true';
     
     const products = await Suitebite.getProductsWithVariations(activeOnly);
-    res.status(200).json({ success: true, products });
+    
+    // Filter by category if provided
+    let filteredProducts = products;
+    if (category && category !== 'all') {
+      filteredProducts = products.filter(product => 
+        product.category?.toLowerCase() === category.toLowerCase()
+      );
+    }
+    
+    // Add enhanced variation metadata for frontend
+    const enhancedProducts = filteredProducts.map(product => ({
+      ...product,
+      variation_count: product.variations?.length || 0,
+      has_variations: Boolean(product.variations?.length),
+      variation_types: product.variations?.reduce((types, variation) => {
+        variation.options?.forEach(option => {
+          if (!types.includes(option.type_name)) {
+            types.push(option.type_name);
+          }
+        });
+        return types;
+      }, []) || [],
+      price_range: product.variations?.length > 0 ? {
+        min: Math.min(product.price, ...product.variations.map(v => product.price + (v.price_adjustment || 0))),
+        max: Math.max(product.price, ...product.variations.map(v => product.price + (v.price_adjustment || 0)))
+      } : { min: product.price, max: product.price }
+    }));
+    
+    res.status(200).json({ 
+      success: true, 
+      products: enhancedProducts,
+      total_count: products.length,
+      filtered_count: enhancedProducts.length
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -1021,6 +1054,18 @@ export const getCart = async (req, res) => {
 
     const cart = await Suitebite.getCart(user_id);
     
+    // Debug: Log cart items with variations
+    if (cart && cart.cartItems) {
+      console.log(`🛒 Retrieved cart for user ${user_id}: ${cart.cartItems.length} items`);
+      cart.cartItems.forEach(item => {
+        if (item.variations && item.variations.length > 0) {
+          console.log(`  - ${item.product_name}: ${item.variations.map(v => v.option_label || v.option_value).join(' + ')}`);
+        } else {
+          console.log(`  - ${item.product_name}: No variations`);
+        }
+      });
+    }
+    
     res.status(200).json({ success: true, data: cart });
   } catch (err) {
     console.error(err);
@@ -1030,8 +1075,8 @@ export const getCart = async (req, res) => {
 
 export const addToCart = async (req, res) => {
   try {
-    const { product_id, quantity = 1, variations = [] } = req.body;
-    const user_id = req.user.id; // Changed from req.user.user_id
+    const { product_id, quantity = 1, variations = [], variation_id = null } = req.body;
+    const user_id = req.user.id;
 
     // Check if product exists and is available
     const product = await Suitebite.getProductById(product_id);
@@ -1042,19 +1087,51 @@ export const addToCart = async (req, res) => {
       });
     }
 
+    // Handle variations in both formats (new and legacy)
+    let processedVariations = variations;
+    
+    // If variation_id is provided (legacy format), convert to new format
+    if (variation_id) {
+      const variation = await Suitebite.getProductVariationById(variation_id);
+      if (variation) {
+        // Get the options for this variation
+        const variationWithOptions = await Suitebite.getProductVariations(product_id);
+        const selectedVariation = variationWithOptions.find(v => v.variation_id === variation_id);
+        
+        if (selectedVariation && selectedVariation.options) {
+          processedVariations = selectedVariation.options.map(option => ({
+            variation_type_id: option.variation_type_id,
+            option_id: option.option_id
+          }));
+        }
+      }
+    }
+
     // Validate variations if provided
-    if (variations.length > 0) {
-      for (const variation of variations) {
+    if (processedVariations.length > 0) {
+      for (const variation of processedVariations) {
         if (!variation.variation_type_id || !variation.option_id) {
           return res.status(400).json({ 
             success: false, 
-            message: "Invalid variation data" 
+            message: "Invalid variation data. Both variation_type_id and option_id are required." 
+          });
+        }
+        
+        // Validate that the option exists and belongs to the type
+        const option = await Suitebite.getVariationOptionById(variation.option_id);
+        if (!option || option.variation_type_id !== variation.variation_type_id) {
+          return res.status(400).json({ 
+            success: false, 
+            message: "Invalid variation option or type mismatch" 
           });
         }
       }
     }
 
-    const cartItemId = await Suitebite.addToCart(user_id, product_id, quantity, variations);
+    const cartItemId = await Suitebite.addToCart(user_id, product_id, quantity, processedVariations);
+
+    // Debug: Log the variations that were saved
+    console.log(`✅ Added to cart: Product ${product_id}, Quantity ${quantity}, Variations:`, processedVariations);
 
     res.status(201).json({ 
       success: true, 
