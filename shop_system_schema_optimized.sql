@@ -54,6 +54,25 @@ CREATE TABLE IF NOT EXISTS `sl_user_suspensions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
+-- ADMIN ACTIONS TABLE (for logging admin activities)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_admin_actions` (
+  `action_id` int NOT NULL AUTO_INCREMENT,
+  `admin_id` varchar(36) NOT NULL,
+  `action_type` varchar(255) NOT NULL,
+  `target_type` varchar(100) DEFAULT NULL,
+  `target_id` varchar(100) DEFAULT NULL,
+  `details` json DEFAULT NULL,
+  `performed_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`action_id`),
+  KEY `idx_admin_actions_admin` (`admin_id`),
+  KEY `idx_admin_actions_type` (`action_type`),
+  KEY `idx_admin_actions_target` (`target_type`, `target_id`),
+  KEY `idx_admin_actions_date` (`performed_at`),
+  CONSTRAINT `fk_admin_actions_admin` FOREIGN KEY (`admin_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
 -- SHOP CATEGORIES TABLE
 -- ============================================================================
 CREATE TABLE `sl_shop_categories` (
@@ -78,6 +97,7 @@ CREATE TABLE `sl_products` (
   `description` text,
   `image_url` varchar(500) DEFAULT NULL,
   `price_points` int NOT NULL,
+  `slug` varchar(255) DEFAULT NULL,
   `is_active` tinyint(1) DEFAULT 1,
   `category_id` int DEFAULT NULL,
   `featured` tinyint(1) DEFAULT 0,
@@ -86,6 +106,7 @@ CREATE TABLE `sl_products` (
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`product_id`),
+  UNIQUE KEY `unique_product_slug` (`slug`),
   KEY `idx_products_category` (`category_id`),
   KEY `idx_products_active` (`is_active`),
   KEY `idx_products_price` (`price_points`),
@@ -245,7 +266,7 @@ CREATE TABLE `sl_user_points` (
   KEY `sl_user_points_user_id_index` (`user_id`),
   KEY `sl_user_points_total_earned_index` (`total_earned`),
   CONSTRAINT `sl_user_points_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- CHEERS TABLE (Peer-to-peer recognition system)
@@ -263,7 +284,7 @@ CREATE TABLE `sl_cheers` (
   KEY `sl_cheers_to_user_id_created_at_index` (`to_user_id`,`created_at`),
   CONSTRAINT `sl_cheers_from_user_id_foreign` FOREIGN KEY (`from_user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE,
   CONSTRAINT `sl_cheers_to_user_id_foreign` FOREIGN KEY (`to_user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- CHEER COMMENTS TABLE
@@ -280,7 +301,7 @@ CREATE TABLE `sl_cheer_comments` (
   KEY `sl_cheer_comments_cheer_id_created_at_index` (`cheer_id`,`created_at`),
   CONSTRAINT `sl_cheer_comments_cheer_id_foreign` FOREIGN KEY (`cheer_id`) REFERENCES `sl_cheers` (`cheer_id`) ON DELETE CASCADE,
   CONSTRAINT `sl_cheer_comments_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- CHEER LIKES TABLE
@@ -295,7 +316,7 @@ CREATE TABLE `sl_cheer_likes` (
   KEY `sl_cheer_likes_user_id_index` (`user_id`),
   CONSTRAINT `sl_cheer_likes_cheer_id_foreign` FOREIGN KEY (`cheer_id`) REFERENCES `sl_cheers` (`cheer_id`) ON DELETE CASCADE,
   CONSTRAINT `sl_cheer_likes_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- TRANSACTIONS TABLE (General purpose transaction log)
@@ -317,7 +338,7 @@ CREATE TABLE `sl_transactions` (
   KEY `sl_transactions_type_created_at_index` (`type`,`created_at`),
   CONSTRAINT `sl_transactions_from_user_id_foreign` FOREIGN KEY (`from_user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE SET NULL,
   CONSTRAINT `sl_transactions_to_user_id_foreign` FOREIGN KEY (`to_user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- CARTS TABLE

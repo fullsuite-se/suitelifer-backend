@@ -354,6 +354,7 @@ export const addProduct = async (req, res) => {
         .trim();
     }
 
+    // Create product data with only fields that exist in database
     const productData = {
       name: name.trim(),
       description: description?.trim() || "",
@@ -424,15 +425,18 @@ export const updateProduct = async (req, res) => {
       });
     }
 
+    // Create clean update data without the category field
+    const cleanUpdateData = { ...updateData };
+    
     // Handle category update if provided
     if (updateData.category && !updateData.category_id) {
       try {
         const existingCategory = await Suitebite.getCategoryByName(updateData.category);
         if (existingCategory) {
-          updateData.category_id = existingCategory.category_id;
+          cleanUpdateData.category_id = existingCategory.category_id;
         } else {
           // Create new category
-          updateData.category_id = await Suitebite.addCategory({
+          cleanUpdateData.category_id = await Suitebite.addCategory({
             category_name: updateData.category,
             is_active: true
           });
@@ -440,12 +444,13 @@ export const updateProduct = async (req, res) => {
       } catch (categoryError) {
         console.warn('Failed to handle category update:', categoryError.message);
         // Continue without category update rather than failing the entire request
-        delete updateData.category;
-        delete updateData.category_id;
       }
     }
+    
+    // Remove the category field from update data since it doesn't exist in database
+    delete cleanUpdateData.category;
 
-    await Suitebite.updateProduct(id, updateData);
+    await Suitebite.updateProduct(id, cleanUpdateData);
 
     // Log admin action (non-blocking)
     try {
@@ -615,21 +620,27 @@ export const addCategory = async (req, res) => {
 
     const categoryId = await Suitebite.addCategory(categoryData);
 
-    // Log admin action
-    try {
-      console.log('DEBUG: About to log admin action with user:', req.user.id || req.user.user_id);
-      await Suitebite.logAdminAction(
-        req.user.id || req.user.user_id,
-        "ADD_CATEGORY",
-        "CATEGORY",
-        categoryId,
-        { category_name }
-      );
-      console.log('DEBUG: Admin action logged successfully');
-    } catch (logError) {
-      console.error('DEBUG: Error logging admin action:', logError);
-      // Don't fail the whole operation if logging fails
-    }
+    // Log admin action (completely non-blocking)
+    setImmediate(async () => {
+      try {
+        console.log('DEBUG: About to log admin action with user:', req.user.id || req.user.user_id);
+        await Suitebite.logAdminAction(
+          req.user.id || req.user.user_id,
+          "ADD_CATEGORY",
+          "CATEGORY",
+          categoryId,
+          { category_name }
+        );
+        console.log('DEBUG: Admin action logged successfully');
+      } catch (logError) {
+        console.warn('Failed to log admin action for category addition:', {
+          error: logError.message,
+          categoryName: category_name,
+          categoryId: categoryId,
+          adminId: req.user.id || req.user.user_id
+        });
+      }
+    });
 
     res.status(201).json({ 
       success: true, 
@@ -657,17 +668,28 @@ export const updateCategory = async (req, res) => {
 
     await Suitebite.updateCategory(id, updateData);
 
-    // Log admin action
-    await Suitebite.logAdminAction(
-      req.user.id || req.user.user_id,
-      "UPDATE_CATEGORY",
-      "CATEGORY",
-      id,
-      { 
-        category_name: category.category_name,
-        changes: updateData
+    // Log admin action (completely non-blocking)
+    setImmediate(async () => {
+      try {
+        await Suitebite.logAdminAction(
+          req.user.id || req.user.user_id,
+          "UPDATE_CATEGORY",
+          "CATEGORY",
+          id,
+          { 
+            category_name: category.category_name,
+            changes: updateData
+          }
+        );
+      } catch (logError) {
+        console.warn('Failed to log admin action for category update:', {
+          error: logError.message,
+          categoryId: id,
+          categoryName: category.category_name,
+          adminId: req.user.id || req.user.user_id
+        });
       }
-    );
+    });
 
     res.status(200).json({ 
       success: true, 
@@ -693,21 +715,32 @@ export const deleteCategory = async (req, res) => {
 
     await Suitebite.deleteCategory(id);
 
-    // Log admin action
-    await Suitebite.logAdminAction(
-      req.user.id || req.user.user_id,
-      "DELETE_CATEGORY",
-      "CATEGORY",
-      id,
-      { category_name: category.category_name }
-    );
+    // Log admin action (completely non-blocking and with better error handling)
+    setImmediate(async () => {
+      try {
+        await Suitebite.logAdminAction(
+          req.user.id || req.user.user_id,
+          "DELETE_CATEGORY",
+          "CATEGORY",
+          id,
+          { category_name: category.category_name }
+        );
+      } catch (logError) {
+        console.warn('Failed to log admin action for category deletion:', {
+          error: logError.message,
+          categoryId: id,
+          categoryName: category.category_name,
+          adminId: req.user.id || req.user.user_id
+        });
+      }
+    });
 
     res.status(200).json({ 
       success: true, 
       message: "Category deleted successfully!" 
     });
   } catch (err) {
-    console.error(err);
+    console.error('Delete category error:', err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };

@@ -328,6 +328,7 @@ export const Suitebite = {
         "sl_products.price_points as price",
         "sl_products.category_id",
         "sl_products.image_url",
+        "sl_products.slug",
         "sl_products.is_active",
         "sl_products.created_at",
         "sl_products.updated_at"
@@ -351,6 +352,7 @@ export const Suitebite = {
         "sl_products.price_points as price",
         "sl_products.category_id",
         "sl_products.image_url",
+        "sl_products.slug",
         "sl_products.is_active",
         "sl_products.created_at",
         "sl_products.updated_at"
