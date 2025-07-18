@@ -7,6 +7,28 @@ const cheerCommentsTable = () => db("sl_cheer_comments");
 const cheerLikesTable = () => db("sl_cheer_likes");
 
 export const Points = {
+  // Helper function to get period start date
+  getPeriodStartDate: (period) => {
+    let startDate = new Date();
+    
+    switch (period) {
+      case 'weekly':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case 'monthly':
+        startDate.setMonth(startDate.getMonth() - 1);
+        break;
+      case 'all':
+      case 'alltime':
+        startDate = new Date('2020-01-01');
+        break;
+      default:
+        startDate.setDate(startDate.getDate() - 7);
+    }
+    
+    return startDate;
+  },
+
   // User Points Management - Heartbits System
   getUserPoints: async (user_id) => {
     return await userPointsTable()
@@ -583,113 +605,300 @@ export const Points = {
     }));
   },
 
-  // Enhanced leaderboard with period support
-  getLeaderboard: async (period = 'weekly') => {
-    let startDate = new Date();
+  // Optimized leaderboard for large datasets
+  getOptimizedLeaderboard: async (period = 'weekly', currentUserId = null, page = 1, limit = 20) => {
+    const startDate = Points.getPeriodStartDate(period);
+    const offset = (page - 1) * limit;
     
-    switch (period) {
-      case 'weekly':
-        startDate.setDate(startDate.getDate() - 7);
-        break;
-      case 'monthly':
-        startDate.setMonth(startDate.getMonth() - 1);
-        break;
-      case 'all-time':
-        startDate = new Date('2020-01-01'); // Very old date for all-time
-        break;
-      default:
-        startDate.setDate(startDate.getDate() - 7);
-    }
+    // Use subquery to pre-filter and aggregate transactions efficiently
+    const userTotalsSubquery = db('sl_transactions')
+      .select('to_user_id')
+      .sum('amount as totalPoints')
+      .count('* as transactionCount')
+      .whereIn('type', ['received', 'earned'])
+      .where('created_at', '>=', startDate)
+      .groupBy('to_user_id')
+      .having('totalPoints', '>', 0) // Only include users with points
+      .orderBy('totalPoints', 'desc')
+      .as('user_totals');
 
-    const leaderboard = await transactionsTable()
-      .join("sl_user_accounts", "sl_transactions.to_user_id", "sl_user_accounts.user_id")
+    // Main query with optimized joins
+    const leaderboard = await db('sl_user_accounts')
+      .join(userTotalsSubquery, 'sl_user_accounts.user_id', 'user_totals.to_user_id')
       .select(
-        "sl_user_accounts.user_id as userId",
-        "sl_user_accounts.first_name",
-        "sl_user_accounts.last_name",
-        "sl_user_accounts.profile_pic as avatar",
-        db.raw("CONCAT(sl_user_accounts.first_name, ' ', sl_user_accounts.last_name) as name")
+        'sl_user_accounts.user_id as _id',
+        'sl_user_accounts.first_name',
+        'sl_user_accounts.last_name',
+        'sl_user_accounts.profile_pic as avatar',
+        'sl_user_accounts.user_email',
+        db.raw("CONCAT(sl_user_accounts.first_name, ' ', sl_user_accounts.last_name) as name"),
+        'user_totals.totalPoints',
+        'user_totals.transactionCount'
       )
-      .sum("sl_transactions.amount as totalPoints")
-      .whereIn("sl_transactions.type", ["received", "earned"])
-      .where("sl_transactions.created_at", ">=", startDate)
-      .groupBy("sl_user_accounts.user_id")
-      .orderBy("totalPoints", "desc")
-      .limit(10);
+      .where('sl_user_accounts.is_active', true)
+      .orderBy('user_totals.totalPoints', 'desc')
+      .limit(limit)
+      .offset(offset);
 
-    // Ensure we return an array even if no results
-    const result = leaderboard || [];
-    const processedLeaderboard = result.map(entry => ({
-      ...entry,
-      totalPoints: parseInt(entry.totalPoints) || 0
-    }));
-    
-    return {
-      leaderboard: processedLeaderboard,
-      currentUser: null
-    };
-  },
-
-  // Get leaderboard with period support and current user position
-  getLeaderboardWithPeriod: async (period = 'weekly', currentUserId = null) => {
-    let startDate = new Date();
-    
-    switch (period) {
-      case 'weekly':
-        startDate.setDate(startDate.getDate() - 7);
-        break;
-      case 'monthly':
-        startDate.setMonth(startDate.getMonth() - 1);
-        break;
-      case 'alltime':
-        startDate = new Date('2020-01-01');
-        break;
-      default:
-        startDate.setDate(startDate.getDate() - 7);
-    }
-
-    const leaderboard = await transactionsTable()
-      .join("sl_user_accounts", "sl_transactions.to_user_id", "sl_user_accounts.user_id")
-      .select(
-        "sl_user_accounts.user_id as _id",
-        "sl_user_accounts.first_name",
-        "sl_user_accounts.last_name",
-        "sl_user_accounts.profile_pic as avatar",
-        "sl_user_accounts.user_email",
-        db.raw("CONCAT(sl_user_accounts.first_name, ' ', sl_user_accounts.last_name) as name")
-      )
-      .sum("sl_transactions.amount as totalPoints")
-      .whereIn("sl_transactions.type", ["received", "earned"])
-      .where("sl_transactions.created_at", ">=", startDate)
-      .groupBy("sl_user_accounts.user_id")
-      .orderBy("totalPoints", "desc")
-      .limit(50);
-
-    const processedLeaderboard = (leaderboard || []).map(entry => ({
+    const processedLeaderboard = leaderboard.map((entry, index) => ({
       _id: entry._id,
       name: entry.name,
-      department: 'FullSuite', // Default since we don't have companies table
+      department: 'FullSuite',
       email: entry.user_email,
-      avatar: entry.avatar, // <-- Add this line to include the avatar/profile_pic
-      totalPoints: parseInt(entry.totalPoints) || 0
+      avatar: entry.avatar,
+      totalPoints: parseInt(entry.totalPoints) || 0,
+      transactionCount: parseInt(entry.transactionCount) || 0,
+      rank: offset + index + 1
     }));
 
     // Get current user's position if provided
     let currentUser = null;
     if (currentUserId) {
-      const userRank = processedLeaderboard.findIndex(user => user._id === currentUserId);
-      if (userRank !== -1) {
-        currentUser = {
-          rank: userRank + 1,
-          info: processedLeaderboard[userRank]
-        };
+      try {
+        // Get user's total points for the period
+        const userPoints = await db('sl_transactions')
+          .sum('amount as totalPoints')
+          .where('to_user_id', currentUserId)
+          .whereIn('type', ['received', 'earned'])
+          .where('created_at', '>=', startDate)
+          .first();
+
+        const userTotalPoints = parseInt(userPoints.totalPoints) || 0;
+
+        if (userTotalPoints > 0) {
+          // Count how many users have more points than current user
+          const higherUsers = await db('sl_transactions')
+            .join('sl_user_accounts', 'sl_transactions.to_user_id', 'sl_user_accounts.user_id')
+            .select('sl_user_accounts.user_id')
+            .sum('sl_transactions.amount as totalPoints')
+            .whereIn('sl_transactions.type', ['received', 'earned'])
+            .where('sl_transactions.created_at', '>=', startDate)
+            .where('sl_user_accounts.is_active', true)
+            .groupBy('sl_user_accounts.user_id')
+            .having('totalPoints', '>', userTotalPoints)
+            .count('* as count')
+            .first();
+
+          const userRank = (parseInt(higherUsers.count) || 0) + 1;
+
+          // Get user info
+          const userInfo = await db('sl_user_accounts')
+            .select('user_id as _id', 'first_name', 'last_name', 'profile_pic as avatar', 'user_email')
+            .where('user_id', currentUserId)
+            .first();
+
+          if (userInfo) {
+            currentUser = {
+              rank: userRank,
+              info: {
+                ...userInfo,
+                name: `${userInfo.first_name} ${userInfo.last_name}`,
+                department: 'FullSuite',
+                totalPoints: userTotalPoints
+              }
+            };
+          }
+        }
+      } catch (error) {
+        console.warn('Could not calculate current user rank:', error.message);
+        // Continue without current user info
       }
     }
 
     return {
       leaderboard: processedLeaderboard,
-      currentUser
+      currentUser,
+      pagination: {
+        page,
+        limit,
+        hasMore: processedLeaderboard.length === limit
+      }
     };
+  },
+
+  // Cached leaderboard with Redis support
+  getCachedLeaderboard: async (period = 'weekly', currentUserId = null) => {
+    const cacheKey = `leaderboard:${period}`;
+    const cacheTTL = 300; // 5 minutes
+
+    try {
+      // Check if Redis is available
+      if (global.redis) {
+        const cached = await global.redis.get(cacheKey);
+        if (cached) {
+          const data = JSON.parse(cached);
+          // Add current user info if needed
+          if (currentUserId && !data.currentUser) {
+            data.currentUser = await Points.getCurrentUserPosition(currentUserId, period);
+          }
+          return data;
+        }
+      }
+
+      // Get fresh data
+      const data = await Points.getOptimizedLeaderboard(period, currentUserId, 1, 50);
+      
+      // Cache the result
+      if (global.redis) {
+        await global.redis.setex(cacheKey, cacheTTL, JSON.stringify(data));
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Leaderboard cache error:', error);
+      // Fallback to direct database query
+      return await Points.getOptimizedLeaderboard(period, currentUserId, 1, 50);
+    }
+  },
+
+  // Materialized view approach for very large datasets
+  updateLeaderboardCache: async (period = 'weekly') => {
+    const startDate = Points.getPeriodStartDate(period);
+    const cacheTable = 'leaderboard_cache';
+
+    try {
+      // Create cache table if it doesn't exist
+      await db.schema.createTableIfNotExists(cacheTable, (table) => {
+        table.string('period', 20);
+        table.string('user_id', 36);
+        table.integer('total_points');
+        table.integer('rank_position');
+        table.timestamp('last_updated');
+        table.primary(['period', 'user_id']);
+        table.index(['period', 'rank_position']);
+      });
+
+      // Clear old cache for this period
+      await db(cacheTable).where('period', period).del();
+
+      // Get top 1000 users for this period
+      const topUsers = await db('sl_transactions')
+        .join('sl_user_accounts', 'sl_transactions.to_user_id', 'sl_user_accounts.user_id')
+        .select(
+          'sl_user_accounts.user_id',
+          db.raw('SUM(sl_transactions.amount) as total_points')
+        )
+        .whereIn('sl_transactions.type', ['received', 'earned'])
+        .where('sl_transactions.created_at', '>=', startDate)
+        .where('sl_user_accounts.is_active', true)
+        .groupBy('sl_user_accounts.user_id')
+        .having('total_points', '>', 0)
+        .orderBy('total_points', 'desc')
+        .limit(1000);
+
+      // Insert into cache table with rank
+      const cacheData = topUsers.map((user, index) => ({
+        period,
+        user_id: user.user_id,
+        total_points: parseInt(user.total_points),
+        rank_position: index + 1,
+        last_updated: new Date()
+      }));
+
+      if (cacheData.length > 0) {
+        await db(cacheTable).insert(cacheData);
+      }
+
+      return { success: true, cachedUsers: cacheData.length };
+    } catch (error) {
+      console.error('Cache update error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Get leaderboard from cache table
+  getCachedLeaderboardData: async (period = 'weekly', limit = 50, offset = 0) => {
+    const cacheTable = 'leaderboard_cache';
+
+    try {
+      const leaderboard = await db(cacheTable)
+        .join('sl_user_accounts', 'leaderboard_cache.user_id', 'sl_user_accounts.user_id')
+        .select(
+          'sl_user_accounts.user_id as _id',
+          'sl_user_accounts.first_name',
+          'sl_user_accounts.last_name',
+          'sl_user_accounts.profile_pic as avatar',
+          'sl_user_accounts.user_email',
+          db.raw("CONCAT(sl_user_accounts.first_name, ' ', sl_user_accounts.last_name) as name"),
+          'leaderboard_cache.total_points as totalPoints',
+          'leaderboard_cache.rank_position as rank'
+        )
+        .where('leaderboard_cache.period', period)
+        .where('sl_user_accounts.is_active', true)
+        .orderBy('leaderboard_cache.rank_position', 'asc')
+        .limit(limit)
+        .offset(offset);
+
+      return leaderboard.map(entry => ({
+        _id: entry._id,
+        name: entry.name,
+        department: 'FullSuite',
+        email: entry.user_email,
+        avatar: entry.avatar,
+        totalPoints: parseInt(entry.totalPoints) || 0,
+        rank: parseInt(entry.rank) || 0
+      }));
+    } catch (error) {
+      console.error('Cached leaderboard error:', error);
+      // Fallback to direct query
+      return await Points.getOptimizedLeaderboard(period, null, Math.floor(offset / limit) + 1, limit);
+    }
+  },
+
+  // Get current user position efficiently
+  getCurrentUserPosition: async (currentUserId, period) => {
+    const startDate = Points.getPeriodStartDate(period);
+    
+    try {
+      // Get user's total points for the period
+      const userPoints = await db('sl_transactions')
+        .sum('amount as totalPoints')
+        .where('to_user_id', currentUserId)
+        .whereIn('type', ['received', 'earned'])
+        .where('created_at', '>=', startDate)
+        .first();
+
+      const userTotalPoints = parseInt(userPoints.totalPoints) || 0;
+
+      if (userTotalPoints > 0) {
+        // Count how many users have more points than current user
+        const higherUsers = await db('sl_transactions')
+          .join('sl_user_accounts', 'sl_transactions.to_user_id', 'sl_user_accounts.user_id')
+          .select('sl_user_accounts.user_id')
+          .sum('sl_transactions.amount as totalPoints')
+          .whereIn('sl_transactions.type', ['received', 'earned'])
+          .where('sl_transactions.created_at', '>=', startDate)
+          .where('sl_user_accounts.is_active', true)
+          .groupBy('sl_user_accounts.user_id')
+          .having('totalPoints', '>', userTotalPoints)
+          .count('* as count')
+          .first();
+
+        const userRank = (parseInt(higherUsers.count) || 0) + 1;
+
+        // Get user info
+        const userInfo = await db('sl_user_accounts')
+          .select('user_id as _id', 'first_name', 'last_name', 'profile_pic as avatar', 'user_email')
+          .where('user_id', currentUserId)
+          .first();
+
+        if (userInfo) {
+          return {
+            rank: userRank,
+            info: {
+              ...userInfo,
+              name: `${userInfo.first_name} ${userInfo.last_name}`,
+              department: 'FullSuite',
+              totalPoints: userTotalPoints
+            }
+          };
+        }
+      }
+    } catch (error) {
+      console.warn('Could not calculate current user position:', error.message);
+    }
+
+    return null;
   },
 
   // Get heartbits received this month
