@@ -241,11 +241,12 @@ export const getLeaderboard = async (req, res) => {
   try {
     const { limit = 10, period = 'all' } = req.query;
 
-    const leaderboard = await Points.getPointsLeaderboard(parseInt(limit), period);
+    // Use the new optimized leaderboard function
+    const leaderboardData = await Points.getOptimizedLeaderboard(period, null, 1, parseInt(limit));
 
     res.status(200).json({
       success: true,
-      data: leaderboard,
+      data: leaderboardData.leaderboard,
       period
     });
   } catch (error) {
@@ -633,20 +634,122 @@ export const getReceivedCheers = async (req, res) => {
   }
 };
 
-// Get leaderboard with period support
+// Get leaderboard with period support - OPTIMIZED VERSION
 export const getLeaderboardWithPeriod = async (req, res) => {
   try {
-    const { period = 'weekly' } = req.query;
-    const { id: user_id } = req.user; // Extract id as user_id
+    const { period = 'weekly', page = 1, limit = 20, useCache = 'true' } = req.query;
+    const { id: user_id } = req.user;
 
-    const leaderboard = await Points.getLeaderboardWithPeriod(period, user_id);
+    // Performance monitoring
+    const startTime = Date.now();
+    
+    let leaderboardData;
+    
+    // Use cached version if requested and available
+    if (useCache === 'true') {
+      try {
+        leaderboardData = await Points.getCachedLeaderboard(period, user_id);
+      } catch (cacheError) {
+        console.warn('Cache failed, falling back to direct query:', cacheError.message);
+        leaderboardData = await Points.getOptimizedLeaderboard(period, user_id, parseInt(page), parseInt(limit));
+      }
+    } else {
+      leaderboardData = await Points.getOptimizedLeaderboard(period, user_id, parseInt(page), parseInt(limit));
+    }
+
+    const queryTime = Date.now() - startTime;
+    
+    // Log performance metrics
+    console.log(`Leaderboard query (${period}) completed in ${queryTime}ms`);
 
     res.status(200).json({
       success: true,
-      data: leaderboard
+      data: leaderboardData.leaderboard,
+      period,
+      performance: {
+        queryTime,
+        useCache: useCache === 'true'
+      }
     });
   } catch (error) {
     console.error("Error fetching leaderboard:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    });
+  }
+};
+
+// Update leaderboard cache (admin function)
+export const updateLeaderboardCache = async (req, res) => {
+  try {
+    const { period = 'weekly' } = req.query;
+    
+    const result = await Points.updateLeaderboardCache(period);
+    
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: `Leaderboard cache updated for ${period} period`,
+        data: result
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "Failed to update leaderboard cache",
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error("Error updating leaderboard cache:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    });
+  }
+};
+
+// Get leaderboard performance metrics
+export const getLeaderboardPerformance = async (req, res) => {
+  try {
+    const { period = 'weekly' } = req.query;
+    
+    // Test query performance
+    const startTime = Date.now();
+    const testData = await Points.getOptimizedLeaderboard(period, null, 1, 50);
+    const queryTime = Date.now() - startTime;
+    
+    // Get database size info
+    const dbSize = await db.raw(`
+      SELECT 
+        table_name,
+        ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'Size (MB)',
+        table_rows
+      FROM information_schema.tables 
+      WHERE table_schema = DATABASE()
+        AND table_name IN ('sl_transactions', 'sl_user_accounts', 'sl_cheers')
+      ORDER BY (data_length + index_length) DESC
+    `);
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        queryTime,
+        resultCount: testData.leaderboard.length,
+        period,
+        databaseSize: dbSize[0],
+        recommendations: queryTime > 1000 ? [
+          "Consider implementing Redis caching",
+          "Add more database indexes",
+          "Use materialized views for large datasets"
+        ] : [
+          "Performance is good",
+          "Monitor for growth"
+        ]
+      }
+    });
+  } catch (error) {
+    console.error("Error getting performance metrics:", error);
     res.status(500).json({
       success: false,
       message: "Internal Server Error"

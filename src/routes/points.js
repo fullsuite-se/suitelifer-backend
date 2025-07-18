@@ -15,7 +15,9 @@ import {
   searchUsers,
   getCheerStats,
   getReceivedCheers,
-  getLeaderboardWithPeriod
+  getLeaderboardWithPeriod,
+  updateLeaderboardCache,
+  getLeaderboardPerformance
 } from '../controllers/pointsController.js';
 import verifyToken from '../middlewares/verifyToken.js';
 import verifyAdmin from '../middlewares/verifyAdmin.js';
@@ -37,7 +39,7 @@ router.post('/cheer', (req, res, next) => {
   next();
 }, cheerUser);
 
-// Get points leaderboard
+// Get points leaderboard - OPTIMIZED VERSION
 router.get('/leaderboard', getLeaderboardWithPeriod);
 
 // Enhanced cheer features
@@ -58,6 +60,9 @@ router.post('/cheer/:cheer_id/comment', addCheerComment);
 router.get('/cheer/:cheer_id/comments', getCheerComments);
 router.post('/cheer/:cheer_id/like', toggleCheerLike);
 
+// Leaderboard performance monitoring
+router.get('/leaderboard/performance', getLeaderboardPerformance);
+
 // Admin routes - require admin authentication
 router.use(verifyAdmin);
 
@@ -72,5 +77,8 @@ router.post('/admin/deduct', deductPointsFromUser);
 
 // Admin: Get points analytics
 router.get('/admin/analytics', getPointsAnalytics);
+
+// Admin: Update leaderboard cache
+router.post('/admin/leaderboard/cache', updateLeaderboardCache);
 
 export default router;
