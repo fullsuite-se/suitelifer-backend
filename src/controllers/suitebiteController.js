@@ -2502,15 +2502,197 @@ export const deleteVariationOption = async (req, res) => {
 // ========== PRODUCT ORDER USAGE CHECK ENDPOINT ==========
 export const getProductOrderUsage = async (req, res) => {
   try {
-    const { id } = req.params;
-    // Check if product exists in any order items
-    const orderItem = await Suitebite.getOrderItemByProductId(id);
-    res.status(200).json({
-      success: true,
-      hasOrder: !!orderItem
+    const { product_id } = req.params;
+    
+    const usage = await Suitebite.getProductOrderUsage(product_id);
+    
+    res.status(200).json({ success: true, usage });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+// ========== PRODUCT IMAGES MANAGEMENT ==========
+
+export const getProductImages = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    const images = await Suitebite.getProductImages(productId);
+    
+    res.status(200).json({ success: true, images });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const addProductImage = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { 
+      image_url, 
+      thumbnail_url, 
+      medium_url, 
+      large_url, 
+      public_id, 
+      alt_text,
+      is_primary = false 
+    } = req.body;
+
+    if (!image_url) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Image URL is required" 
+      });
+    }
+
+    // Validate product exists
+    const product = await Suitebite.getProductById(productId);
+    if (!product) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Product not found" 
+      });
+    }
+
+    const imageId = await Suitebite.addProductImage({
+      product_id: productId,
+      image_url,
+      thumbnail_url,
+      medium_url,
+      large_url,
+      public_id,
+      alt_text,
+      is_primary
+    });
+
+    // Update product's images_json
+    await Suitebite.updateProductImagesJson(productId);
+
+    res.status(201).json({ 
+      success: true, 
+      message: "Product image added successfully!",
+      imageId 
     });
   } catch (err) {
-    console.error('Error checking product order usage:', err);
-    res.status(500).json({ success: false, message: 'Internal Server Error' });
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const updateProductImage = async (req, res) => {
+  try {
+    const { imageId } = req.params;
+    const updateData = req.body;
+
+    const image = await Suitebite.getProductImageById(imageId);
+    if (!image) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Product image not found" 
+      });
+    }
+
+    await Suitebite.updateProductImage(imageId, updateData);
+
+    // Update product's images_json
+    await Suitebite.updateProductImagesJson(image.product_id);
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Product image updated successfully!" 
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const deleteProductImage = async (req, res) => {
+  try {
+    console.log('🔍 Backend - deleteProductImage endpoint hit');
+    console.log('🔍 Backend - Request params:', req.params);
+    console.log('🔍 Backend - Request headers:', req.headers);
+    
+    const { imageId } = req.params;
+    console.log('🔍 Backend - deleteProductImage called with imageId:', imageId);
+
+    const image = await Suitebite.getProductImageById(imageId);
+    console.log('🔍 Backend - Found image:', image);
+    
+    if (!image) {
+      console.log('🔍 Backend - Image not found');
+      return res.status(404).json({ 
+        success: false, 
+        message: "Product image not found" 
+      });
+    }
+
+    console.log('🔍 Backend - Deleting image from database...');
+    const deleteResult = await Suitebite.deleteProductImage(imageId);
+    console.log('🔍 Backend - Image deleted from database, result:', deleteResult);
+
+    // Update product's images_json
+    console.log('🔍 Backend - Updating product images JSON...');
+    await Suitebite.updateProductImagesJson(image.product_id);
+    console.log('🔍 Backend - Product images JSON updated');
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Product image deleted successfully!" 
+    });
+  } catch (err) {
+    console.error('🔍 Backend - Error in deleteProductImage:', err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const reorderProductImages = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { imageIds } = req.body;
+
+    if (!imageIds || !Array.isArray(imageIds)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Image IDs array is required" 
+      });
+    }
+
+    await Suitebite.reorderProductImages(productId, imageIds);
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Product images reordered successfully!" 
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const setPrimaryImage = async (req, res) => {
+  try {
+    const { imageId } = req.params;
+
+    const image = await Suitebite.getProductImageById(imageId);
+    if (!image) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Product image not found" 
+      });
+    }
+
+    await Suitebite.setPrimaryImage(image.product_id, imageId);
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Primary image set successfully!" 
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
