@@ -1425,7 +1425,7 @@ export const getAllOrders = async (req, res) => {
 
     const orders = await Suitebite.getAllOrders(filters);
     
-    res.status(200).json({ success: true, data: orders });
+    res.status(200).json({ success: true, orders });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -2538,8 +2538,12 @@ export const addProductImage = async (req, res) => {
       large_url, 
       public_id, 
       alt_text,
-      is_primary = false 
+      sort_order,
+      is_primary = false,
+      is_active = true 
     } = req.body;
+
+    console.log('🔍 Backend - addProductImage called with data:', req.body);
 
     if (!image_url) {
       return res.status(400).json({ 
@@ -2565,8 +2569,12 @@ export const addProductImage = async (req, res) => {
       large_url,
       public_id,
       alt_text,
-      is_primary
+      sort_order,
+      is_primary,
+      is_active
     });
+
+    console.log('🔍 Backend - Image added with ID:', imageId);
 
     // Update product's images_json
     await Suitebite.updateProductImagesJson(productId);
@@ -2577,7 +2585,7 @@ export const addProductImage = async (req, res) => {
       imageId 
     });
   } catch (err) {
-    console.error(err);
+    console.error('🔍 Backend - addProductImage error:', err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };

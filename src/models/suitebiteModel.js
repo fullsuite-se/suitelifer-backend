@@ -545,21 +545,23 @@ export const Suitebite = {
       return null;
     }
 
-    // Get cart items with product details
+    // Get cart items with product details and images
     const cartItems = await cartItemsTable()
       .select(
         "sl_cart_items.*",
         "sl_products.name as product_name",
         "sl_products.price_points",
-        "sl_products.image_url",
-        "sl_shop_categories.category_name"
+        "sl_products.category_id",
+        "sl_shop_categories.category_name as category",
+        "sl_products.description"
       )
       .leftJoin("sl_products", "sl_cart_items.product_id", "sl_products.product_id")
       .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
       .where("sl_cart_items.cart_id", cart.cart_id);
 
-    // Get variations for each cart item
+    // Get variations and product images for each cart item
     for (const item of cartItems) {
+      // Get variations for this cart item
       const variations = await db("sl_cart_item_variations as civ")
         .select(
           "civ.*",
@@ -574,6 +576,19 @@ export const Suitebite = {
         .where("civ.cart_item_id", item.cart_item_id);
 
       item.variations = variations;
+
+      // Get product images
+      const productImages = await db("sl_product_images")
+        .select("*")
+        .where("product_id", item.product_id)
+        .andWhere("is_active", true)
+        .orderBy("sort_order", "asc");
+
+      item.product_images = productImages;
+      
+      // Set primary image URL for backward compatibility
+      const primaryImage = productImages.find(img => img.is_primary) || productImages[0];
+      item.image_url = primaryImage ? primaryImage.image_url : null;
     }
 
     return {
@@ -729,12 +744,22 @@ export const Suitebite = {
 
     if (!order) return null;
 
-    // Get order items with variations
+    // Get order items with product details, variations, and images
     const orderItems = await orderItemsTable()
-      .select("*")
+      .select(
+        "sl_order_items.*",
+        "p.name as product_name",
+        "p.description as product_description",
+        "p.category_id",
+        "c.category_name as product_category",
+        "p.slug as product_slug"
+      )
+      .leftJoin("sl_products as p", "sl_order_items.product_id", "p.product_id")
+      .leftJoin("sl_shop_categories as c", "p.category_id", "c.category_id")
       .where("order_id", order_id);
 
     for (const item of orderItems) {
+      // Get variations for this order item
       const variations = await db("sl_order_item_variations as oiv")
         .select(
           "oiv.*",
@@ -749,6 +774,15 @@ export const Suitebite = {
         .where("oiv.order_item_id", item.order_item_id);
 
       item.variations = variations;
+
+      // Get product images
+      const productImages = await db("sl_product_images")
+        .select("*")
+        .where("product_id", item.product_id)
+        .andWhere("is_active", true)
+        .orderBy("sort_order", "asc");
+
+      item.product_images = productImages;
     }
 
     return {
@@ -767,13 +801,23 @@ export const Suitebite = {
       .limit(limit)
       .offset(offset);
 
-    // Get order items for each order
+    // Get order items for each order with product details
     for (const order of orders) {
       const orderItems = await orderItemsTable()
-        .select("*")
+        .select(
+          "sl_order_items.*",
+          "p.name as product_name",
+          "p.description as product_description",
+          "p.category_id",
+          "c.category_name as product_category",
+          "p.slug as product_slug"
+        )
+        .leftJoin("sl_products as p", "sl_order_items.product_id", "p.product_id")
+        .leftJoin("sl_shop_categories as c", "p.category_id", "c.category_id")
         .where("order_id", order.order_id);
 
       for (const item of orderItems) {
+        // Get variations for this order item
         const variations = await db("sl_order_item_variations as oiv")
           .select(
             "oiv.*",
@@ -788,6 +832,15 @@ export const Suitebite = {
           .where("oiv.order_item_id", item.order_item_id);
 
         item.variations = variations;
+
+        // Get product images
+        const productImages = await db("sl_product_images")
+          .select("*")
+          .where("product_id", item.product_id)
+          .andWhere("is_active", true)
+          .orderBy("sort_order", "asc");
+
+        item.product_images = productImages;
       }
 
       order.orderItems = orderItems;
@@ -819,13 +872,23 @@ export const Suitebite = {
 
     const orders = await query.orderBy("sl_orders.ordered_at", "desc");
 
-    // Get order items for each order
+    // Get order items for each order with product details
     for (const order of orders) {
       const orderItems = await orderItemsTable()
-        .select("*")
+        .select(
+          "sl_order_items.*",
+          "p.name as product_name",
+          "p.description as product_description",
+          "p.category_id",
+          "c.category_name as product_category",
+          "p.slug as product_slug"
+        )
+        .leftJoin("sl_products as p", "sl_order_items.product_id", "p.product_id")
+        .leftJoin("sl_shop_categories as c", "p.category_id", "c.category_id")
         .where("order_id", order.order_id);
 
       for (const item of orderItems) {
+        // Get variations for this order item
         const variations = await db("sl_order_item_variations as oiv")
       .select(
             "oiv.*",
@@ -840,6 +903,15 @@ export const Suitebite = {
           .where("oiv.order_item_id", item.order_item_id);
 
         item.variations = variations;
+
+        // Get product images
+        const productImages = await db("sl_product_images")
+          .select("*")
+          .where("product_id", item.product_id)
+          .andWhere("is_active", true)
+          .orderBy("sort_order", "asc");
+
+        item.product_images = productImages;
       }
 
       order.orderItems = orderItems;
@@ -1038,55 +1110,6 @@ export const Suitebite = {
     return await cheersTable()
       .where("cheer_id", post_id)
       .del();
-  },
-
-  moderateCheerPost: async (post_id, action, reason = null, admin_id = null) => {
-    const updateData = { moderated_at: new Date() };
-    
-    if (admin_id) {
-      updateData.moderated_by = admin_id;
-    }
-
-    switch (action) {
-      case 'approve':
-        updateData.is_approved = true;
-        updateData.is_visible = true;
-        break;
-      case 'reject':
-        updateData.is_approved = false;
-        updateData.is_visible = false;
-        break;
-      case 'hide':
-        updateData.is_hidden = true;
-        updateData.is_visible = false;
-        break;
-      case 'show':
-        updateData.is_hidden = false;
-        updateData.is_visible = true;
-        break;
-      case 'flag':
-        updateData.is_flagged = true;
-        break;
-      case 'unflag':
-        updateData.is_flagged = false;
-        break;
-      case 'warn':
-        updateData.is_warned = true;
-        updateData.warned_at = new Date();
-        updateData.warned_by = admin_id;
-        if (reason) {
-          updateData.warning_message = reason;
-        }
-        break;
-    }
-
-    if (reason && action !== 'warn') {
-      updateData.moderation_reason = reason;
-    }
-
-    return await cheersTable()
-      .where("cheer_id", post_id)
-      .update(updateData);
   },
 
   getUsersWithHeartbits: async (page = 1, limit = 50, search = null, sort_by = "total_heartbits_earned") => {
@@ -2009,6 +2032,26 @@ export const Suitebite = {
       }
       
       product.variations = variations;
+
+      // Get product images from sl_product_images table
+      const productImages = await db("sl_product_images")
+        .select(
+          "image_id",
+          "image_url",
+          "thumbnail_url",
+          "medium_url", 
+          "large_url",
+          "public_id",
+          "alt_text",
+          "sort_order",
+          "is_primary"
+        )
+        .where("product_id", product.product_id)
+        .andWhere("is_active", true)
+        .orderBy("sort_order", "asc")
+        .orderBy("created_at", "asc");
+
+      product.images = productImages;
     }
 
     return products;

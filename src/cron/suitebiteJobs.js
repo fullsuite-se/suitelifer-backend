@@ -329,11 +329,8 @@ export const startSuitebiteJobs = () => {
         .count('order_id as count')
         .where('status', 'pending');
 
-      // Check for flagged posts (note: new schema doesn't have flagged posts, so this will be 0)
-      const [flaggedPostsCount] = await db('sl_cheers')
-        .count('cheer_id as count')
-        .where('is_flagged', true)
-        .where('is_visible', true);
+      // Check for flagged posts (note: current schema doesn't have flagged posts, so we skip this check)
+      const flaggedPostsCount = { count: 0 }; // Default to 0 since current schema doesn't support flagging
 
       // Record health metrics
       await db('sl_system_health_metrics').insert([

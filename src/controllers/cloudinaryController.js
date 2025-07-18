@@ -40,14 +40,11 @@ export const uploadImage = async (req, res) => {
       thumbnailUrl: thumbnailUrl,
       mediumUrl: mediumUrl,
       largeUrl: largeUrl,
-      publicId: publicId
+      publicId: publicId,
+      public_id: publicId  // Also include snake_case version for consistency
     };
     
-    console.log('🔍 Backend - Final response URLs:');
-    console.log('🔍 Backend - Original:', baseUrl);
-    console.log('🔍 Backend - Thumbnail:', thumbnailUrl);
-    console.log('🔍 Backend - Medium:', mediumUrl);
-    console.log('🔍 Backend - Large:', largeUrl);
+    console.log('🔍 Backend - Final response:', response);
     
     res.json(response);
   } catch (error) {
