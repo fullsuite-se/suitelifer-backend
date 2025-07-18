@@ -9,16 +9,49 @@ export const uploadImage = async (req, res) => {
     }
 
     const { folder } = req.params;
-    const result = await new Promise((resolve, reject) => {
+    
+    // Upload original image with minimal processing - no format conversion
+    const originalResult = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        { folder: `suitelifer/${folder}`, format: "webp" },
+        { 
+          folder: `suitelifer/${folder}`,
+          // Don't force any format conversion
+          quality: "auto"
+        },
         (error, result) => (error ? reject(error) : resolve(result))
       );
       stream.end(req.file.buffer);
     });
 
-    res.json({ imageUrl: result.secure_url });
+    // Generate different sizes using Cloudinary transformations
+    const baseUrl = originalResult.secure_url;
+    const publicId = originalResult.public_id;
+    
+    console.log('🔍 Backend - Cloudinary result:', originalResult);
+    
+    // Use the original URL for all sizes to test if the issue is with transformations
+    const thumbnailUrl = baseUrl;
+    const mediumUrl = baseUrl;
+    const largeUrl = baseUrl;
+
+    const response = { 
+      success: true,
+      imageUrl: baseUrl,
+      thumbnailUrl: thumbnailUrl,
+      mediumUrl: mediumUrl,
+      largeUrl: largeUrl,
+      publicId: publicId
+    };
+    
+    console.log('🔍 Backend - Final response URLs:');
+    console.log('🔍 Backend - Original:', baseUrl);
+    console.log('🔍 Backend - Thumbnail:', thumbnailUrl);
+    console.log('🔍 Backend - Medium:', mediumUrl);
+    console.log('🔍 Backend - Large:', largeUrl);
+    
+    res.json(response);
   } catch (error) {
+    console.error('🔍 Backend - Upload error:', error);
     res.status(500).json({ error: error.message });
   }
 };

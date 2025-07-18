@@ -20,6 +20,14 @@ import {
   deleteProduct,
   getProductOrderUsage,
   
+  // Product Images endpoints
+  getProductImages,
+  addProductImage,
+  updateProductImage,
+  deleteProductImage,
+  reorderProductImages,
+  setPrimaryImage,
+  
   // Categories endpoints
   getAllCategories,
   getCategoryById,
@@ -130,6 +138,14 @@ router.post("/products", verifyToken, verifyAdmin, addProduct);
 router.put("/products/:id", verifyToken, verifyAdmin, updateProduct);
 router.delete("/products/:id", verifyToken, verifyAdmin, deleteProduct);
 router.get("/products/:id/order-usage", verifyToken, getProductOrderUsage);
+
+// Product Images routes
+router.get("/products/:productId/images", verifyToken, getProductImages);
+router.post("/products/:productId/images", verifyToken, verifyAdmin, addProductImage);
+router.put("/products/images/:imageId", verifyToken, verifyAdmin, updateProductImage);
+router.delete("/products/images/:imageId", verifyToken, verifyAdmin, deleteProductImage);
+router.put("/products/:productId/images/reorder", verifyToken, verifyAdmin, reorderProductImages);
+router.put("/products/images/:imageId/primary", verifyToken, verifyAdmin, setPrimaryImage);
 
 // Categories routes
 router.get("/categories", verifyToken, getAllCategories);

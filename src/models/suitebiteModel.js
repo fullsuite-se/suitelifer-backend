@@ -328,6 +328,7 @@ export const Suitebite = {
         "sl_products.price_points as price",
         "sl_products.category_id",
         "sl_products.image_url",
+        "sl_products.images_json",
         "sl_products.slug",
         "sl_products.is_active",
         "sl_products.created_at",
@@ -352,6 +353,7 @@ export const Suitebite = {
         "sl_products.price_points as price",
         "sl_products.category_id",
         "sl_products.image_url",
+        "sl_products.images_json",
         "sl_products.slug",
         "sl_products.is_active",
         "sl_products.created_at",
@@ -1955,6 +1957,7 @@ export const Suitebite = {
         "sl_products.price_points as price",
         "sl_products.category_id",
         "sl_products.image_url",
+        "sl_products.images_json",
         "sl_products.slug",
         "sl_products.is_active",
         "sl_products.created_at",
@@ -2010,4 +2013,143 @@ export const Suitebite = {
 
     return products;
   },
+
+  getProductOrderUsage: async (product_id) => {
+    // Check if product exists in any order items
+    const orderItem = await orderItemsTable()
+      .where("product_id", product_id)
+      .first();
+    
+    return {
+      hasOrder: !!orderItem,
+      orderCount: orderItem ? await orderItemsTable().where("product_id", product_id).count("* as count").first() : 0
+    };
+  },
+
+  // ========== PRODUCT IMAGES OPERATIONS ==========
+
+  getProductImages: async (product_id) => {
+    return await db("sl_product_images")
+      .where("product_id", product_id)
+      .where("is_active", 1)
+      .orderBy("sort_order", "asc")
+      .select("*");
+  },
+
+  getProductImageById: async (image_id) => {
+    return await db("sl_product_images")
+      .where("image_id", image_id)
+      .first();
+  },
+
+  addProductImage: async (imageData) => {
+    // Get the next sort_order for this product
+    const maxSortOrder = await db("sl_product_images")
+      .where("product_id", imageData.product_id)
+      .max("sort_order as max_order")
+      .first();
+    
+    const nextSortOrder = (maxSortOrder.max_order || 0) + 1;
+    
+    // Check if this is the first image
+    const imageCount = await db("sl_product_images")
+      .where("product_id", imageData.product_id)
+      .count("* as count")
+      .first();
+    
+    const isPrimary = imageCount.count === 0 ? 1 : (imageData.is_primary || 0);
+    
+    // Insert the new image
+    const [imageId] = await db("sl_product_images").insert({
+      product_id: imageData.product_id,
+      image_url: imageData.image_url,
+      thumbnail_url: imageData.thumbnail_url,
+      medium_url: imageData.medium_url,
+      large_url: imageData.large_url,
+      public_id: imageData.public_id,
+      alt_text: imageData.alt_text,
+      sort_order: nextSortOrder,
+      is_primary: isPrimary,
+      is_active: 1
+    });
+    
+    return imageId;
+  },
+
+  updateProductImage: async (image_id, updateData) => {
+    return await db("sl_product_images")
+      .where("image_id", image_id)
+      .update(updateData);
+  },
+
+  deleteProductImage: async (image_id) => {
+    console.log('🔍 Model - deleteProductImage called with image_id:', image_id);
+    
+    // First check if the image exists
+    const image = await db("sl_product_images")
+      .where("image_id", image_id)
+      .first();
+    
+    console.log('🔍 Model - Image found:', image);
+    
+    if (!image) {
+      console.log('🔍 Model - Image not found in database');
+      throw new Error('Image not found');
+    }
+    
+    // Delete the image
+    const result = await db("sl_product_images")
+      .where("image_id", image_id)
+      .del();
+    
+    console.log('🔍 Model - Delete result:', result);
+    return result;
+  },
+
+  reorderProductImages: async (product_id, imageIds) => {
+    // Update sort_order for each image based on the provided order
+    for (let i = 0; i < imageIds.length; i++) {
+      await db("sl_product_images")
+        .where("image_id", imageIds[i])
+        .update({ sort_order: i + 1 });
+    }
+  },
+
+  setPrimaryImage: async (product_id, image_id) => {
+    // First, unset all primary images for this product
+    await db("sl_product_images")
+      .where("product_id", product_id)
+      .update({ is_primary: 0 });
+    
+    // Then set the specified image as primary
+    await db("sl_product_images")
+      .where("image_id", image_id)
+      .update({ is_primary: 1 });
+  },
+
+  updateProductImagesJson: async (product_id) => {
+    try {
+      // Get all active images for the product, ordered by sort_order
+      const images = await db("sl_product_images")
+        .where("product_id", product_id)
+        .where("is_active", 1)
+        .orderBy("sort_order", "asc")
+        .select("image_url");
+      
+      // Create JSON array of image URLs
+      const imagesJson = images.map(img => img.image_url);
+      
+      // Update the products table
+      await productsTable()
+        .where("product_id", product_id)
+        .update({
+          images_json: JSON.stringify(imagesJson)
+        });
+      
+      return imagesJson;
+    } catch (error) {
+      console.error('Error updating product images JSON:', error);
+      throw error;
+    }
+  }
 };

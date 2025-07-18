@@ -42,7 +42,7 @@ router.post(
 router.post(
   "/products/:productId/images",
   verifyToken,
-  upload.array("images", 5),
+  upload.array("images", 10),
   uploadMultipleProductImages
 );
 
