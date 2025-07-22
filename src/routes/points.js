@@ -17,7 +17,9 @@ import {
   getReceivedCheers,
   getLeaderboardWithPeriod,
   updateLeaderboardCache,
-  getLeaderboardPerformance
+  getLeaderboardPerformance,
+  updateCheerComment,
+  deleteCheerComment
 } from '../controllers/pointsController.js';
 import verifyToken from '../middlewares/verifyToken.js';
 import verifyAdmin from '../middlewares/verifyAdmin.js';
@@ -58,6 +60,8 @@ router.get('/search-users', searchUsers);
 // Cheer interactions
 router.post('/cheer/:cheer_id/comment', addCheerComment);
 router.get('/cheer/:cheer_id/comments', getCheerComments);
+router.put('/cheer/:cheer_id/comment/:comment_id', updateCheerComment);
+router.delete('/cheer/:cheer_id/comment/:comment_id', deleteCheerComment);
 router.post('/cheer/:cheer_id/like', toggleCheerLike);
 
 // Leaderboard performance monitoring

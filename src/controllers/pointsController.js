@@ -756,3 +756,62 @@ export const getLeaderboardPerformance = async (req, res) => {
     });
   }
 };
+
+// Update a cheer comment
+export const updateCheerComment = async (req, res) => {
+  try {
+    const { cheer_id, comment_id } = req.params;
+    const { comment } = req.body;
+    const user_id = req.user.id;
+
+    if (!comment || comment.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Comment cannot be empty"
+      });
+    }
+
+    const updated = await Points.updateCheerComment(comment_id, user_id, comment.trim());
+    if (updated === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only edit your own comment."
+      });
+    }
+    res.json({
+      success: true,
+      message: "Comment updated successfully"
+    });
+  } catch (error) {
+    console.error("Error updating cheer comment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update comment"
+    });
+  }
+};
+
+// Delete a cheer comment
+export const deleteCheerComment = async (req, res) => {
+  try {
+    const { cheer_id, comment_id } = req.params;
+    const user_id = req.user.id;
+    const deleted = await Points.deleteCheerComment(comment_id, user_id);
+    if (deleted === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own comment."
+      });
+    }
+    res.json({
+      success: true,
+      message: "Comment deleted successfully"
+    });
+  } catch (error) {
+    console.error("Error deleting cheer comment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete comment"
+    });
+  }
+};
