@@ -46,6 +46,9 @@ router.get('/leaderboard', getLeaderboardWithPeriod);
 router.get('/stats', getCheerStats);
 router.get('/received', getReceivedCheers);
 
+// Add explicit route for leaderboard-with-period
+router.get('/leaderboard-with-period', getLeaderboardWithPeriod);
+
 // GET /feed - Get cheer feed (paginated, filterable)
 // Query params:
 //   page: page number (default 1)

@@ -9,23 +9,35 @@ const cheerLikesTable = () => db("sl_cheer_likes");
 export const Points = {
   // Helper function to get period start date
   getPeriodStartDate: (period) => {
-    let startDate = new Date();
-    
+    const now = new Date();
+    let startDate;
     switch (period) {
-      case 'weekly':
-        startDate.setDate(startDate.getDate() - 7);
+      case 'weekly': {
+        // Set to most recent Monday (start of week)
+        const day = now.getDay(); // 0 (Sun) - 6 (Sat)
+        const diff = (day === 0 ? 6 : day - 1); // If Sunday, go back 6 days; else, day-1
+        startDate = new Date(now);
+        startDate.setHours(0, 0, 0, 0);
+        startDate.setDate(now.getDate() - diff);
         break;
-      case 'monthly':
-        startDate.setMonth(startDate.getMonth() - 1);
+      }
+      case 'monthly': {
+        // Set to first day of current month
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
         break;
+      }
       case 'all':
       case 'alltime':
         startDate = new Date('2020-01-01');
         break;
       default:
-        startDate.setDate(startDate.getDate() - 7);
+        // Default to weekly logic
+        const day = now.getDay();
+        const diff = (day === 0 ? 6 : day - 1);
+        startDate = new Date(now);
+        startDate.setHours(0, 0, 0, 0);
+        startDate.setDate(now.getDate() - diff);
     }
-    
     return startDate;
   },
 
