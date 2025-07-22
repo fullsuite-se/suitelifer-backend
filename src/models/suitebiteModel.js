@@ -345,7 +345,8 @@ export const Suitebite = {
   },
 
   getProductById: async (product_id) => {
-    return await productsTable()
+    // Fetch base product
+    const product = await productsTable()
       .select(
         "sl_products.product_id",
         "sl_products.name",
@@ -363,6 +364,30 @@ export const Suitebite = {
       .select("sl_shop_categories.category_name as category")
       .where("sl_products.product_id", product_id)
       .first();
+
+    if (!product) return null;
+
+    // Fetch all images for this product
+    const images = await db("sl_product_images")
+      .select(
+        "image_id",
+        "image_url",
+        "thumbnail_url",
+        "medium_url",
+        "large_url",
+        "public_id",
+        "alt_text",
+        "sort_order",
+        "is_primary"
+      )
+      .where("product_id", product.product_id)
+      .andWhere("is_active", true)
+      .orderBy("sort_order", "asc")
+      .orderBy("created_at", "asc");
+
+    console.log('[getProductById MODEL] images:', images);
+    product.images = images;
+    return product;
   },
 
   addProduct: async (productData) => {
@@ -936,6 +961,196 @@ export const Suitebite = {
     return await ordersTable()
       .where("order_id", order_id)
       .update(updateData);
+  },
+
+  approveOrder: async (order_id, admin_id) => {
+    // Check if order exists and is pending
+    const order = await ordersTable()
+      .where("order_id", order_id)
+      .where("status", "pending")
+      .first();
+
+    if (!order) {
+      return false;
+    }
+
+    // Update order status to processing
+    await ordersTable()
+      .where("order_id", order_id)
+      .update({
+        status: 'processing',
+        processed_at: new Date()
+      });
+
+    // Log admin action
+    try {
+      await db("sl_admin_actions").insert({
+        admin_id,
+        action_type: "APPROVE_ORDER",
+        target_type: "ORDER",
+        target_id: order_id,
+        action_data: JSON.stringify({ previous_status: "pending" }),
+        performed_at: new Date()
+      });
+    } catch (logError) {
+      console.warn('Failed to log admin action:', logError);
+    }
+
+    return true;
+  },
+
+  completeOrder: async (order_id, admin_id) => {
+    // Check if order exists and is processing
+    const order = await ordersTable()
+      .where("order_id", order_id)
+      .where("status", "processing")
+      .first();
+
+    if (!order) {
+      return false;
+    }
+
+    // Update order status to completed
+    await ordersTable()
+      .where("order_id", order_id)
+      .update({
+        status: 'completed',
+        completed_at: new Date()
+      });
+
+    // Log admin action
+    try {
+      await db("sl_admin_actions").insert({
+        admin_id,
+        action_type: "COMPLETE_ORDER",
+        target_type: "ORDER",
+        target_id: order_id,
+        action_data: JSON.stringify({ previous_status: "processing" }),
+        performed_at: new Date()
+      });
+    } catch (logError) {
+      console.warn('Failed to log admin action:', logError);
+    }
+
+    return true;
+  },
+
+  cancelOrder: async (order_id, user_id, reason) => {
+    // Check if order exists and can be cancelled (pending status)
+    const order = await ordersTable()
+      .where("order_id", order_id)
+      .where("status", "pending")
+      .first();
+
+    if (!order) {
+      return false;
+    }
+
+    // Check if user owns the order or is admin
+    if (order.user_id !== user_id) {
+      // Additional check would be needed here for admin status
+      // For now, assuming the controller handles admin verification
+    }
+
+    // Update order status to cancelled
+    const updateData = {
+      status: 'cancelled',
+      cancelled_at: new Date()
+    };
+
+    if (reason) {
+      updateData.notes = reason;
+    }
+
+    await ordersTable()
+      .where("order_id", order_id)
+      .update(updateData);
+
+    // Refund heartbits to user
+    try {
+      await db("heartbits_transactions").insert({
+        user_id: order.user_id,
+        transaction_type: "REFUND",
+        points: order.total_points,
+        description: `Order #${order_id} cancellation refund`,
+        created_at: new Date()
+      });
+
+      // Update user's heartbits balance
+      await db("users")
+        .where("id", order.user_id)
+        .increment("heartbits_balance", order.total_points);
+    } catch (refundError) {
+      console.error('Failed to process refund for cancelled order:', refundError);
+      // Don't fail the cancellation if refund fails, but log it
+    }
+
+    return true;
+  },
+
+  deleteOrder: async (order_id, admin_id, reason) => {
+    // Check if order exists
+    const order = await ordersTable()
+      .where("order_id", order_id)
+      .first();
+
+    if (!order) {
+      return false;
+    }
+
+    // Only allow deletion of cancelled or completed orders
+    if (order.status !== 'cancelled' && order.status !== 'completed') {
+      throw new Error('Only cancelled or completed orders can be deleted');
+    }
+
+    try {
+      // Delete order item variations first
+      const orderItems = await orderItemsTable()
+        .where("order_id", order_id)
+        .select("order_item_id");
+
+      const orderItemIds = orderItems.map(item => item.order_item_id);
+
+      if (orderItemIds.length > 0) {
+        await db("sl_order_item_variations")
+          .whereIn("order_item_id", orderItemIds)
+          .del();
+      }
+
+      // Delete order items
+      await orderItemsTable()
+        .where("order_id", order_id)
+        .del();
+
+      // Log admin action before deletion
+      try {
+        await db("sl_admin_actions").insert({
+          admin_id,
+          action_type: "DELETE_ORDER",
+          target_type: "ORDER",
+          target_id: order_id,
+          action_data: JSON.stringify({ 
+            reason: reason || "No reason provided",
+            order_status: order.status,
+            total_points: order.total_points,
+            user_id: order.user_id
+          }),
+          performed_at: new Date()
+        });
+      } catch (logError) {
+        console.warn('Failed to log admin action:', logError);
+      }
+
+      // Delete the order
+      await ordersTable()
+        .where("order_id", order_id)
+        .del();
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      throw error;
+    }
   },
 
   // ========== CATEGORY OPERATIONS ==========

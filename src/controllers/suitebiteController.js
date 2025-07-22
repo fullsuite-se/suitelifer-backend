@@ -290,7 +290,7 @@ export const getProductById = async (req, res) => {
     const { id } = req.params;
 
     const product = await Suitebite.getProductById(id);
-    
+    console.log('[getProductById CONTROLLER] product.images:', product?.images);
     if (!product) {
       return res.status(404).json({ 
         success: false, 
