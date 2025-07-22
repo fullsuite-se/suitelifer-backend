@@ -637,34 +637,69 @@ export const getReceivedCheers = async (req, res) => {
 // Get leaderboard with period support - OPTIMIZED VERSION
 export const getLeaderboardWithPeriod = async (req, res) => {
   try {
-    const { period = 'weekly', page = 1, limit = 20, useCache = 'true' } = req.query;
-    const { id: user_id } = req.user;
+    const { period = 'weekly', user_id } = req.query;
+    const queryTime = Date.now();
+    const useCache = req.query.useCache || 'true';
 
-    // Performance monitoring
-    const startTime = Date.now();
+    console.log('Fetching leaderboard with params:', { period, user_id, useCache });
+
+    const leaderboardData = await Points.getOptimizedLeaderboard(period, user_id, useCache === 'true');
     
-    let leaderboardData;
-    
-    // Use cached version if requested and available
-    if (useCache === 'true') {
-      try {
-        leaderboardData = await Points.getCachedLeaderboard(period, user_id);
-      } catch (cacheError) {
-        console.warn('Cache failed, falling back to direct query:', cacheError.message);
-        leaderboardData = await Points.getOptimizedLeaderboard(period, user_id, parseInt(page), parseInt(limit));
-      }
-    } else {
-      leaderboardData = await Points.getOptimizedLeaderboard(period, user_id, parseInt(page), parseInt(limit));
+    console.log('Raw leaderboard data:', JSON.stringify(leaderboardData, null, 2));
+
+    if (!leaderboardData || !Array.isArray(leaderboardData.leaderboard)) {
+      throw new Error('Invalid leaderboard data structure');
     }
 
-    const queryTime = Date.now() - startTime;
-    
-    // Log performance metrics
-    console.log(`Leaderboard query (${period}) completed in ${queryTime}ms`);
+    // Sort the leaderboard by points in descending order
+    const sortedLeaderboard = leaderboardData.leaderboard.map(entry => ({
+      ...entry,
+      totalPoints: Number(entry.totalPoints || entry.total_earned || 0)
+    })).sort((a, b) => b.totalPoints - a.totalPoints);
+
+    console.log('Sorted leaderboard:', JSON.stringify(sortedLeaderboard, null, 2));
+
+    // Assign ranks based on points
+    let currentRank = 1;
+    let previousPoints = null;
+    sortedLeaderboard.forEach((entry, index) => {
+      if (previousPoints !== null && entry.totalPoints < previousPoints) {
+        currentRank = index + 1;
+      }
+      entry.rank = currentRank;
+      previousPoints = entry.totalPoints;
+    });
+
+    // Calculate current user's rank
+    let currentUser = null;
+    if (leaderboardData.currentUser && leaderboardData.currentUser.info) {
+      const userPoints = Number(leaderboardData.currentUser.info.totalPoints || leaderboardData.currentUser.info.total_earned || 0);
+      let userRank = 1;
+
+      for (const entry of sortedLeaderboard) {
+        if (userPoints < entry.totalPoints) {
+          userRank++;
+        } else {
+          break;
+        }
+      }
+
+      currentUser = {
+        ...leaderboardData.currentUser,
+        rank: userRank,
+        info: {
+          ...leaderboardData.currentUser.info,
+          totalPoints: userPoints
+        }
+      };
+    }
+
+    console.log('Current user data:', JSON.stringify(currentUser, null, 2));
 
     res.status(200).json({
       success: true,
-      data: leaderboardData.leaderboard,
+      data: sortedLeaderboard,
+      currentUser,
       period,
       performance: {
         queryTime,
@@ -672,10 +707,10 @@ export const getLeaderboardWithPeriod = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("Error fetching leaderboard:", error);
+    console.error('Error in getLeaderboardWithPeriod:', error);
     res.status(500).json({
       success: false,
-      message: "Internal Server Error"
+      message: error.message || 'Failed to fetch leaderboard'
     });
   }
 };
