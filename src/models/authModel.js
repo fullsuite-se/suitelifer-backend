@@ -14,7 +14,8 @@ export const Auth = {
           `${userAccountTable}.user_password`,
           `${userAccountTable}.first_name`,
           `${userAccountTable}.last_name`,
-          `${userAccountTable}.is_verified`
+          `${userAccountTable}.is_verified`,
+          `${userAccountTable}.is_active`
         )
         .where(`${userAccountTable}.user_email`, email)
         .first();

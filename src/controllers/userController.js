@@ -7,9 +7,79 @@ import { Auth } from "../models/authModel.js";
 export const getUsers = async (req, res) => {
   try {
     const users = await User.getAllUsers();
-    res.json(users);
+    res.json({ success: true, users });
   } catch (err) {
-    console.log(err);
+    console.log("Unable to fetch Users", err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error - Unable to fetch users",
+      error: err.message 
+    });
+  }
+};
+
+export const updateUserType = async (req, res) => {
+  try {
+    const { userType, accountId } = req.body;
+
+    if (!userType || !accountId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing Required Fields: user type or user id",
+      });
+    }
+
+    await User.updateUserRole(userType, accountId);
+
+    return res
+      .status(200)
+      .json({ success: true, message: "User Type Updated Successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const updateUserStatus = async (req, res) => {
+  try {
+    const { isActive, accountId } = req.body;
+
+    if (!accountId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required field: user id" });
+    }
+
+    await User.updateUserStatus(isActive, accountId);
+
+    res
+      .status(200)
+      .json({ success: true, message: "User Status Updated Successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const deleteUserAccount = async (req, res) => {
+  try {
+    const { accountId } = req.body;
+
+    if (!accountId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required field: account id",
+      });
+    }
+
+    await User.deleteUserAccount(accountId);
+
+    res
+      .status(200)
+      .json({ success: true, message: "User Account Deleted Successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
@@ -73,3 +143,17 @@ export const updateUserPassword = async (req, res) => {
       .json({ isSuccess: false, message: "Invalid request" });
   }
 };
+
+async function searchUsers(req, res) {
+  const query = (req.query.q || '').toLowerCase();
+  const users = await db.query(
+    `SELECT user_id, CONCAT(first_name, ' ', last_name) AS name, email, avatar
+     FROM sl_user_accounts
+     WHERE LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR LOWER(email) LIKE ?
+     LIMIT 10`,
+    [`%${query}%`, `%${query}%`, `%${query}%`]
+  );
+  res.json({ success: true, data: users });
+}
+
+export { searchUsers };
