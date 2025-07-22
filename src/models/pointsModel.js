@@ -334,6 +334,15 @@ export const Points = {
     return { id, ...commentData };
   },
 
+  updateCheerComment: async (comment_id, user_id, comment) => {
+    return await cheerCommentsTable()
+      .where({ id: comment_id, user_id })
+      .update({
+        comment,
+        updated_at: new Date()
+      });
+  },
+
   getCheerComments: async (cheer_id, limit = 20, offset = 0) => {
     const comments = await cheerCommentsTable()
       .join("sl_user_accounts", "sl_cheer_comments.user_id", "sl_user_accounts.user_id")
