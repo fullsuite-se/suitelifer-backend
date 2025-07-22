@@ -762,10 +762,17 @@ export const Suitebite = {
   },
 
   getOrderById: async (order_id) => {
-      const order = await ordersTable()
-      .select("*")
-      .where("order_id", order_id)
-        .first();
+    // Join user info for a single order
+    const order = await ordersTable()
+      .select(
+        "sl_orders.*",
+        "sl_user_accounts.first_name",
+        "sl_user_accounts.last_name",
+        "sl_user_accounts.user_email"
+      )
+      .leftJoin("sl_user_accounts", "sl_orders.user_id", "sl_user_accounts.user_id")
+      .where("sl_orders.order_id", order_id)
+      .first();
 
     if (!order) return null;
 
@@ -810,10 +817,7 @@ export const Suitebite = {
       item.product_images = productImages;
     }
 
-    return {
-      ...order,
-      orderItems
-    };
+    return { ...order, orderItems };
   },
 
   getOrderHistory: async (user_id, page = 1, limit = 20) => {
