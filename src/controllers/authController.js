@@ -307,9 +307,9 @@ export const sendInquiryEmail = async (req, res) => {
  ${
    type === "podcast"
      ? "New Podcast Inquiry"
-     : type === "Internship"
+     : type === "internship"
      ? "New Internship Job Inquiry"
-     : type === "Full-Time"
+     : type === "full-time"
      ? "New Full-Time Job Inquiry"
      : "New Inquiry"
  }
