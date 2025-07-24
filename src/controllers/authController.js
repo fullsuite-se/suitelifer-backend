@@ -206,11 +206,9 @@ export const sendAccountVerificationLink = async (req, res) => {
       message: "Account verification link sent! Check your email.",
     });
   } catch (error) {
-    console.error("Error in sendAccountVerificationLink:", error);
-    console.error("Error stack:", error.stack);
-    res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+    console.error('Error in sendAccountVerificationLink:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 };
 
@@ -271,13 +269,13 @@ export const sendInquiryEmail = async (req, res) => {
   }
 
   try {
-    // const user = await User.getUserByEmail(sender_email);
+    const user = await User.getUserByEmail(sender_email);
 
-    // if (!user) {
-    //   return res
-    //     .status(404)
-    //     .json({ isSuccess: false, message: "Email not found or invalid" });
-    // }
+    if (!user) {
+      return res
+        .status(404)
+        .json({ isSuccess: false, message: "Email not found or invalid" });
+    }
 
     const code = crypto.randomBytes(4).toString("hex").toUpperCase();
     const hashedCode = await bcrypt.hash(code, 10);
