@@ -268,34 +268,34 @@ export const sendInquiryEmail = async (req, res) => {
   }
 
   try {
-    const user = await User.getUserByEmail(sender_email);
+    // const user = await User.getUserByEmail(sender_email);
 
-    if (!user) {
-      return res
-        .status(404)
-        .json({ isSuccess: false, message: "Email not found or invalid" });
-    }
+    // if (!user) {
+    //   return res
+    //     .status(404)
+    //     .json({ isSuccess: false, message: "Email not found or invalid" });
+    // }
 
-    const code = crypto.randomBytes(4).toString("hex").toUpperCase();
-    const hashedCode = await bcrypt.hash(code, 10);
+    // const code = crypto.randomBytes(4).toString("hex").toUpperCase();
+    // const hashedCode = await bcrypt.hash(code, 10);
 
-    const data = {
-      code_id: uuidv7(),
-      user_id: user.user_id,
-      verification_code: hashedCode,
-      created_at: db.fn.now(),
-      expires_at: db.raw("NOW() + INTERVAL 15 MINUTE"),
-    };
+    // const data = {
+    //   code_id: uuidv7(),
+    //   user_id: user.user_id,
+    //   verification_code: hashedCode,
+    //   created_at: db.fn.now(),
+    //   expires_at: db.raw("NOW() + INTERVAL 15 MINUTE"),
+    // };
 
-    const publicKeyPEM = process.env.JWE_PUBLIC_KEY;
-    const publicKey = await importSPKI(publicKeyPEM, "RSA-OAEP");
-    const exp = Math.floor(Date.now() / 1000 + 15 * 60);
-    const payload = JSON.stringify({ code: code, id: user.user_id, exp: exp });
-    const jwe = await new CompactEncrypt(new TextEncoder().encode(payload))
-      .setProtectedHeader({ alg: "RSA-OAEP", enc: "A256GCM" })
-      .encrypt(publicKey);
+    // const publicKeyPEM = process.env.JWE_PUBLIC_KEY;
+    // const publicKey = await importSPKI(publicKeyPEM, "RSA-OAEP");
+    // const exp = Math.floor(Date.now() / 1000 + 15 * 60);
+    // const payload = JSON.stringify({ code: code, id: user.user_id, exp: exp });
+    // const jwe = await new CompactEncrypt(new TextEncoder().encode(payload))
+    //   .setProtectedHeader({ alg: "RSA-OAEP", enc: "A256GCM" })
+    //   .encrypt(publicKey);
 
-    await Auth.addVerificationCode(data);
+    // await Auth.addVerificationCode(data);
     await transporter.sendMail({
       from: process.env.NODEMAILER_USER,
       to: receiver_email,
@@ -304,7 +304,15 @@ export const sendInquiryEmail = async (req, res) => {
       html: `
         <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9;">
 <h2 style="color: #0097b2; font-size: 24px; margin-bottom: 20px;">
-  ${type === "podcast" ? "New Podcast Inquiry" : "New Job Inquiry"}
+ ${
+   type === "podcast"
+     ? "New Podcast Inquiry"
+     : type === "Internship"
+     ? "New Internship Job Inquiry"
+     : type === "Full-Time"
+     ? "New Full-Time Job Inquiry"
+     : "New Inquiry"
+ }
 </h2>
 
   
