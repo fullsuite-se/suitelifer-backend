@@ -5,6 +5,7 @@ import {
   updateUserPassword,
   updateUserStatus,
   updateUserType,
+  addUser,
 } from "../controllers/userController.js";
 import verifyToken from "../middlewares/verifyToken.js";
 import verifySuperAdmin from "../middlewares/verifySuperAdmin.js";
@@ -20,5 +21,7 @@ router.patch("/users/status", verifyToken, verifySuperAdmin, updateUserStatus);
 router.delete("/users", verifyToken, verifySuperAdmin, deleteUserAccount);
 
 router.post("/update-password", updateUserPassword);
+
+router.post("/add-user", verifyToken, verifySuperAdmin, addUser);
 
 export default router;
