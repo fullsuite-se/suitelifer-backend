@@ -3,7 +3,7 @@ import { Mood } from "../models/moodModel.js";
 // Submit a new mood entry
 export const submitMood = async (req, res) => {
   try {
-    const { mood_level, note } = req.body;
+    const { mood_level, notes } = req.body;
     const user_id = req.user.id;
 
     // Validate mood level
@@ -14,13 +14,34 @@ export const submitMood = async (req, res) => {
       });
     }
 
-    // Always create a new mood entry (stacking)
-    const moodEntry = await Mood.createMoodEntry(user_id, mood_level, note);
-    return res.status(201).json({
-      success: true,
-      message: "Mood submitted successfully",
-      data: moodEntry
-    });
+    // Check if user already submitted mood today
+    const todayMood = await Mood.getTodayMood(user_id);
+    
+    if (todayMood) {
+      // Update existing mood entry for today
+      await Mood.updateMoodEntry(todayMood.id, user_id, mood_level, notes);
+      
+      return res.status(200).json({
+        success: true,
+        message: "Mood updated successfully",
+        data: {
+          id: todayMood.id,
+          mood_level,
+          notes,
+          updated_at: new Date()
+        }
+      });
+    } else {
+      // Create new mood entry
+      const moodEntry = await Mood.createMoodEntry(user_id, mood_level, notes);
+      
+      return res.status(201).json({
+        success: true,
+        message: "Mood submitted successfully",
+        data: moodEntry
+      });
+    }
+
   } catch (error) {
     console.error("Error submitting mood:", error);
     return res.status(500).json({

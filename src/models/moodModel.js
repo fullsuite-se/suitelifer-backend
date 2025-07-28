@@ -5,14 +5,15 @@ const userTable = "sl_user_accounts";
 
 export const Mood = {
   // Create a new mood entry
-  createMoodEntry: async (user_id, mood_level, note = null) => {
+  createMoodEntry: async (user_id, mood_level, notes = null) => {
     const moodEntry = {
       user_id,
       mood_level,
-      notes: note,
+      notes,
       created_at: new Date(),
       updated_at: new Date()
     };
+
     const [id] = await db(moodTable).insert(moodEntry);
     return { id, ...moodEntry };
   },
