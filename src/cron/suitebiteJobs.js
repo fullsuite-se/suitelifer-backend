@@ -329,51 +329,48 @@ export const startSuitebiteJobs = () => {
         .count('order_id as count')
         .where('status', 'pending');
 
-      // Check for flagged posts (note: new schema doesn't have flagged posts, so this will be 0)
-      const [flaggedPostsCount] = await db('sl_cheers')
-        .count('cheer_id as count')
-        .where('is_flagged', true)
-        .where('is_visible', true);
+      // Check for flagged posts (note: current schema doesn't have flagged posts, so we skip this check)
+      const flaggedPostsCount = { count: 0 }; // Default to 0 since current schema doesn't support flagging
 
-      // Record health metrics
-      await db('sl_system_health_metrics').insert([
-        {
-          metric_name: 'database_connected',
-          metric_value: dbConnected ? 1 : 0,
-          metric_unit: 'boolean'
-        },
-        {
-          metric_name: 'pending_orders',
-          metric_value: pendingOrdersCount.count,
-          metric_unit: 'count'
-        },
-        {
-          metric_name: 'flagged_posts',
-          metric_value: flaggedPostsCount.count,
-          metric_unit: 'count'
-        }
-      ]);
+      // Record health metrics (commented out - table deleted)
+      // await db('sl_system_health_metrics').insert([
+      //   {
+      //     metric_name: 'database_connected',
+      //     metric_value: dbConnected ? 1 : 0,
+      //     metric_unit: 'boolean'
+      //   },
+      //   {
+      //     metric_name: 'pending_orders',
+      //     metric_value: pendingOrdersCount.count,
+      //     metric_unit: 'count'
+      //   },
+      //   {
+      //     metric_name: 'flagged_posts',
+      //     metric_value: flaggedPostsCount.count,
+      //     metric_unit: 'count'
+      //   }
+      // ]);
 
-      // Create alert if there are issues
-      if (!dbConnected) {
-        await db('sl_system_notifications').insert({
-          notification_type: 'ERROR',
-          title: 'Database Connection Issue',
-          message: 'Database connectivity check failed. Please investigate immediately.',
-          target_role: 'SYSTEM_ADMIN',
-          created_by: 1
-        });
-      }
+      // Create alert if there are issues (commented out - table deleted)
+      // if (!dbConnected) {
+      //   await db('sl_system_notifications').insert({
+      //     notification_type: 'ERROR',
+      //     title: 'Database Connection Issue',
+      //     message: 'Database connectivity check failed. Please investigate immediately.',
+      //     target_role: 'SYSTEM_ADMIN',
+      //     created_by: 1
+      //   });
+      // }
 
-      if (pendingOrdersCount.count > 50) {
-        await db('sl_system_notifications').insert({
-          notification_type: 'WARNING',
-          title: 'High Number of Pending Orders',
-          message: `There are ${pendingOrdersCount.count} pending orders that may need attention.`,
-          target_role: 'SHOP_MANAGER',
-          created_by: 1
-        });
-      }
+      // if (pendingOrdersCount.count > 50) {
+      //   await db('sl_system_notifications').insert({
+      //     notification_type: 'WARNING',
+      //     title: 'High Number of Pending Orders',
+      //     message: `There are ${pendingOrdersCount.count} pending orders that may need attention.`,
+      //     target_role: 'SHOP_MANAGER',
+      //     created_by: 1
+      //   });
+      // }
 
     } catch (error) {
       console.error('Error during health check:', error);

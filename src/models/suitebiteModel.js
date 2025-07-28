@@ -345,7 +345,8 @@ export const Suitebite = {
   },
 
   getProductById: async (product_id) => {
-    return await productsTable()
+    // Fetch base product
+    const product = await productsTable()
       .select(
         "sl_products.product_id",
         "sl_products.name",
@@ -363,6 +364,30 @@ export const Suitebite = {
       .select("sl_shop_categories.category_name as category")
       .where("sl_products.product_id", product_id)
       .first();
+
+    if (!product) return null;
+
+    // Fetch all images for this product
+    const images = await db("sl_product_images")
+      .select(
+        "image_id",
+        "image_url",
+        "thumbnail_url",
+        "medium_url",
+        "large_url",
+        "public_id",
+        "alt_text",
+        "sort_order",
+        "is_primary"
+      )
+      .where("product_id", product.product_id)
+      .andWhere("is_active", true)
+      .orderBy("sort_order", "asc")
+      .orderBy("created_at", "asc");
+
+    console.log('[getProductById MODEL] images:', images);
+    product.images = images;
+    return product;
   },
 
   addProduct: async (productData) => {
@@ -545,21 +570,23 @@ export const Suitebite = {
       return null;
     }
 
-    // Get cart items with product details
+    // Get cart items with product details and images
     const cartItems = await cartItemsTable()
       .select(
         "sl_cart_items.*",
         "sl_products.name as product_name",
         "sl_products.price_points",
-        "sl_products.image_url",
-        "sl_shop_categories.category_name"
+        "sl_products.category_id",
+        "sl_shop_categories.category_name as category",
+        "sl_products.description"
       )
       .leftJoin("sl_products", "sl_cart_items.product_id", "sl_products.product_id")
       .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
       .where("sl_cart_items.cart_id", cart.cart_id);
 
-    // Get variations for each cart item
+    // Get variations and product images for each cart item
     for (const item of cartItems) {
+      // Get variations for this cart item
       const variations = await db("sl_cart_item_variations as civ")
         .select(
           "civ.*",
@@ -574,6 +601,19 @@ export const Suitebite = {
         .where("civ.cart_item_id", item.cart_item_id);
 
       item.variations = variations;
+
+      // Get product images
+      const productImages = await db("sl_product_images")
+        .select("*")
+        .where("product_id", item.product_id)
+        .andWhere("is_active", true)
+        .orderBy("sort_order", "asc");
+
+      item.product_images = productImages;
+      
+      // Set primary image URL for backward compatibility
+      const primaryImage = productImages.find(img => img.is_primary) || productImages[0];
+      item.image_url = primaryImage ? primaryImage.image_url : null;
     }
 
     return {
@@ -722,19 +762,36 @@ export const Suitebite = {
   },
 
   getOrderById: async (order_id) => {
-      const order = await ordersTable()
-      .select("*")
-      .where("order_id", order_id)
-        .first();
+    // Join user info for a single order
+    const order = await ordersTable()
+      .select(
+        "sl_orders.*",
+        "sl_user_accounts.first_name",
+        "sl_user_accounts.last_name",
+        "sl_user_accounts.user_email"
+      )
+      .leftJoin("sl_user_accounts", "sl_orders.user_id", "sl_user_accounts.user_id")
+      .where("sl_orders.order_id", order_id)
+      .first();
 
     if (!order) return null;
 
-    // Get order items with variations
+    // Get order items with product details, variations, and images
     const orderItems = await orderItemsTable()
-      .select("*")
+      .select(
+        "sl_order_items.*",
+        "p.name as product_name",
+        "p.description as product_description",
+        "p.category_id",
+        "c.category_name as product_category",
+        "p.slug as product_slug"
+      )
+      .leftJoin("sl_products as p", "sl_order_items.product_id", "p.product_id")
+      .leftJoin("sl_shop_categories as c", "p.category_id", "c.category_id")
       .where("order_id", order_id);
 
     for (const item of orderItems) {
+      // Get variations for this order item
       const variations = await db("sl_order_item_variations as oiv")
         .select(
           "oiv.*",
@@ -749,12 +806,18 @@ export const Suitebite = {
         .where("oiv.order_item_id", item.order_item_id);
 
       item.variations = variations;
+
+      // Get product images
+      const productImages = await db("sl_product_images")
+        .select("*")
+        .where("product_id", item.product_id)
+        .andWhere("is_active", true)
+        .orderBy("sort_order", "asc");
+
+      item.product_images = productImages;
     }
 
-    return {
-      ...order,
-      orderItems
-    };
+    return { ...order, orderItems };
   },
 
   getOrderHistory: async (user_id, page = 1, limit = 20) => {
@@ -767,13 +830,23 @@ export const Suitebite = {
       .limit(limit)
       .offset(offset);
 
-    // Get order items for each order
+    // Get order items for each order with product details
     for (const order of orders) {
       const orderItems = await orderItemsTable()
-        .select("*")
+        .select(
+          "sl_order_items.*",
+          "p.name as product_name",
+          "p.description as product_description",
+          "p.category_id",
+          "c.category_name as product_category",
+          "p.slug as product_slug"
+        )
+        .leftJoin("sl_products as p", "sl_order_items.product_id", "p.product_id")
+        .leftJoin("sl_shop_categories as c", "p.category_id", "c.category_id")
         .where("order_id", order.order_id);
 
       for (const item of orderItems) {
+        // Get variations for this order item
         const variations = await db("sl_order_item_variations as oiv")
           .select(
             "oiv.*",
@@ -788,6 +861,15 @@ export const Suitebite = {
           .where("oiv.order_item_id", item.order_item_id);
 
         item.variations = variations;
+
+        // Get product images
+        const productImages = await db("sl_product_images")
+          .select("*")
+          .where("product_id", item.product_id)
+          .andWhere("is_active", true)
+          .orderBy("sort_order", "asc");
+
+        item.product_images = productImages;
       }
 
       order.orderItems = orderItems;
@@ -819,13 +901,23 @@ export const Suitebite = {
 
     const orders = await query.orderBy("sl_orders.ordered_at", "desc");
 
-    // Get order items for each order
+    // Get order items for each order with product details
     for (const order of orders) {
       const orderItems = await orderItemsTable()
-        .select("*")
+        .select(
+          "sl_order_items.*",
+          "p.name as product_name",
+          "p.description as product_description",
+          "p.category_id",
+          "c.category_name as product_category",
+          "p.slug as product_slug"
+        )
+        .leftJoin("sl_products as p", "sl_order_items.product_id", "p.product_id")
+        .leftJoin("sl_shop_categories as c", "p.category_id", "c.category_id")
         .where("order_id", order.order_id);
 
       for (const item of orderItems) {
+        // Get variations for this order item
         const variations = await db("sl_order_item_variations as oiv")
       .select(
             "oiv.*",
@@ -840,6 +932,15 @@ export const Suitebite = {
           .where("oiv.order_item_id", item.order_item_id);
 
         item.variations = variations;
+
+        // Get product images
+        const productImages = await db("sl_product_images")
+          .select("*")
+          .where("product_id", item.product_id)
+          .andWhere("is_active", true)
+          .orderBy("sort_order", "asc");
+
+        item.product_images = productImages;
       }
 
       order.orderItems = orderItems;
@@ -864,6 +965,209 @@ export const Suitebite = {
     return await ordersTable()
       .where("order_id", order_id)
       .update(updateData);
+  },
+
+  approveOrder: async (order_id, admin_id) => {
+    // Check if order exists and is pending
+    const order = await ordersTable()
+      .where("order_id", order_id)
+      .where("status", "pending")
+      .first();
+
+    if (!order) {
+      return false;
+    }
+
+    // Update order status to processing
+    await ordersTable()
+      .where("order_id", order_id)
+      .update({
+        status: 'processing',
+        processed_at: new Date()
+      });
+
+    // Log admin action
+    try {
+      await db("sl_admin_actions").insert({
+        admin_id,
+        action_type: "APPROVE_ORDER",
+        target_type: "ORDER",
+        target_id: order_id,
+        details: JSON.stringify({ previous_status: "pending" }),
+        performed_at: new Date()
+      });
+    } catch (logError) {
+      console.warn('Failed to log admin action:', logError);
+    }
+
+    return true;
+  },
+
+  completeOrder: async (order_id, admin_id) => {
+    // Check if order exists and is processing
+    const order = await ordersTable()
+      .where("order_id", order_id)
+      .where("status", "processing")
+      .first();
+
+    if (!order) {
+      return false;
+    }
+
+    // Update order status to completed
+    await ordersTable()
+      .where("order_id", order_id)
+      .update({
+        status: 'completed',
+        completed_at: new Date()
+      });
+
+    // Log admin action
+    try {
+      await db("sl_admin_actions").insert({
+        admin_id,
+        action_type: "COMPLETE_ORDER",
+        target_type: "ORDER",
+        target_id: order_id,
+        details: JSON.stringify({ previous_status: "processing" }),
+        performed_at: new Date()
+      });
+    } catch (logError) {
+      console.warn('Failed to log admin action:', logError);
+    }
+
+    return true;
+  },
+
+  cancelOrder: async (order_id, user_id, reason, isAdmin = false) => {
+    console.log(`Attempting to cancel order ${order_id} by user ${user_id}, isAdmin: ${isAdmin}`);
+    
+    // Check if order exists and can be cancelled
+    let orderQuery = ordersTable()
+      .where("order_id", order_id);
+    
+    if (isAdmin) {
+      // Admins can cancel pending or processing orders
+      orderQuery = orderQuery.whereIn("status", ["pending", "processing"]);
+      console.log("Admin can cancel pending or processing orders");
+    } else {
+      // Regular users can only cancel pending orders
+      orderQuery = orderQuery.where("status", "pending");
+      console.log("Regular user can only cancel pending orders");
+    }
+    
+    const order = await orderQuery.first();
+    console.log("Found order:", order);
+
+    if (!order) {
+      console.log("No order found or order cannot be cancelled");
+      return false;
+    }
+
+    // Check if user owns the order or is admin
+    if (order.user_id !== user_id && !isAdmin) {
+      return false;
+    }
+
+    // Update order status to cancelled
+    const updateData = {
+      status: 'cancelled',
+      cancelled_at: new Date()
+    };
+
+    if (reason) {
+      updateData.notes = reason;
+    }
+
+    await ordersTable()
+      .where("order_id", order_id)
+      .update(updateData);
+
+    // Refund heartbits to user
+    try {
+      await db("sl_heartbits_transactions").insert({
+        user_id: order.user_id,
+        transaction_type: "REFUND",
+        points_amount: order.total_points,
+        description: `Order #${order_id} cancellation refund`,
+        created_at: new Date()
+      });
+
+      // Update user's heartbits balance
+      await db("sl_user_heartbits")
+        .where("user_id", order.user_id)
+        .increment("heartbits_balance", order.total_points);
+    } catch (refundError) {
+      console.error('Failed to process refund for cancelled order:', refundError);
+      // Don't fail the cancellation if refund fails, but log it
+    }
+
+    return true;
+  },
+
+  deleteOrder: async (order_id, admin_id, reason) => {
+    // Check if order exists
+    const order = await ordersTable()
+      .where("order_id", order_id)
+      .first();
+
+    if (!order) {
+      return false;
+    }
+
+    // Only allow deletion of cancelled or completed orders
+    if (order.status !== 'cancelled' && order.status !== 'completed') {
+      throw new Error('Only cancelled or completed orders can be deleted');
+    }
+
+    try {
+      // Delete order item variations first
+      const orderItems = await orderItemsTable()
+        .where("order_id", order_id)
+        .select("order_item_id");
+
+      const orderItemIds = orderItems.map(item => item.order_item_id);
+
+      if (orderItemIds.length > 0) {
+        await db("sl_order_item_variations")
+          .whereIn("order_item_id", orderItemIds)
+          .del();
+      }
+
+      // Delete order items
+      await orderItemsTable()
+        .where("order_id", order_id)
+        .del();
+
+      // Log admin action before deletion
+      try {
+        await db("sl_admin_actions").insert({
+          admin_id,
+          action_type: "DELETE_ORDER",
+          target_type: "ORDER",
+          target_id: order_id,
+          details: JSON.stringify({ 
+            reason: reason || "No reason provided",
+            order_status: order.status,
+            total_points: order.total_points,
+            user_id: order.user_id
+          }),
+          performed_at: new Date()
+        });
+      } catch (logError) {
+        console.warn('Failed to log admin action:', logError);
+      }
+
+      // Delete the order
+      await ordersTable()
+        .where("order_id", order_id)
+        .del();
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      throw error;
+    }
   },
 
   // ========== CATEGORY OPERATIONS ==========
@@ -1038,55 +1342,6 @@ export const Suitebite = {
     return await cheersTable()
       .where("cheer_id", post_id)
       .del();
-  },
-
-  moderateCheerPost: async (post_id, action, reason = null, admin_id = null) => {
-    const updateData = { moderated_at: new Date() };
-    
-    if (admin_id) {
-      updateData.moderated_by = admin_id;
-    }
-
-    switch (action) {
-      case 'approve':
-        updateData.is_approved = true;
-        updateData.is_visible = true;
-        break;
-      case 'reject':
-        updateData.is_approved = false;
-        updateData.is_visible = false;
-        break;
-      case 'hide':
-        updateData.is_hidden = true;
-        updateData.is_visible = false;
-        break;
-      case 'show':
-        updateData.is_hidden = false;
-        updateData.is_visible = true;
-        break;
-      case 'flag':
-        updateData.is_flagged = true;
-        break;
-      case 'unflag':
-        updateData.is_flagged = false;
-        break;
-      case 'warn':
-        updateData.is_warned = true;
-        updateData.warned_at = new Date();
-        updateData.warned_by = admin_id;
-        if (reason) {
-          updateData.warning_message = reason;
-        }
-        break;
-    }
-
-    if (reason && action !== 'warn') {
-      updateData.moderation_reason = reason;
-    }
-
-    return await cheersTable()
-      .where("cheer_id", post_id)
-      .update(updateData);
   },
 
   getUsersWithHeartbits: async (page = 1, limit = 50, search = null, sort_by = "total_heartbits_earned") => {
@@ -1326,7 +1581,7 @@ export const Suitebite = {
     } else {
       // Get default limit from system configuration
       const systemConfig = await this.getSystemConfiguration();
-      const defaultLimit = parseInt(systemConfig.default_monthly_limit?.value) || 1000;
+      const defaultLimit = parseInt(systemConfig.global_monthly_limit?.value) || 1000;
       
       return await monthlyLimitsTable().insert({
         user_id,
@@ -1351,7 +1606,7 @@ export const Suitebite = {
     } else {
       // Get default limit from system configuration
       const systemConfig = await this.getSystemConfiguration();
-      const defaultLimit = parseInt(systemConfig.default_monthly_limit?.value) || 1000;
+      const defaultLimit = parseInt(systemConfig.global_monthly_limit?.value) || 1000;
       
       return await monthlyLimitsTable().insert({
         user_id,
@@ -2009,6 +2264,26 @@ export const Suitebite = {
       }
       
       product.variations = variations;
+
+      // Get product images from sl_product_images table
+      const productImages = await db("sl_product_images")
+        .select(
+          "image_id",
+          "image_url",
+          "thumbnail_url",
+          "medium_url", 
+          "large_url",
+          "public_id",
+          "alt_text",
+          "sort_order",
+          "is_primary"
+        )
+        .where("product_id", product.product_id)
+        .andWhere("is_active", true)
+        .orderBy("sort_order", "asc")
+        .orderBy("created_at", "asc");
+
+      product.images = productImages;
     }
 
     return products;

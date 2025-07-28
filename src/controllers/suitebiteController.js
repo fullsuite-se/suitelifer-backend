@@ -290,7 +290,7 @@ export const getProductById = async (req, res) => {
     const { id } = req.params;
 
     const product = await Suitebite.getProductById(id);
-    
+    console.log('[getProductById CONTROLLER] product.images:', product?.images);
     if (!product) {
       return res.status(404).json({ 
         success: false, 
@@ -1348,8 +1348,15 @@ export const cancelOrder = async (req, res) => {
     const { order_id } = req.params;
     const user_id = req.user.id;
     const { reason } = req.body;
+    
+    // Check if user is admin (handle both role and user_type fields, and different case formats)
+    const userRole = req.user.role || req.user.user_type || '';
+    const normalizedRole = userRole.toLowerCase().replace(/\s+/g, '_');
+    const isAdmin = normalizedRole === 'admin' || normalizedRole === 'superadmin' || normalizedRole === 'super_admin';
+    
+    console.log(`Cancel order request - order_id: ${order_id}, user_id: ${user_id}, user_type: ${req.user.user_type}, role: ${req.user.role}, userRole: ${userRole}, normalizedRole: ${normalizedRole}, isAdmin: ${isAdmin}`);
 
-    const result = await Suitebite.cancelOrder(order_id, user_id, reason);
+    const result = await Suitebite.cancelOrder(order_id, user_id, reason, isAdmin);
     
     if (result) {
       res.status(200).json({ 
@@ -1359,7 +1366,7 @@ export const cancelOrder = async (req, res) => {
     } else {
       res.status(400).json({ 
         success: false, 
-        message: "Failed to cancel order" 
+        message: "Failed to cancel order. Only pending orders can be cancelled by regular users, or pending/processing orders by admins." 
       });
     }
   } catch (err) {
@@ -1425,7 +1432,7 @@ export const getAllOrders = async (req, res) => {
 
     const orders = await Suitebite.getAllOrders(filters);
     
-    res.status(200).json({ success: true, data: orders });
+    res.status(200).json({ success: true, orders });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -1652,7 +1659,7 @@ export const getMonthlyLimits = async (req, res) => {
     if (!limits) {
       // Get default limit from system configuration
       const systemConfig = await Suitebite.getSystemConfiguration();
-      const defaultLimit = parseInt(systemConfig.default_monthly_limit?.value) || 1000;
+      const defaultLimit = parseInt(systemConfig.global_monthly_limit?.value) || 1000;
       
       await Suitebite.setUserMonthlyLimit(user_id, currentMonth, defaultLimit);
       
@@ -2170,44 +2177,76 @@ export const triggerMonthlyReset = async (req, res) => {
   try {
     const currentMonth = new Date().toISOString().slice(0, 7);
     
-    // Get system configuration for default monthly limit
+    // Get system configuration for global monthly limit
     const systemConfig = await Suitebite.getSystemConfiguration();
     console.log('System config:', systemConfig); // Debug log
     
-    // Access the default_monthly_limit value correctly
-    const defaultMonthlyLimit = systemConfig.default_monthly_limit ? 
-      parseInt(systemConfig.default_monthly_limit.value) : 1000;
+    // Access the global_monthly_limit value correctly
+    const defaultMonthlyLimit = systemConfig.global_monthly_limit ? 
+      parseInt(systemConfig.global_monthly_limit.value) : 1000;
     
     console.log('Default monthly limit:', defaultMonthlyLimit); // Debug log
     
-    // Get all active users
+    // Get all active users (more inclusive query)
     const users = await db('sl_user_accounts')
-      .select('user_id', 'first_name', 'last_name', 'user_email')
-      .where('is_active', true)
-      .where('user_type', 'in', ['EMPLOYEE', 'ADMIN', 'SUPER_ADMIN']);
+      .select('user_id', 'first_name', 'last_name', 'user_email', 'user_type', 'is_active')
+      .whereIn('user_type', ['employee', 'admin', 'superadmin']);
+    
+    // Filter active users in code to see what's happening
+    const activeUsers = users.filter(user => user.is_active === true || user.is_active === 1);
+    const inactiveUsers = users.filter(user => user.is_active === false || user.is_active === 0);
+    
+    console.log('Total users found:', users.length);
+    console.log('Active users:', activeUsers.length);
+    console.log('Inactive users:', inactiveUsers.length);
+    console.log('Inactive users details:', inactiveUsers.map(u => ({ name: `${u.first_name} ${u.last_name}`, type: u.user_type, active: u.is_active })));
+    
+    // Use all users regardless of active status for monthly reset
+    const usersToProcess = users;
     
     console.log('Found users:', users.length); // Debug log
+    console.log('Users found:', users); // Debug log - show actual users
+    
+    // Debug: Check all users in database
+    const allUsers = await db('sl_user_accounts').select('user_id', 'first_name', 'last_name', 'user_email', 'user_type', 'is_active');
+    console.log('All users in database:', allUsers.length);
+    console.log('All users:', allUsers);
+    
+    // Debug: Check specific user types
+    const employees = allUsers.filter(u => u.user_type === 'employee');
+    const admins = allUsers.filter(u => u.user_type === 'admin');
+    const superadmins = allUsers.filter(u => u.user_type === 'superadmin');
+    console.log('Employees:', employees.length);
+    console.log('Admins:', admins.length);
+    console.log('Super Admins:', superadmins.length);
     
     let resetCount = 0;
     let allowanceGiven = 0;
     
-    for (const user of users) {
+    for (const user of usersToProcess) {
       try {
         // Reset monthly limits for the new month
         await Suitebite.resetMonthlyLimit(user.user_id, currentMonth);
         
-        // Give monthly heartbits allowance
+        // Give monthly heartbits allowance (updates sl_user_points table)
         await Suitebite.updateUserHeartbits(user.user_id, defaultMonthlyLimit);
         
-        // Create transaction record for monthly allowance (without processed_by to avoid DB issues)
+        // Create transaction record for monthly allowance
         await db('sl_heartbits_transactions').insert({
           user_id: user.user_id,
           transaction_type: 'monthly_allowance',
           points_amount: defaultMonthlyLimit,
-          reference_type: 'admin_adjustment',
           description: `Manual monthly heartbits allowance for ${currentMonth}`,
           created_at: new Date()
         });
+
+        // Reset monthly cheer usage for the user (in sl_user_points table)
+        await db('sl_user_points')
+          .where('user_id', user.user_id)
+          .update({
+            monthly_cheer_used: 0,
+            last_monthly_reset: new Date()
+          });
         
         resetCount++;
         allowanceGiven += defaultMonthlyLimit;
@@ -2538,8 +2577,12 @@ export const addProductImage = async (req, res) => {
       large_url, 
       public_id, 
       alt_text,
-      is_primary = false 
+      sort_order,
+      is_primary = false,
+      is_active = true 
     } = req.body;
+
+    console.log('🔍 Backend - addProductImage called with data:', req.body);
 
     if (!image_url) {
       return res.status(400).json({ 
@@ -2565,8 +2608,12 @@ export const addProductImage = async (req, res) => {
       large_url,
       public_id,
       alt_text,
-      is_primary
+      sort_order,
+      is_primary,
+      is_active
     });
+
+    console.log('🔍 Backend - Image added with ID:', imageId);
 
     // Update product's images_json
     await Suitebite.updateProductImagesJson(productId);
@@ -2577,7 +2624,7 @@ export const addProductImage = async (req, res) => {
       imageId 
     });
   } catch (err) {
-    console.error(err);
+    console.error('🔍 Backend - addProductImage error:', err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
