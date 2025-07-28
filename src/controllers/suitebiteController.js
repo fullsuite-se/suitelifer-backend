@@ -1351,9 +1351,10 @@ export const cancelOrder = async (req, res) => {
     
     // Check if user is admin (handle both role and user_type fields, and different case formats)
     const userRole = req.user.role || req.user.user_type || '';
-    const isAdmin = userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'superadmin' || userRole.toLowerCase() === 'super_admin';
+    const normalizedRole = userRole.toLowerCase().replace(/\s+/g, '_');
+    const isAdmin = normalizedRole === 'admin' || normalizedRole === 'superadmin' || normalizedRole === 'super_admin';
     
-    console.log(`Cancel order request - order_id: ${order_id}, user_id: ${user_id}, user_type: ${req.user.user_type}, role: ${req.user.role}, userRole: ${userRole}, isAdmin: ${isAdmin}`);
+    console.log(`Cancel order request - order_id: ${order_id}, user_id: ${user_id}, user_type: ${req.user.user_type}, role: ${req.user.role}, userRole: ${userRole}, normalizedRole: ${normalizedRole}, isAdmin: ${isAdmin}`);
 
     const result = await Suitebite.cancelOrder(order_id, user_id, reason, isAdmin);
     
