@@ -96,6 +96,29 @@ export const Suitebite = {
     return await Suitebite.updateUserPoints(user_id, heartbits_amount);
   },
 
+  // Specific function for refunds - only updates available_points, not total_earned
+  refundUserPoints: async (user_id, refund_amount) => {
+    const existing = await userPointsTable().where("user_id", user_id).first();
+    
+    if (existing) {
+      return await userPointsTable()
+        .where("user_id", user_id)
+        .update({
+          available_points: db.raw("available_points + ?", [refund_amount])
+          // Note: Not updating total_earned since this is a refund, not new earnings
+        });
+    } else {
+      return await userPointsTable().insert({
+        user_id: user_id,
+        available_points: refund_amount,
+        total_earned: 0,
+        total_spent: 0,
+        monthly_cheer_limit: 100,
+        monthly_cheer_used: 0
+      });
+    }
+  },
+
   // ========== CHEER OPERATIONS ==========
 
   createCheer: async (cheerData) => {
@@ -727,6 +750,8 @@ export const Suitebite = {
   // ========== ORDER OPERATIONS ==========
 
   createOrder: async (user_id, total_points, cartItems) => {
+    console.log('Creating order with items:', cartItems);
+    
     // Create order
     const [orderId] = await ordersTable().insert({
       user_id,
@@ -747,6 +772,12 @@ export const Suitebite = {
       });
 
       // Transfer variations
+      console.log('Processing variations for item:', {
+        product_id: cartItem.product_id,
+        variations: cartItem.variations,
+        variation_details: cartItem.variation_details
+      });
+      
       if (cartItem.variations && cartItem.variations.length > 0) {
         const variationData = cartItem.variations.map(variation => ({
           order_item_id: orderItemId,
@@ -754,7 +785,27 @@ export const Suitebite = {
           option_id: variation.option_id
         }));
 
+        console.log('Inserting variations from cart:', variationData);
         await db("sl_order_item_variations").insert(variationData);
+      } else if (cartItem.variation_details) {
+        // Handle variation_details from direct checkout
+        try {
+          const variations = JSON.parse(cartItem.variation_details);
+          console.log('Parsed variations from variation_details:', variations);
+          
+          if (Array.isArray(variations) && variations.length > 0) {
+            const variationData = variations.map(variation => ({
+              order_item_id: orderItemId,
+              variation_type_id: variation.variation_type_id,
+              option_id: variation.option_id
+            }));
+
+            console.log('Inserting variations from direct checkout:', variationData);
+            await db("sl_order_item_variations").insert(variationData);
+          }
+        } catch (error) {
+          console.error('Error parsing variation_details:', error);
+        }
       }
     }
 
@@ -1083,20 +1134,49 @@ export const Suitebite = {
       .where("order_id", order_id)
       .update(updateData);
 
+    // Log admin action if admin is cancelling
+    if (isAdmin) {
+      try {
+        await adminActionsTable().insert({
+          admin_id: user_id,
+          action_type: "CANCEL_ORDER",
+          target_type: "ORDER",
+          target_id: order_id,
+          details: JSON.stringify({
+            reason: reason || "No reason provided",
+            order_status: order.status,
+            total_points: order.total_points,
+            user_id: order.user_id
+          }),
+          performed_at: new Date()
+        });
+      } catch (logError) {
+        console.error('Failed to log admin action for order cancellation:', logError);
+        // Don't fail the cancellation if logging fails
+      }
+    }
+
     // Refund heartbits to user
     try {
-      await db("sl_heartbits_transactions").insert({
-        user_id: order.user_id,
-        transaction_type: "REFUND",
-        points_amount: order.total_points,
+      // Add refund transaction record
+      await db("sl_transactions").insert({
+        transaction_id: uuidv7(),
+        from_user_id: null,
+        to_user_id: order.user_id,
+        type: "bonus", // Use 'bonus' type so it doesn't affect leaderboard
+        amount: order.total_points,
         description: `Order #${order_id} cancellation refund`,
-        created_at: new Date()
+        metadata: JSON.stringify({
+          reference_type: 'order',
+          reference_id: order_id,
+          action: 'cancellation_refund'
+        }),
+        created_at: new Date(),
+        updated_at: new Date()
       });
 
-      // Update user's heartbits balance
-      await db("sl_user_heartbits")
-        .where("user_id", order.user_id)
-        .increment("heartbits_balance", order.total_points);
+      // Update user's points balance (refund only affects available_points, not total_earned)
+      await Suitebite.refundUserPoints(order.user_id, order.total_points);
     } catch (refundError) {
       console.error('Failed to process refund for cancelled order:', refundError);
       // Don't fail the cancellation if refund fails, but log it

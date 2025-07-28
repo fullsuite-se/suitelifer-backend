@@ -1217,20 +1217,61 @@ export const clearCart = async (req, res) => {
 export const checkout = async (req, res) => {
   try {
     const user_id = req.user.id;
+    const { items } = req.body;
+    
+    console.log('Checkout request:', { user_id, items, body: req.body });
 
-    // Get user's cart
-    const cart = await Suitebite.getCart(user_id);
-    if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Cart is empty" 
-      });
+    // Handle direct checkout (Buy Now) vs cart checkout
+    let orderItems = [];
+    let totalPoints = 0;
+
+    if (items && Array.isArray(items)) {
+      // Direct checkout from Buy Now
+      console.log('Direct checkout with items:', items);
+      
+      // Process each item and calculate total
+      for (const item of items) {
+        console.log('Processing item:', item);
+        
+        const product = await Suitebite.getProductById(item.product_id);
+        if (!product) {
+          return res.status(400).json({
+            success: false,
+            message: `Product with ID ${item.product_id} not found`
+          });
+        }
+
+        const itemPrice = product.price_points || product.price || 0;
+        const itemTotal = itemPrice * item.quantity;
+        totalPoints += itemTotal;
+
+        const orderItem = {
+          product_id: item.product_id,
+          product_name: product.name,
+          price_points: itemPrice,
+          quantity: item.quantity,
+          variation_id: item.variation_id || null,
+          variation_details: item.variations ? JSON.stringify(item.variations) : null
+        };
+        
+        console.log('Created order item:', orderItem);
+        orderItems.push(orderItem);
+      }
+    } else {
+      // Cart checkout (existing logic)
+      const cart = await Suitebite.getCart(user_id);
+      if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Cart is empty" 
+        });
+      }
+
+      orderItems = cart.cartItems;
+      totalPoints = cart.cartItems.reduce((total, item) => {
+        return total + (item.price_points * item.quantity);
+      }, 0);
     }
-
-    // Calculate total points
-    const totalPoints = cart.cartItems.reduce((total, item) => {
-      return total + (item.price_points * item.quantity);
-    }, 0);
 
     // Check if user has enough heartbits
     const userHeartbits = await Suitebite.getUserHeartbits(user_id);
@@ -1247,26 +1288,28 @@ export const checkout = async (req, res) => {
     }
 
     // Create order
-    const orderId = await Suitebite.createOrder(user_id, totalPoints, cart.cartItems);
+    const orderId = await Suitebite.createOrder(user_id, totalPoints, orderItems);
 
-    // Deduct heartbits
-    await Suitebite.updateUserHeartbits(user_id, {
-      heartbits_balance: userHeartbits.heartbits_balance - totalPoints,
-      total_heartbits_spent: userHeartbits.total_heartbits_spent + totalPoints
-    });
+    // Deduct heartbits (negative amount for spending)
+    await Suitebite.updateUserHeartbits(user_id, -totalPoints);
 
     // Add transaction record
-    await Suitebite.addHeartbitsTransaction({
-      user_id,
-      transaction_type: 'order_purchase',
-      points_amount: totalPoints,
-      reference_type: 'order',
-      reference_id: orderId,
-      description: `Order #${orderId} purchase`
+    await Suitebite.createTransaction({
+      transaction_id: uuidv7(),
+      from_user_id: user_id,
+      type: 'spent',
+      amount: totalPoints,
+      description: `Order #${orderId} purchase`,
+      metadata: {
+        reference_type: 'order',
+        reference_id: orderId
+      }
     });
 
-    // Clear cart
-    await Suitebite.clearCart(user_id);
+    // Clear cart only if it was a cart checkout
+    if (!items) {
+      await Suitebite.clearCart(user_id);
+    }
 
     res.status(201).json({ 
       success: true, 
