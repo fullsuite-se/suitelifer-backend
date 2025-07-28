@@ -1072,7 +1072,7 @@ export const Suitebite = {
 
     // Refund heartbits to user
     try {
-      await db("heartbits_transactions").insert({
+      await db("sl_heartbits_transactions").insert({
         user_id: order.user_id,
         transaction_type: "REFUND",
         points: order.total_points,
@@ -1081,8 +1081,8 @@ export const Suitebite = {
       });
 
       // Update user's heartbits balance
-      await db("users")
-        .where("id", order.user_id)
+      await db("sl_user_heartbits")
+        .where("user_id", order.user_id)
         .increment("heartbits_balance", order.total_points);
     } catch (refundError) {
       console.error('Failed to process refund for cancelled order:', refundError);
@@ -1568,7 +1568,7 @@ export const Suitebite = {
     } else {
       // Get default limit from system configuration
       const systemConfig = await this.getSystemConfiguration();
-      const defaultLimit = parseInt(systemConfig.default_monthly_limit?.value) || 1000;
+      const defaultLimit = parseInt(systemConfig.global_monthly_limit?.value) || 1000;
       
       return await monthlyLimitsTable().insert({
         user_id,
@@ -1593,7 +1593,7 @@ export const Suitebite = {
     } else {
       // Get default limit from system configuration
       const systemConfig = await this.getSystemConfiguration();
-      const defaultLimit = parseInt(systemConfig.default_monthly_limit?.value) || 1000;
+      const defaultLimit = parseInt(systemConfig.global_monthly_limit?.value) || 1000;
       
       return await monthlyLimitsTable().insert({
         user_id,
