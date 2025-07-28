@@ -1075,7 +1075,7 @@ export const Suitebite = {
       await db("sl_heartbits_transactions").insert({
         user_id: order.user_id,
         transaction_type: "REFUND",
-        points: order.total_points,
+        points_amount: order.total_points,
         description: `Order #${order_id} cancellation refund`,
         created_at: new Date()
       });
