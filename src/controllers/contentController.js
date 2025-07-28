@@ -153,6 +153,27 @@ export const patchCareers = async (req, res) => {
   }
 };
 
+export const getContact = async (req, res) => {
+  try {
+    const contactContent = await Content.getContact();
+
+    res.status(200).json({ success: true, contactContent });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const getAllContent = async (req, res) => {
+  try {
+    const content = await Content.getAllContent();
+    res.status(200).json({ success: true, content });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
 export const insertContent = async (req, res) => {
   try {
     const {

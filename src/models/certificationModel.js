@@ -9,13 +9,9 @@ export const Certification = {
         "cert_id AS certId",
         "cert_img_url AS certImageUrl",
         "sl_certifications.created_at AS createdAt",
-        db.raw(`
-          CONCAT(
-            first_name, ' ',
-            IF(middle_name IS NOT NULL AND middle_name != '', CONCAT(LEFT(middle_name, 1), '. '), ''),
-            last_name
-          ) AS createdBy
-        `)
+        db.raw(
+          "CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy"
+        )
       )
       .from("sl_certifications")
       .innerJoin("sl_user_accounts", {

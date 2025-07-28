@@ -1,6 +1,2 @@
 User-agent: *
-Disallow: /app/
-Disallow: /verify-account
-Disallow: /reset-password
-Disallow: /account-deactivated
-Disallow: /page-not-found
+Disallow: /admin-tools/
