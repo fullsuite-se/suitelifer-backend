@@ -3,6 +3,9 @@ import { db } from "../config/db.js";
 const userAccounts = "sl_user_accounts";
 
 export const User = {
+  addUser: async (userData) => {
+    return await userAccountsTable().insert(userData);
+  },
   getAllUsers: async () => {
     return await db.select("*").from(userAccounts);
   },
