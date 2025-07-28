@@ -5,14 +5,10 @@ import {
   getOldestPublishedIssue,
   getIssues,
   getNewsletters,
-  getNewsletterById,
   insertIssue,
   insertNewsletter,
   updateCurrentlyPublished,
   updateNewsletter,
-  insertNewsletterImages,
-  deleteNewsletterImageByImageUrlCon,
-  unpublishIssue,
 } from "../controllers/newsletterController.js";
 
 const router = express.Router();
@@ -27,22 +23,12 @@ router.post("/issues", insertIssue);
 
 router.patch("/issues", updateCurrentlyPublished);
 
-router.patch("/issues/unpublish", unpublishIssue);
-
 router.get("/newsletter", getNewsletters);
 
-router.get("/newsletter/:id", getNewsletterById);
-
 router.post("/newsletter", insertNewsletter);
-router.post("/newsletterImages", insertNewsletterImages);
 
 router.put("/newsletter", updateNewsletter);
 
 router.delete("/newsletter", deleteNewsletter);
-
-router.delete(
-  "/delete-newsletter-by-imageurl",
-  deleteNewsletterImageByImageUrlCon
-);
 
 export default router;

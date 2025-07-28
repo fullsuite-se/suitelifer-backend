@@ -1,7 +1,7 @@
 import express from "express";
 import {
   deleteEpisode,
-  getEmbeds,
+  getEpisodes,
   getPlaylists,
   getThreeLatestEpisodes,
   insertEpisode,
@@ -12,7 +12,7 @@ import verifyAdmin from "../middlewares/verifyAdmin.js";
 
 const router = express.Router();
 
-router.get("/spotify", getEmbeds);
+router.get("/spotify", getEpisodes);
 
 router.get("/spotify/latest-three", getThreeLatestEpisodes);
 

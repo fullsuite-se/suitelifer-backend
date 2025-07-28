@@ -29,10 +29,9 @@ export const getPlaylists = async (req, res) => {
   }
 };
 
-export const getEmbeds = async (req, res) => {
+export const getEpisodes = async (req, res) => {
   try {
-    const { embedType } = req.query;
-    const episodes = await SpotifyEmbed.getAllEmbeds(embedType);
+    const episodes = await SpotifyEmbed.getAllEmbeds();
     res.status(200).json({ success: true, data: episodes });
   } catch (err) {
     console.error("Error fetching episodes:", err.message);
@@ -49,6 +48,7 @@ export const insertEpisode = async (req, res) => {
 
     const embedType = url.indexOf("episode/") !== -1 ? "EPISODE" : "PLAYLIST";
 
+    // VALIDATE REQUIRED FIELDS
     if (!url || !userId) {
       return res.status(400).json({
         success: false,
@@ -56,6 +56,7 @@ export const insertEpisode = async (req, res) => {
       });
     }
 
+    // EXTRACT ID FROM THE URL
     const parts = url.split(embedType === "EPISODE" ? "episode/" : "playlist/");
     if (parts.length < 2) {
       return res.status(400).json({
@@ -74,12 +75,15 @@ export const insertEpisode = async (req, res) => {
       created_by: userId,
     };
 
+    // INSERT EPISODE INTO THE DATABASE
     await SpotifyEmbed.insertEmbed(newEpisode);
 
     res.status(201).json({
       success: true,
-      message: `${embedType} added successfully`,
+      message: "Episode added successfully",
     });
+
+    // TODO: LOG SPOTIFY EMBED INSERT
   } catch (err) {
     console.error("Error inserting episode:", err.message);
     res.status(500).json({
@@ -93,6 +97,7 @@ export const updateEpisode = async (req, res) => {
   try {
     const { episodeId, url, userId } = req.body;
 
+    // VALIDATE REQUIRED FIELDS
     if (!episodeId || !url) {
       return res.status(400).json({
         success: false,
@@ -102,6 +107,7 @@ export const updateEpisode = async (req, res) => {
 
     const embedType = url.indexOf("episode/") !== -1 ? "EPISODE" : "PLAYLIST";
 
+    // EXTRACT ID FROM THE URL
     const parts = url.split(embedType === "EPISODE" ? "episode/" : "playlist/");
     if (parts.length < 2) {
       return res
@@ -116,6 +122,7 @@ export const updateEpisode = async (req, res) => {
       spotify_id,
     };
 
+    // ATTEMPT TO UPDATE THE EPISODE
     const updatedEpisode = await SpotifyEmbed.updateEmbed(
       episodeId,
       updates,
@@ -125,15 +132,17 @@ export const updateEpisode = async (req, res) => {
     if (!updatedEpisode) {
       return res.status(404).json({
         success: false,
-        message: `${embedType} not found or not updated`,
+        message: "Episode not found or not updated",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: `${embedType} updated successfully`,
+      message: "Episode updated successfully",
       data: updateEpisode,
     });
+
+    // TODO: LOG SPOTIFY EMBED UPDATE
   } catch (err) {
     console.error("Error updating episode:", err);
     res.status(500).json({
@@ -147,6 +156,7 @@ export const deleteEpisode = async (req, res) => {
   try {
     const { episodeId, userId } = req.body;
 
+    // VALIDATE REQUIRED FIELD
     if (!episodeId) {
       return res.status(400).json({
         success: false,
@@ -154,19 +164,22 @@ export const deleteEpisode = async (req, res) => {
       });
     }
 
+    // ATTEMPT TO DELETE THE EPISODE
     const deletedEpisode = await SpotifyEmbed.deleteEmbed(episodeId, userId);
 
     if (!deletedEpisode) {
       return res.status(404).json({
         success: false,
-        message: `Spotify link not found or already deleted`,
+        message: "Episode not found or already deleted",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: `Spotify link deleted successfully`,
+      message: "Episode deleted successfully",
     });
+
+    // TODO: LOG SPOTIFY EMBED DELETE
   } catch (err) {
     console.error("Error deleting episode:", err);
     res.status(500).json({

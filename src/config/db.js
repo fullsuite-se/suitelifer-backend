@@ -17,4 +17,6 @@ export const pool = mysql.createPool({
   database: DB_DATABASE,
 });
 
+console.log(process.env.PORT);
+
 export const db = knex(knexconfig);

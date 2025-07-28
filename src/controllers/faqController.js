@@ -20,12 +20,22 @@ export const insertFaq = async (req, res) => {
   try {
     const { question, answer, is_shown, user_id } = req.body;
 
+    console.log("Received Data:", req.body);
+
     if (!question || !answer || is_shown === undefined || !user_id) {
       console.log("Missing required fields");
       return res.status(400).json({
-        success: false, message: "Missing required fields",
+        success: false,        message: "Missing required fields",
       });
     }
+
+    // Ensure is_shown is a valid number (0 or 1)
+    // if (is_shown !== 0 && is_shown !== 1) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "Invalid value for is_shown. It must be 0 or 1.",
+    //   });
+    // }
 
     const newFaq = {
       faq_id: uuidv7(),
@@ -35,10 +45,13 @@ export const insertFaq = async (req, res) => {
       created_at: now(),
       created_by: user_id, 
     };
+
+    console.log(newFaq);
     
     await Faq.insertFaq(newFaq);
 
     res.status(201).json({ success: true, message: "Faq added successfully." });
+    console.log("Faq added successfully:", newFaq);
   } catch (err) {
     console.error("Error inserting faq:", err.message);
     res.status(500).json({
@@ -59,6 +72,8 @@ export const updateFaq = async (req, res) => {
       is_shown,
       user_id
     } = req.body;
+
+    console.log(req.body);
 
     if (
       !faq_id ||
@@ -131,7 +146,7 @@ export const deleteFaq = async (req, res) => {
       message: "Faq deleted successfully",
     });
   } catch (err) {
-    console.log("Unable to delete FAQ", err);
+    console.log("Error deleting faq:", err);
     res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 };
