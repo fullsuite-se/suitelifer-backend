@@ -226,7 +226,8 @@ export const Points = {
         "sl_user_points.monthly_cheer_used",
         db.raw("CONCAT(sl_user_accounts.first_name, ' ', sl_user_accounts.last_name) AS userName"),
         "sl_user_accounts.user_email AS email",
-        "sl_user_accounts.profile_pic AS avatar"
+        "sl_user_accounts.profile_pic AS avatar",
+        "sl_user_accounts.user_type"
       )
       .innerJoin("sl_user_accounts", "sl_user_points.user_id", "sl_user_accounts.user_id")
       .orderBy("total_earned", "desc")
@@ -637,6 +638,7 @@ export const Points = {
       .sum('amount as totalPoints')
       .count('* as transactionCount')
       .whereIn('type', ['received', 'earned'])
+      .whereNotIn('type', ['admin_grant', 'admin_added'])
       .where('created_at', '>=', startDate)
       .groupBy('to_user_id')
       .having('totalPoints', '>', 0) // Only include users with points

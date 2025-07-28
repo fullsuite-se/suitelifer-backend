@@ -7,60 +7,58 @@ import HeartbitsUtils from "../utils/heartbitsUtils.js";
 
 export const createCheerPost = async (req, res) => {
   try {
-    const { peer_id, post_body, heartbits_given, hashtags } = req.body;
+    const { peer_id, post_body, heartbits_given, hashtags, as_admin } = req.body;
     const from_user_id = req.user.id;
     const to_user_id = peer_id;
-
-    // Validate points (ensure positive and within reasonable limits)
-    if (!heartbits_given || heartbits_given <= 0 || heartbits_given > 100) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Points must be between 1 and 100" 
-      });
-    }
-
-    // Check if sender is trying to send to themselves
-    if (from_user_id === to_user_id) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Cannot send cheers to yourself" 
-      });
-    }
 
     // Check if peer exists
     const peerExists = await Suitebite.getUserById(to_user_id);
     if (!peerExists) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Peer not found" 
-      });
+      return res.status(404).json({ success: false, message: "Peer not found" });
     }
 
-    // Check sender's available points
-    const senderPoints = await Suitebite.getUserPoints(from_user_id);
-    if (!senderPoints || senderPoints.available_points < heartbits_given) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Insufficient points to send cheer" 
-      });
+    // Determine if sender is admin and wants to send as Admin
+    const isAdmin = req.user && req.user.user_type === 'admin';
+    const sendAsAdmin = isAdmin && as_admin === true;
+
+    // Validate points (ensure positive and within reasonable limits)
+    if (!heartbits_given || heartbits_given <= 0 || heartbits_given > 100) {
+      return res.status(400).json({ success: false, message: "Points must be between 1 and 100" });
     }
 
-    // Check monthly limit
-    const monthlyLimitCheck = await HeartbitsUtils.checkMonthlyLimit(from_user_id, heartbits_given);
-    if (!monthlyLimitCheck.withinLimit) {
-      return res.status(400).json({
-        success: false,
-        message: `Monthly limit exceeded. You have sent ${monthlyLimitCheck.sent} heartbits this month with a limit of ${monthlyLimitCheck.limit}. You can send ${monthlyLimitCheck.remaining} more heartbits this month.`
-      });
+    // Prevent self-cheering unless admin is sending as Admin
+    if (from_user_id === to_user_id && !sendAsAdmin) {
+      return res.status(400).json({ success: false, message: "Cannot send cheers to yourself" });
+    }
+
+    // If admin is sending as Admin, bypass limits and use special sender logic
+    let cheerSenderId = sendAsAdmin ? null : from_user_id;
+    let is_admin_grant = sendAsAdmin ? true : false;
+
+    if (!sendAsAdmin) {
+      // Check sender's available points
+      const senderPoints = await Suitebite.getUserPoints(from_user_id);
+      if (!senderPoints || senderPoints.available_points < heartbits_given) {
+        return res.status(400).json({ success: false, message: "Insufficient points to send cheer" });
+      }
+      // Check monthly limit
+      const monthlyLimitCheck = await HeartbitsUtils.checkMonthlyLimit(from_user_id, heartbits_given);
+      if (!monthlyLimitCheck.withinLimit) {
+        return res.status(400).json({
+          success: false,
+          message: `Monthly limit exceeded. You have sent ${monthlyLimitCheck.sent} heartbits this month with a limit of ${monthlyLimitCheck.limit}. You can send ${monthlyLimitCheck.remaining} more heartbits this month.`
+        });
+      }
     }
 
     // Create the cheer
     const cheerData = {
       cheer_id: uuidv7(),
-      from_user_id,
+      from_user_id: cheerSenderId,
       to_user_id,
       points: heartbits_given,
       message: post_body || "",
+      is_admin_grant,
       created_at: new Date(),
       updated_at: new Date()
     };
@@ -71,53 +69,44 @@ export const createCheerPost = async (req, res) => {
     const fromTransactionId = uuidv7();
     const toTransactionId = uuidv7();
 
-    // Transaction from sender
-    await Suitebite.createTransaction({
-      transaction_id: fromTransactionId,
-      from_user_id,
-      to_user_id,
-      type: "given",
-      amount: heartbits_given,
-      description: `Cheered ${heartbits_given} points`,
-      message: post_body || "",
-      metadata: JSON.stringify({
-        type: "cheer",
-        cheer_id: cheerData.cheer_id
-      }),
-      created_at: new Date(),
-      updated_at: new Date()
-    });
+    // Transaction from sender (skip if admin grant)
+    if (!sendAsAdmin) {
+      await Suitebite.createTransaction({
+        transaction_id: fromTransactionId,
+        from_user_id,
+        to_user_id,
+        type: "given",
+        amount: heartbits_given,
+        description: `Cheered ${heartbits_given} points`,
+        message: post_body || "",
+        metadata: JSON.stringify({ type: "cheer", cheer_id: cheerData.cheer_id }),
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+      // Update points for sender
+      await Suitebite.updateUserPoints(from_user_id, -heartbits_given);
+      // Update monthly limit for the sender
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      await Suitebite.updateMonthlyLimit(from_user_id, currentMonth, heartbits_given);
+    }
 
     // Transaction to receiver
     await Suitebite.createTransaction({
       transaction_id: toTransactionId,
-      from_user_id,
+      from_user_id: sendAsAdmin ? null : from_user_id,
       to_user_id,
       type: "received",
       amount: heartbits_given,
-      description: `Received ${heartbits_given} points from cheer`,
+      description: sendAsAdmin ? `Received ${heartbits_given} points from Admin` : `Received ${heartbits_given} points from cheer`,
       message: post_body || "",
-      metadata: JSON.stringify({
-        type: "cheer",
-        cheer_id: cheerData.cheer_id
-      }),
+      metadata: JSON.stringify({ type: "cheer", cheer_id: cheerData.cheer_id, is_admin_grant }),
       created_at: new Date(),
       updated_at: new Date()
     });
-
-    // Update points for both users
-    await Suitebite.updateUserPoints(from_user_id, -heartbits_given);
+    // Update points for receiver
     await Suitebite.updateUserPoints(to_user_id, heartbits_given);
 
-    // Update monthly limit for the sender
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    await Suitebite.updateMonthlyLimit(from_user_id, currentMonth, heartbits_given);
-
-    res.status(201).json({ 
-      success: true, 
-      message: "Cheer posted successfully!",
-      cheer_id: cheerData.cheer_id
-    });
+    res.status(201).json({ success: true, message: "Cheer posted successfully!", cheer_id: cheerData.cheer_id });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
