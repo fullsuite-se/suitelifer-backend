@@ -993,7 +993,7 @@ export const Suitebite = {
         action_type: "APPROVE_ORDER",
         target_type: "ORDER",
         target_id: order_id,
-        action_data: JSON.stringify({ previous_status: "pending" }),
+        details: JSON.stringify({ previous_status: "pending" }),
         performed_at: new Date()
       });
     } catch (logError) {
@@ -1029,7 +1029,7 @@ export const Suitebite = {
         action_type: "COMPLETE_ORDER",
         target_type: "ORDER",
         target_id: order_id,
-        action_data: JSON.stringify({ previous_status: "processing" }),
+        details: JSON.stringify({ previous_status: "processing" }),
         performed_at: new Date()
       });
     } catch (logError) {
@@ -1133,7 +1133,7 @@ export const Suitebite = {
           action_type: "DELETE_ORDER",
           target_type: "ORDER",
           target_id: order_id,
-          action_data: JSON.stringify({ 
+          details: JSON.stringify({ 
             reason: reason || "No reason provided",
             order_status: order.status,
             total_points: order.total_points,
