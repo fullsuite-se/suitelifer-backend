@@ -437,85 +437,19 @@ export const Points = {
     return parseInt(result.count) || 0;
   },
 
-  // Enhanced Cheer Feed
-  getCheerFeed: async (limit = 20, offset = 0, user_id = null) => {
+
+
+  // Simplified Cheer Feed - get all recent cheers
+  getCheerFeed: async (limit = 20, offset = 0, user_id = null, from = null, to = null) => {
+    // Simple query to get all cheers with user details
     let query = cheersTable()
       .join("sl_user_accounts as from_user", "sl_cheers.from_user_id", "from_user.user_id")
       .join("sl_user_accounts as to_user", "sl_cheers.to_user_id", "to_user.user_id")
-      .leftJoin("sl_cheer_comments", "sl_cheers.cheer_id", "sl_cheer_comments.cheer_id")
-      .leftJoin("sl_cheer_likes", "sl_cheers.cheer_id", "sl_cheer_likes.cheer_id");
-
-    // If user_id is provided, add left join for user's likes
-    if (user_id) {
-      query = query.leftJoin(
-        db.raw("sl_cheer_likes as user_likes ON sl_cheers.cheer_id = user_likes.cheer_id AND user_likes.user_id = ?", [user_id])
-      );
-    }
-
-    const selectFields = [
-      "sl_cheers.*",
-      "from_user.first_name as from_first_name",
-      "from_user.last_name as from_last_name", 
-      "from_user.profile_pic as from_avatar",
-      "to_user.first_name as to_first_name",
-      "to_user.last_name as to_last_name",
-      "to_user.profile_pic as to_avatar",
-      db.raw("COUNT(DISTINCT sl_cheer_comments.id) as comment_count"),
-      db.raw("COUNT(DISTINCT CONCAT(sl_cheer_likes.cheer_id, sl_cheer_likes.user_id)) as like_count")
-    ];
-
-    // Add user liked status if user_id is provided
-    if (user_id) {
-      selectFields.push(db.raw("CASE WHEN user_likes.user_id IS NOT NULL THEN 1 ELSE 0 END as user_liked"));
-    }
-
-    const cheers = await query
-      .select(selectFields)
-      .groupBy("sl_cheers.cheer_id")
       .orderBy("sl_cheers.created_at", "desc")
       .limit(limit)
       .offset(offset);
 
-    return cheers.map(cheer => ({
-      _id: cheer.cheer_id,
-      cheer_id: cheer.cheer_id,
-      fromUser: {
-        _id: cheer.from_user_id,
-        name: `${cheer.from_first_name} ${cheer.from_last_name}`,
-        avatar: cheer.from_avatar
-      },
-      toUser: {
-        _id: cheer.to_user_id,
-        name: `${cheer.to_first_name} ${cheer.to_last_name}`,
-        avatar: cheer.to_avatar
-      },
-      points: cheer.points,
-      message: cheer.message,
-      createdAt: cheer.created_at,
-      commentCount: parseInt(cheer.comment_count) || 0,
-      likeCount: parseInt(cheer.like_count) || 0, // Keep for compatibility
-      heartCount: parseInt(cheer.like_count) || 0, // Add heart count
-      userLiked: user_id ? Boolean(cheer.user_liked) : false,
-      userHearted: user_id ? Boolean(cheer.user_liked) : false // Add hearted status
-    }));
-  },
-
-  // Enhanced Cheer Feed with date filtering
-  getCheerFeed: async (limit = 20, offset = 0, user_id = null, from = null, to = null) => {
-    let query = cheersTable()
-      .join("sl_user_accounts as from_user", "sl_cheers.from_user_id", "from_user.user_id")
-      .join("sl_user_accounts as to_user", "sl_cheers.to_user_id", "to_user.user_id")
-      .leftJoin("sl_cheer_comments", "sl_cheers.cheer_id", "sl_cheer_comments.cheer_id")
-      .leftJoin("sl_cheer_likes", "sl_cheers.cheer_id", "sl_cheer_likes.cheer_id");
-
-    // If user_id is provided, add left join for user's likes
-    if (user_id) {
-      query = query.leftJoin(
-        db.raw("sl_cheer_likes as user_likes ON sl_cheers.cheer_id = user_likes.cheer_id AND user_likes.user_id = ?", [user_id])
-      );
-    }
-
-    // Date filtering
+    // Apply date filtering if provided
     if (from) {
       query = query.where("sl_cheers.created_at", ">=", from);
     }
@@ -523,6 +457,13 @@ export const Points = {
       query = query.where("sl_cheers.created_at", "<=", to);
     }
 
+    // If user_id is provided, add left join for user's likes
+    if (user_id) {
+      query = query.leftJoin(
+        db.raw("sl_cheer_likes as user_likes ON sl_cheers.cheer_id = user_likes.cheer_id AND user_likes.user_id = ?", [user_id])
+      );
+    }
+
     const selectFields = [
       "sl_cheers.*",
       "from_user.first_name as from_first_name",
@@ -530,9 +471,7 @@ export const Points = {
       "from_user.profile_pic as from_avatar",
       "to_user.first_name as to_first_name",
       "to_user.last_name as to_last_name",
-      "to_user.profile_pic as to_avatar",
-      db.raw("COUNT(DISTINCT sl_cheer_comments.id) as comment_count"),
-      db.raw("COUNT(DISTINCT CONCAT(sl_cheer_likes.cheer_id, sl_cheer_likes.user_id)) as like_count")
+      "to_user.profile_pic as to_avatar"
     ];
 
     // Add user liked status if user_id is provided
@@ -540,14 +479,34 @@ export const Points = {
       selectFields.push(db.raw("CASE WHEN user_likes.user_id IS NOT NULL THEN 1 ELSE 0 END as user_liked"));
     }
 
-    const cheers = await query
-      .select(selectFields)
-      .groupBy("sl_cheers.cheer_id")
-      .orderBy("sl_cheers.created_at", "desc")
-      .limit(limit)
-      .offset(offset);
+    const cheers = await query.select(selectFields);
 
-    return cheers.map(cheer => ({
+    // Get comment and like counts for all cheers
+    const allCheerIds = cheers.map(c => c.cheer_id);
+    
+    let commentCounts = [];
+    let likeCounts = [];
+    
+    if (allCheerIds.length > 0) {
+      commentCounts = await db("sl_cheer_comments")
+        .select("cheer_id")
+        .count("* as count")
+        .whereIn("cheer_id", allCheerIds)
+        .groupBy("cheer_id");
+
+      likeCounts = await db("sl_cheer_likes")
+        .select("cheer_id")
+        .count("* as count")
+        .whereIn("cheer_id", allCheerIds)
+        .groupBy("cheer_id");
+    }
+
+    // Create lookup maps for quick access
+    const commentCountMap = new Map(commentCounts.map(c => [c.cheer_id, parseInt(c.count)]));
+    const likeCountMap = new Map(likeCounts.map(l => [l.cheer_id, parseInt(l.count)]));
+
+    // Map the results with counts
+    const result = cheers.map(cheer => ({
       _id: cheer.cheer_id,
       cheer_id: cheer.cheer_id,
       fromUser: {
@@ -563,12 +522,14 @@ export const Points = {
       points: cheer.points,
       message: cheer.message,
       createdAt: cheer.created_at,
-      commentCount: parseInt(cheer.comment_count) || 0,
-      likeCount: parseInt(cheer.like_count) || 0, // Keep for compatibility
-      heartCount: parseInt(cheer.like_count) || 0, // Add heart count
+      commentCount: commentCountMap.get(cheer.cheer_id) || 0,
+      likeCount: likeCountMap.get(cheer.cheer_id) || 0,
+      heartCount: likeCountMap.get(cheer.cheer_id) || 0,
       userLiked: user_id ? Boolean(cheer.user_liked) : false,
-      userHearted: user_id ? Boolean(cheer.user_liked) : false // Add hearted status
+      userHearted: user_id ? Boolean(cheer.user_liked) : false
     }));
+    
+    return result;
   },
 
   // Get cheer statistics for a user

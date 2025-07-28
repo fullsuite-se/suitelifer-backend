@@ -437,17 +437,20 @@ export const getPointsAnalytics = async (req, res) => {
   }
 };
 
-// Enhanced cheer with social features
+// Enhanced cheer with social features and performance optimizations
 export const getCheerFeed = async (req, res) => {
   try {
-    const { page = 1, limit = 20, from, to } = req.query;
-    const offset = (page - 1) * limit;
+    const { page = 1, limit = 20, offset = 0, from, to } = req.query;
     const user_id = req.user.id; // Get current user ID
+    
+    // Use offset if provided, otherwise calculate from page
+    const calculatedOffset = offset ? parseInt(offset) : (parseInt(page) - 1) * parseInt(limit);
+    const calculatedLimit = parseInt(limit);
 
     // Pass from/to to model for date filtering
     const cheers = await Points.getCheerFeed(
-      parseInt(limit),
-      offset,
+      calculatedLimit,
+      calculatedOffset,
       user_id,
       from || null,
       to || null
@@ -459,8 +462,9 @@ export const getCheerFeed = async (req, res) => {
         cheers,
         pagination: {
           page: parseInt(page),
-          limit: parseInt(limit),
-          hasMore: cheers.length === parseInt(limit)
+          limit: calculatedLimit,
+          offset: calculatedOffset,
+          hasMore: cheers.length === calculatedLimit
         }
       }
     });
@@ -472,6 +476,8 @@ export const getCheerFeed = async (req, res) => {
     });
   }
 };
+
+
 
 export const addCheerComment = async (req, res) => {
   try {
