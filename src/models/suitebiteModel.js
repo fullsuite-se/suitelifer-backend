@@ -1040,6 +1040,8 @@ export const Suitebite = {
   },
 
   cancelOrder: async (order_id, user_id, reason, isAdmin = false) => {
+    console.log(`Attempting to cancel order ${order_id} by user ${user_id}, isAdmin: ${isAdmin}`);
+    
     // Check if order exists and can be cancelled
     let orderQuery = ordersTable()
       .where("order_id", order_id);
@@ -1047,14 +1049,18 @@ export const Suitebite = {
     if (isAdmin) {
       // Admins can cancel pending or processing orders
       orderQuery = orderQuery.whereIn("status", ["pending", "processing"]);
+      console.log("Admin can cancel pending or processing orders");
     } else {
       // Regular users can only cancel pending orders
       orderQuery = orderQuery.where("status", "pending");
+      console.log("Regular user can only cancel pending orders");
     }
     
     const order = await orderQuery.first();
+    console.log("Found order:", order);
 
     if (!order) {
+      console.log("No order found or order cannot be cancelled");
       return false;
     }
 

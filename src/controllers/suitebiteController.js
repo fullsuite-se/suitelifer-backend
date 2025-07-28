@@ -1351,6 +1351,8 @@ export const cancelOrder = async (req, res) => {
     
     // Check if user is admin
     const isAdmin = req.user.user_type === 'admin' || req.user.user_type === 'superadmin';
+    
+    console.log(`Cancel order request - order_id: ${order_id}, user_id: ${user_id}, user_type: ${req.user.user_type}, isAdmin: ${isAdmin}`);
 
     const result = await Suitebite.cancelOrder(order_id, user_id, reason, isAdmin);
     
