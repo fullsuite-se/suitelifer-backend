@@ -1039,21 +1039,28 @@ export const Suitebite = {
     return true;
   },
 
-  cancelOrder: async (order_id, user_id, reason) => {
-    // Check if order exists and can be cancelled (pending status)
-    const order = await ordersTable()
-      .where("order_id", order_id)
-      .where("status", "pending")
-      .first();
+  cancelOrder: async (order_id, user_id, reason, isAdmin = false) => {
+    // Check if order exists and can be cancelled
+    let orderQuery = ordersTable()
+      .where("order_id", order_id);
+    
+    if (isAdmin) {
+      // Admins can cancel pending or processing orders
+      orderQuery = orderQuery.whereIn("status", ["pending", "processing"]);
+    } else {
+      // Regular users can only cancel pending orders
+      orderQuery = orderQuery.where("status", "pending");
+    }
+    
+    const order = await orderQuery.first();
 
     if (!order) {
       return false;
     }
 
     // Check if user owns the order or is admin
-    if (order.user_id !== user_id) {
-      // Additional check would be needed here for admin status
-      // For now, assuming the controller handles admin verification
+    if (order.user_id !== user_id && !isAdmin) {
+      return false;
     }
 
     // Update order status to cancelled

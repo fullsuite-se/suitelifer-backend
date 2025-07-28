@@ -1348,8 +1348,11 @@ export const cancelOrder = async (req, res) => {
     const { order_id } = req.params;
     const user_id = req.user.id;
     const { reason } = req.body;
+    
+    // Check if user is admin
+    const isAdmin = req.user.user_type === 'admin' || req.user.user_type === 'superadmin';
 
-    const result = await Suitebite.cancelOrder(order_id, user_id, reason);
+    const result = await Suitebite.cancelOrder(order_id, user_id, reason, isAdmin);
     
     if (result) {
       res.status(200).json({ 
@@ -1359,7 +1362,7 @@ export const cancelOrder = async (req, res) => {
     } else {
       res.status(400).json({ 
         success: false, 
-        message: "Failed to cancel order" 
+        message: "Failed to cancel order. Only pending orders can be cancelled by regular users, or pending/processing orders by admins." 
       });
     }
   } catch (err) {
