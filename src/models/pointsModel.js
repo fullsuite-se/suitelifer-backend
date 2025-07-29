@@ -441,7 +441,7 @@ export const Points = {
 
   // Simplified Cheer Feed - get all recent cheers
   getCheerFeed: async (limit = 20, offset = 0, user_id = null, from = null, to = null) => {
-    console.log('getCheerFeed called with:', { limit, offset, user_id, from, to });
+  
     
     // Simple query to get all cheers with user details
     let query = cheersTable()
@@ -485,15 +485,7 @@ export const Points = {
 
     const cheers = await query.select(selectFields);
     
-    console.log('Query results:', {
-      totalCheers: cheers.length,
-      dateRange: from && to ? `${from} to ${to}` : 'No date filter',
-      sampleDates: cheers.slice(0, 3).map(c => ({
-        cheer_id: c.cheer_id,
-        created_at: c.created_at,
-        message: c.message?.substring(0, 50)
-      }))
-    });
+
 
     // Get comment and like counts for all cheers
     const allCheerIds = cheers.map(c => c.cheer_id);
