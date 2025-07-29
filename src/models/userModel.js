@@ -5,7 +5,7 @@ const userAccountsTable = () => db("sl_user_accounts");
 
 export const User = {
   getAllUsers: async () => {
-    return await userAccountsTable()
+    const users = await userAccountsTable()
       .select(
         "user_id AS userId",
         "user_email AS userEmail",
@@ -22,6 +22,12 @@ export const User = {
         "sl_user_accounts.created_at AS createdAt"
       )
       .orderBy("fullName");
+    
+    // Add isSuspended field (temporarily set to false until database is migrated)
+    return users.map(user => ({
+      ...user,
+      isSuspended: false // TODO: Update when suspension columns are added to database
+    }));
   },
 
   updateUserRole: async (user_type, user_id) => {

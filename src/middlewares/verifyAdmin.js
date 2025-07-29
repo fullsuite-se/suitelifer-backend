@@ -29,7 +29,7 @@ const verifyAdmin = (req, res, next) => {
     // Handle both "role" field (from login token) and check for ADMIN/SUPER ADMIN values
     const userRole = decoded.role || decoded.user_type || '';
     
-    if (userRole !== "ADMIN" && userRole !== "SUPER ADMIN") {
+    if (userRole !== "ADMIN" && userRole !== "SUPER ADMIN" && userRole !== "SUPER_ADMIN") {
       return res
         .status(403)
         .json({ message: "Access Denied: Admins/Super Admin only" });
