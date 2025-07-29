@@ -36,9 +36,15 @@ export const Suitebite = {
   
   getUserById: async (user_id) => {
     const user = await usersTable()
-      .select("user_id", "first_name", "last_name", "user_email", "profile_pic", "user_type")
+      .select("user_id", "first_name", "last_name", "user_email", "profile_pic", "user_type", "is_active")
       .where("user_id", user_id)
       .first();
+    
+    // Add is_suspended field (temporarily set to false until database is migrated)
+    if (user) {
+      user.is_suspended = false; // TODO: Update when suspension_end column is added to database
+    }
+    
     return user;
   },
 
@@ -96,7 +102,7 @@ export const Suitebite = {
     return await Suitebite.updateUserPoints(user_id, heartbits_amount);
   },
 
-  // Specific function for refunds - only updates available_points, not total_earned
+  // Specific function for refunds - updates available_points and reduces total_spent
   refundUserPoints: async (user_id, refund_amount) => {
     const existing = await userPointsTable().where("user_id", user_id).first();
     
@@ -104,7 +110,8 @@ export const Suitebite = {
       return await userPointsTable()
         .where("user_id", user_id)
         .update({
-          available_points: db.raw("available_points + ?", [refund_amount])
+          available_points: db.raw("available_points + ?", [refund_amount]),
+          total_spent: db.raw("total_spent - ?", [refund_amount])
           // Note: Not updating total_earned since this is a refund, not new earnings
         });
     } else {
@@ -992,50 +999,89 @@ export const Suitebite = {
 
     const orders = await query.orderBy("sl_orders.ordered_at", "desc");
 
-    // Get order items for each order with product details
-    for (const order of orders) {
-      const orderItems = await orderItemsTable()
-        .select(
-          "sl_order_items.*",
-          "p.name as product_name",
-          "p.description as product_description",
-          "p.category_id",
-          "c.category_name as product_category",
-          "p.slug as product_slug"
-        )
-        .leftJoin("sl_products as p", "sl_order_items.product_id", "p.product_id")
-        .leftJoin("sl_shop_categories as c", "p.category_id", "c.category_id")
-        .where("order_id", order.order_id);
-
-      for (const item of orderItems) {
-        // Get variations for this order item
-        const variations = await db("sl_order_item_variations as oiv")
-      .select(
-            "oiv.*",
-            "vo.option_value",
-            "vo.option_label",
-            "vo.hex_color",
-            "vt.type_name",
-            "vt.type_label"
-          )
-          .leftJoin("sl_variation_options as vo", "oiv.option_id", "vo.option_id")
-          .leftJoin("sl_variation_types as vt", "oiv.variation_type_id", "vt.variation_type_id")
-          .where("oiv.order_item_id", item.order_item_id);
-
-        item.variations = variations;
-
-        // Get product images
-        const productImages = await db("sl_product_images")
-          .select("*")
-          .where("product_id", item.product_id)
-          .andWhere("is_active", true)
-          .orderBy("sort_order", "asc");
-
-        item.product_images = productImages;
-      }
-
-      order.orderItems = orderItems;
+    if (orders.length === 0) {
+      return orders;
     }
+
+    // Get all order items for all orders in one query
+    const orderIds = orders.map(o => o.order_id);
+    const allOrderItems = await orderItemsTable()
+      .select(
+        "sl_order_items.*",
+        "p.name as product_name",
+        "p.description as product_description",
+        "p.category_id",
+        "c.category_name as product_category",
+        "p.slug as product_slug"
+      )
+      .leftJoin("sl_products as p", "sl_order_items.product_id", "p.product_id")
+      .leftJoin("sl_shop_categories as c", "p.category_id", "c.category_id")
+      .whereIn("order_id", orderIds);
+
+    // Get all order item variations in one query
+    const orderItemIds = allOrderItems.map(item => item.order_item_id);
+    const allVariations = orderItemIds.length > 0 ? await db("sl_order_item_variations as oiv")
+      .select(
+        "oiv.*",
+        "vo.option_value",
+        "vo.option_label",
+        "vo.hex_color",
+        "vt.type_name",
+        "vt.type_label"
+      )
+      .leftJoin("sl_variation_options as vo", "oiv.option_id", "vo.option_id")
+      .leftJoin("sl_variation_types as vt", "oiv.variation_type_id", "vt.variation_type_id")
+      .whereIn("oiv.order_item_id", orderItemIds) : [];
+
+    // Get all product images in one query
+    const productIds = allOrderItems.map(item => item.product_id);
+    const allProductImages = await db("sl_product_images")
+      .select("*")
+      .whereIn("product_id", productIds)
+      .andWhere("is_active", true)
+      .orderBy("sort_order", "asc");
+
+    // Group order items by order_id
+    const orderItemsByOrder = {};
+    allOrderItems.forEach(item => {
+      if (!orderItemsByOrder[item.order_id]) {
+        orderItemsByOrder[item.order_id] = [];
+      }
+      orderItemsByOrder[item.order_id].push(item);
+    });
+
+    // Group variations by order_item_id
+    const variationsByOrderItem = {};
+    allVariations.forEach(variation => {
+      if (!variationsByOrderItem[variation.order_item_id]) {
+        variationsByOrderItem[variation.order_item_id] = [];
+      }
+      variationsByOrderItem[variation.order_item_id].push(variation);
+    });
+
+    // Group images by product_id
+    const imagesByProduct = {};
+    allProductImages.forEach(image => {
+      if (!imagesByProduct[image.product_id]) {
+        imagesByProduct[image.product_id] = [];
+      }
+      imagesByProduct[image.product_id].push(image);
+    });
+
+    // Attach order items, variations, and images to orders
+    orders.forEach(order => {
+      const orderItems = orderItemsByOrder[order.order_id] || [];
+      
+      orderItems.forEach(item => {
+        // Attach variations
+        item.variations = variationsByOrderItem[item.order_item_id] || [];
+        
+        // Attach product images
+        item.product_images = imagesByProduct[item.product_id] || [];
+      });
+      
+      order.orderItems = orderItems;
+    });
 
     return orders;
   },
@@ -1215,7 +1261,7 @@ export const Suitebite = {
         updated_at: new Date()
       });
 
-      // Update user's points balance (refund only affects available_points, not total_earned)
+      // Update user's points balance (refund affects available_points and reduces total_spent)
       await Suitebite.refundUserPoints(order.user_id, order.total_points);
     } catch (refundError) {
       console.error('Failed to process refund for cancelled order:', refundError);
@@ -2331,8 +2377,8 @@ export const Suitebite = {
   },
 
   getProductsWithVariations: async (activeOnly = true) => {
-    // Get base products with categories
-    let query = productsTable()
+    // Get base products with categories in a single query
+    let baseQuery = productsTable()
       .select(
         "sl_products.product_id",
         "sl_products.name",
@@ -2350,69 +2396,112 @@ export const Suitebite = {
       .select("sl_shop_categories.category_name as category");
 
     if (activeOnly) {
-      query = query.where("sl_products.is_active", true);
+      baseQuery = baseQuery.where("sl_products.is_active", true);
     }
 
-    const products = await query.orderBy("sl_products.name", "asc");
+    const products = await baseQuery.orderBy("sl_products.name", "asc");
 
-    // For each product, get its variations and options
-    for (const product of products) {
-      const variations = await db("sl_product_variations")
-        .select("*")
-        .where("product_id", product.product_id)
-        .andWhere("is_active", true);
+    // Get all variations and options in bulk queries
+    const productIds = products.map(p => p.product_id);
+    
+    if (productIds.length === 0) {
+      return products;
+    }
 
-      // For each variation, get its options
-      for (const variation of variations) {
-        const optionLinks = await db("sl_product_variation_options")
-          .where("variation_id", variation.variation_id);
-        
-        const optionIds = optionLinks.map(link => link.option_id);
-        
-        if (optionIds.length > 0) {
-          const options = await db("sl_variation_options as vo")
-            .select(
-              "vo.option_id",
-              "vo.variation_type_id",
-              "vo.option_value",
-              "vo.option_label",
-              "vo.hex_color",
-              "vt.type_name",
-              "vt.type_label"
-            )
-            .leftJoin("sl_variation_types as vt", "vo.variation_type_id", "vt.variation_type_id")
-            .whereIn("vo.option_id", optionIds)
-            .orderBy("vt.sort_order", "asc")
-            .orderBy("vo.sort_order", "asc");
-          
-          variation.options = options;
-        } else {
-          variation.options = [];
-        }
+    // Get all variations for all products in one query
+    const allVariations = await db("sl_product_variations")
+      .select("*")
+      .whereIn("product_id", productIds)
+      .andWhere("is_active", true);
+
+    // Get all variation options in one query
+    const variationIds = allVariations.map(v => v.variation_id);
+    const allOptionLinks = variationIds.length > 0 ? await db("sl_product_variation_options")
+      .whereIn("variation_id", variationIds) : [];
+
+    // Get all options with their types in one query
+    const optionIds = allOptionLinks.map(link => link.option_id);
+    const allOptions = optionIds.length > 0 ? await db("sl_variation_options as vo")
+      .select(
+        "vo.option_id",
+        "vo.variation_type_id",
+        "vo.option_value",
+        "vo.option_label",
+        "vo.hex_color",
+        "vt.type_name",
+        "vt.type_label"
+      )
+      .leftJoin("sl_variation_types as vt", "vo.variation_type_id", "vt.variation_type_id")
+      .whereIn("vo.option_id", optionIds)
+      .orderBy("vt.sort_order", "asc")
+      .orderBy("vo.sort_order", "asc") : [];
+
+    // Get all product images in one query
+    const allProductImages = await db("sl_product_images")
+      .select(
+        "product_id",
+        "image_id",
+        "image_url",
+        "thumbnail_url",
+        "medium_url", 
+        "large_url",
+        "public_id",
+        "alt_text",
+        "sort_order",
+        "is_primary"
+      )
+      .whereIn("product_id", productIds)
+      .andWhere("is_active", true)
+      .orderBy("sort_order", "asc")
+      .orderBy("created_at", "asc");
+
+    // Group variations by product_id
+    const variationsByProduct = {};
+    allVariations.forEach(variation => {
+      if (!variationsByProduct[variation.product_id]) {
+        variationsByProduct[variation.product_id] = [];
       }
-      
-      product.variations = variations;
+      variationsByProduct[variation.product_id].push(variation);
+    });
 
-      // Get product images from sl_product_images table
-      const productImages = await db("sl_product_images")
-        .select(
-          "image_id",
-          "image_url",
-          "thumbnail_url",
-          "medium_url", 
-          "large_url",
-          "public_id",
-          "alt_text",
-          "sort_order",
-          "is_primary"
-        )
-        .where("product_id", product.product_id)
-        .andWhere("is_active", true)
-        .orderBy("sort_order", "asc")
-        .orderBy("created_at", "asc");
+    // Group option links by variation_id
+    const optionLinksByVariation = {};
+    allOptionLinks.forEach(link => {
+      if (!optionLinksByVariation[link.variation_id]) {
+        optionLinksByVariation[link.variation_id] = [];
+      }
+      optionLinksByVariation[link.variation_id].push(link);
+    });
 
-      product.images = productImages;
-    }
+    // Group options by option_id for quick lookup
+    const optionsById = {};
+    allOptions.forEach(option => {
+      optionsById[option.option_id] = option;
+    });
+
+    // Group images by product_id
+    const imagesByProduct = {};
+    allProductImages.forEach(image => {
+      if (!imagesByProduct[image.product_id]) {
+        imagesByProduct[image.product_id] = [];
+      }
+      imagesByProduct[image.product_id].push(image);
+    });
+
+    // Attach variations and images to products
+    products.forEach(product => {
+      // Attach variations
+      const productVariations = variationsByProduct[product.product_id] || [];
+      productVariations.forEach(variation => {
+        const optionLinks = optionLinksByVariation[variation.variation_id] || [];
+        const optionIds = optionLinks.map(link => link.option_id);
+        variation.options = optionIds.map(id => optionsById[id]).filter(Boolean);
+      });
+      product.variations = productVariations;
+
+      // Attach images
+      product.images = imagesByProduct[product.product_id] || [];
+    });
 
     return products;
   },

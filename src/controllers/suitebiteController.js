@@ -18,7 +18,7 @@ export const createCheerPost = async (req, res) => {
     }
 
     // Determine if sender is admin and wants to send as Admin
-    const isAdmin = req.user && req.user.user_type === 'admin';
+    const isAdmin = req.user && req.user.role === 'ADMIN';
     const sendAsAdmin = isAdmin && as_admin === true;
 
     // Validate points (ensure positive and within reasonable limits)
@@ -1441,7 +1441,7 @@ export const cancelOrder = async (req, res) => {
     const normalizedRole = userRole.toLowerCase().replace(/\s+/g, '_');
     const isAdmin = normalizedRole === 'admin' || normalizedRole === 'superadmin' || normalizedRole === 'super_admin';
     
-    console.log(`Cancel order request - order_id: ${order_id}, user_id: ${user_id}, user_type: ${req.user.user_type}, role: ${req.user.role}, userRole: ${userRole}, normalizedRole: ${normalizedRole}, isAdmin: ${isAdmin}`);
+    console.log(`Cancel order request - order_id: ${order_id}, user_id: ${user_id}, role: ${req.user.role}, userRole: ${userRole}, normalizedRole: ${normalizedRole}, isAdmin: ${isAdmin}`);
 
     const result = await Suitebite.cancelOrder(order_id, user_id, reason, isAdmin);
     
@@ -1494,7 +1494,7 @@ export const getOrderById = async (req, res) => {
     }
 
     // Check if user owns this order (unless admin)
-    if (order.user_id !== user_id && req.user.user_type !== 'ADMIN') {
+    if (order.user_id !== user_id && !['ADMIN', 'SUPER_ADMIN', 'SUPER ADMIN'].includes(req.user.role)) {
       return res.status(403).json({ 
         success: false, 
         message: "Access denied" 
