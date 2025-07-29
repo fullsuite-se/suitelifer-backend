@@ -648,11 +648,11 @@ export const getLeaderboardWithPeriod = async (req, res) => {
     const queryTime = Date.now();
     const useCache = req.query.useCache || 'true';
 
-    console.log('Fetching leaderboard with params:', { period, user_id, useCache });
+
 
     const leaderboardData = await Points.getOptimizedLeaderboard(period, user_id, useCache === 'true');
     
-    console.log('Raw leaderboard data:', JSON.stringify(leaderboardData, null, 2));
+
 
     if (!leaderboardData || !Array.isArray(leaderboardData.leaderboard)) {
       throw new Error('Invalid leaderboard data structure');
@@ -664,7 +664,7 @@ export const getLeaderboardWithPeriod = async (req, res) => {
       totalPoints: Number(entry.totalPoints || entry.total_earned || 0)
     })).sort((a, b) => b.totalPoints - a.totalPoints);
 
-    console.log('Sorted leaderboard:', JSON.stringify(sortedLeaderboard, null, 2));
+
 
     // Assign ranks based on points
     let currentRank = 1;
@@ -701,7 +701,7 @@ export const getLeaderboardWithPeriod = async (req, res) => {
       };
     }
 
-    console.log('Current user data:', JSON.stringify(currentUser, null, 2));
+
 
     res.status(200).json({
       success: true,

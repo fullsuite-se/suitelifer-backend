@@ -1043,17 +1043,7 @@ export const getCart = async (req, res) => {
 
     const cart = await Suitebite.getCart(user_id);
     
-    // Debug: Log cart items with variations
-    if (cart && cart.cartItems) {
-      console.log(`🛒 Retrieved cart for user ${user_id}: ${cart.cartItems.length} items`);
-      cart.cartItems.forEach(item => {
-        if (item.variations && item.variations.length > 0) {
-          console.log(`  - ${item.product_name}: ${item.variations.map(v => v.option_label || v.option_value).join(' + ')}`);
-        } else {
-          console.log(`  - ${item.product_name}: No variations`);
-        }
-      });
-    }
+
     
     res.status(200).json({ success: true, data: cart });
   } catch (err) {
@@ -1119,8 +1109,7 @@ export const addToCart = async (req, res) => {
 
     const cartItemId = await Suitebite.addToCart(user_id, product_id, quantity, processedVariations);
 
-    // Debug: Log the variations that were saved
-    console.log(`✅ Added to cart: Product ${product_id}, Quantity ${quantity}, Variations:`, processedVariations);
+
 
     res.status(201).json({ 
       success: true, 
@@ -1208,7 +1197,7 @@ export const checkout = async (req, res) => {
     const user_id = req.user.id;
     const { items } = req.body;
     
-    console.log('Checkout request:', { user_id, items, body: req.body });
+
 
     // Handle direct checkout (Buy Now) vs cart checkout
     let orderItems = [];
@@ -1221,7 +1210,7 @@ export const checkout = async (req, res) => {
       
       if (isCartItems) {
         // Selected cart items checkout
-        console.log('Selected cart items checkout:', items);
+    
         
         // Get the full cart to process selected items
         const cart = await Suitebite.getCart(user_id);
@@ -1259,17 +1248,17 @@ export const checkout = async (req, res) => {
             variation_details: cartItem.variation_details || null
           };
           
-          console.log('Created order item from cart:', orderItem);
+  
           orderItems.push(orderItem);
           selectedCartItemIds.push(cartItem.cart_item_id);
         }
       } else {
         // Direct checkout from Buy Now
-        console.log('Direct checkout with items:', items);
+  
         
         // Process each item and calculate total
         for (const item of items) {
-          console.log('Processing item:', item);
+  
           
           const product = await Suitebite.getProductById(item.product_id);
           if (!product) {
@@ -1292,7 +1281,7 @@ export const checkout = async (req, res) => {
             variation_details: item.variations ? JSON.stringify(item.variations) : null
           };
           
-          console.log('Created order item:', orderItem);
+          
           orderItems.push(orderItem);
         }
       }

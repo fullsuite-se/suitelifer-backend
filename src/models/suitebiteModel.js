@@ -928,50 +928,89 @@ export const Suitebite = {
       .limit(limit)
       .offset(offset);
 
-    // Get order items for each order with product details
-    for (const order of orders) {
-      const orderItems = await orderItemsTable()
-        .select(
-          "sl_order_items.*",
-          "p.name as product_name",
-          "p.description as product_description",
-          "p.category_id",
-          "c.category_name as product_category",
-          "p.slug as product_slug"
-        )
-        .leftJoin("sl_products as p", "sl_order_items.product_id", "p.product_id")
-        .leftJoin("sl_shop_categories as c", "p.category_id", "c.category_id")
-        .where("order_id", order.order_id);
-
-      for (const item of orderItems) {
-        // Get variations for this order item
-        const variations = await db("sl_order_item_variations as oiv")
-          .select(
-            "oiv.*",
-            "vo.option_value",
-            "vo.option_label",
-            "vo.hex_color",
-            "vt.type_name",
-            "vt.type_label"
-          )
-          .leftJoin("sl_variation_options as vo", "oiv.option_id", "vo.option_id")
-          .leftJoin("sl_variation_types as vt", "oiv.variation_type_id", "vt.variation_type_id")
-          .where("oiv.order_item_id", item.order_item_id);
-
-        item.variations = variations;
-
-        // Get product images
-        const productImages = await db("sl_product_images")
-          .select("*")
-          .where("product_id", item.product_id)
-          .andWhere("is_active", true)
-          .orderBy("sort_order", "asc");
-
-        item.product_images = productImages;
-      }
-
-      order.orderItems = orderItems;
+    if (orders.length === 0) {
+      return orders;
     }
+
+    // Get all order items for all orders in one query
+    const orderIds = orders.map(o => o.order_id);
+    const allOrderItems = await orderItemsTable()
+      .select(
+        "sl_order_items.*",
+        "p.name as product_name",
+        "p.description as product_description",
+        "p.category_id",
+        "c.category_name as product_category",
+        "p.slug as product_slug"
+      )
+      .leftJoin("sl_products as p", "sl_order_items.product_id", "p.product_id")
+      .leftJoin("sl_shop_categories as c", "p.category_id", "c.category_id")
+      .whereIn("order_id", orderIds);
+
+    // Get all order item variations in one query
+    const orderItemIds = allOrderItems.map(item => item.order_item_id);
+    const allVariations = orderItemIds.length > 0 ? await db("sl_order_item_variations as oiv")
+      .select(
+        "oiv.*",
+        "vo.option_value",
+        "vo.option_label",
+        "vo.hex_color",
+        "vt.type_name",
+        "vt.type_label"
+      )
+      .leftJoin("sl_variation_options as vo", "oiv.option_id", "vo.option_id")
+      .leftJoin("sl_variation_types as vt", "oiv.variation_type_id", "vt.variation_type_id")
+      .whereIn("oiv.order_item_id", orderItemIds) : [];
+
+    // Get all product images in one query
+    const productIds = allOrderItems.map(item => item.product_id);
+    const allProductImages = await db("sl_product_images")
+      .select("*")
+      .whereIn("product_id", productIds)
+      .andWhere("is_active", true)
+      .orderBy("sort_order", "asc");
+
+    // Group order items by order_id
+    const orderItemsByOrder = {};
+    allOrderItems.forEach(item => {
+      if (!orderItemsByOrder[item.order_id]) {
+        orderItemsByOrder[item.order_id] = [];
+      }
+      orderItemsByOrder[item.order_id].push(item);
+    });
+
+    // Group variations by order_item_id
+    const variationsByOrderItem = {};
+    allVariations.forEach(variation => {
+      if (!variationsByOrderItem[variation.order_item_id]) {
+        variationsByOrderItem[variation.order_item_id] = [];
+      }
+      variationsByOrderItem[variation.order_item_id].push(variation);
+    });
+
+    // Group images by product_id
+    const imagesByProduct = {};
+    allProductImages.forEach(image => {
+      if (!imagesByProduct[image.product_id]) {
+        imagesByProduct[image.product_id] = [];
+      }
+      imagesByProduct[image.product_id].push(image);
+    });
+
+    // Attach order items, variations, and images to orders
+    orders.forEach(order => {
+      const orderItems = orderItemsByOrder[order.order_id] || [];
+      
+      orderItems.forEach(item => {
+        // Attach variations
+        item.variations = variationsByOrderItem[item.order_item_id] || [];
+        
+        // Attach product images
+        item.product_images = imagesByProduct[item.product_id] || [];
+      });
+      
+      order.orderItems = orderItems;
+    });
 
     return orders;
   },
