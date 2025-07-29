@@ -1213,41 +1213,91 @@ export const checkout = async (req, res) => {
     // Handle direct checkout (Buy Now) vs cart checkout
     let orderItems = [];
     let totalPoints = 0;
+    let selectedCartItemIds = [];
 
     if (items && Array.isArray(items)) {
-      // Direct checkout from Buy Now
-      console.log('Direct checkout with items:', items);
+      // Check if these are cart items (have cart_item_id) or direct product items
+      const isCartItems = items.length > 0 && items[0].cart_item_id;
       
-      // Process each item and calculate total
-      for (const item of items) {
-        console.log('Processing item:', item);
+      if (isCartItems) {
+        // Selected cart items checkout
+        console.log('Selected cart items checkout:', items);
         
-        const product = await Suitebite.getProductById(item.product_id);
-        if (!product) {
-          return res.status(400).json({
-            success: false,
-            message: `Product with ID ${item.product_id} not found`
+        // Get the full cart to process selected items
+        const cart = await Suitebite.getCart(user_id);
+        if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
+          return res.status(400).json({ 
+            success: false, 
+            message: "Cart is empty" 
           });
         }
 
-        const itemPrice = product.price_points || product.price || 0;
-        const itemTotal = itemPrice * item.quantity;
-        totalPoints += itemTotal;
+        // Filter cart items to only selected ones
+        const selectedCartItems = cart.cartItems.filter(cartItem => 
+          items.some(selectedItem => selectedItem.cart_item_id === cartItem.cart_item_id)
+        );
 
-        const orderItem = {
-          product_id: item.product_id,
-          product_name: product.name,
-          price_points: itemPrice,
-          quantity: item.quantity,
-          variation_id: item.variation_id || null,
-          variation_details: item.variations ? JSON.stringify(item.variations) : null
-        };
+        if (selectedCartItems.length === 0) {
+          return res.status(400).json({ 
+            success: false, 
+            message: "No valid items selected for checkout" 
+          });
+        }
+
+        // Process selected cart items
+        for (const cartItem of selectedCartItems) {
+          const itemPrice = cartItem.price_points || cartItem.price || 0;
+          const itemTotal = itemPrice * cartItem.quantity;
+          totalPoints += itemTotal;
+
+          const orderItem = {
+            product_id: cartItem.product_id,
+            product_name: cartItem.product_name,
+            price_points: itemPrice,
+            quantity: cartItem.quantity,
+            variation_id: cartItem.variation_id || null,
+            variation_details: cartItem.variation_details || null
+          };
+          
+          console.log('Created order item from cart:', orderItem);
+          orderItems.push(orderItem);
+          selectedCartItemIds.push(cartItem.cart_item_id);
+        }
+      } else {
+        // Direct checkout from Buy Now
+        console.log('Direct checkout with items:', items);
         
-        console.log('Created order item:', orderItem);
-        orderItems.push(orderItem);
+        // Process each item and calculate total
+        for (const item of items) {
+          console.log('Processing item:', item);
+          
+          const product = await Suitebite.getProductById(item.product_id);
+          if (!product) {
+            return res.status(400).json({
+              success: false,
+              message: `Product with ID ${item.product_id} not found`
+            });
+          }
+
+          const itemPrice = product.price_points || product.price || 0;
+          const itemTotal = itemPrice * item.quantity;
+          totalPoints += itemTotal;
+
+          const orderItem = {
+            product_id: item.product_id,
+            product_name: product.name,
+            price_points: itemPrice,
+            quantity: item.quantity,
+            variation_id: item.variation_id || null,
+            variation_details: item.variations ? JSON.stringify(item.variations) : null
+          };
+          
+          console.log('Created order item:', orderItem);
+          orderItems.push(orderItem);
+        }
       }
     } else {
-      // Cart checkout (existing logic)
+      // Full cart checkout (existing logic)
       const cart = await Suitebite.getCart(user_id);
       if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
         return res.status(400).json({ 
@@ -1295,10 +1345,15 @@ export const checkout = async (req, res) => {
       }
     });
 
-    // Clear cart only if it was a cart checkout
-    if (!items) {
+    // Handle cart cleanup based on checkout type
+    if (selectedCartItemIds.length > 0) {
+      // Remove only selected cart items
+      await Suitebite.removeCartItems(user_id, selectedCartItemIds);
+    } else if (!items) {
+      // Clear entire cart for full cart checkout
       await Suitebite.clearCart(user_id);
     }
+    // For direct checkout (Buy Now), don't clear cart
 
     res.status(201).json({ 
       success: true, 

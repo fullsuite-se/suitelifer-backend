@@ -343,32 +343,31 @@ export const Suitebite = {
   // ========== PRODUCTS OPERATIONS ==========
 
   getAllProducts: async (activeOnly = true) => {
-    let query = cheersTable()
+    let query = productsTable()
       .select(
-        "sl_cheers.*",
-        db.raw("(SELECT COUNT(*) FROM sl_cheer_likes WHERE cheer_id = sl_cheers.cheer_id) as likes_count"),
-        db.raw("(SELECT COUNT(*) FROM sl_cheer_comments WHERE cheer_id = sl_cheers.cheer_id) as comments_count")
+        "sl_products.product_id",
+        "sl_products.name",
+        "sl_products.description",
+        "sl_products.price_points as price",
+        "sl_products.category_id",
+        "sl_products.image_url",
+        "sl_products.images_json",
+        "sl_products.slug",
+        "sl_products.is_active",
+        "sl_products.created_at",
+        "sl_products.updated_at"
       )
-      .leftJoin("sl_user_accounts as from_user", "sl_cheers.from_user_id", "from_user.user_id")
-      .leftJoin("sl_user_accounts as to_user", "sl_cheers.to_user_id", "to_user.user_id")
-      .where(function() {
-        // Exclude admin grants from all feeds
-        this.whereNull("sl_cheers.is_admin_grant").orWhere("sl_cheers.is_admin_grant", false);
-      });
+      .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
+      .select("sl_shop_categories.category_name as category");
 
-    if (user_id) {
-      query = query.where(function() {
-        this.where("sl_cheers.from_user_id", user_id)
-            .orWhere("sl_cheers.to_user_id", user_id);
-      });
+    if (activeOnly) {
+      query = query.where("sl_products.is_active", true);
     }
 
-    const cheers = await query
-      .orderBy("sl_cheers.created_at", "desc")
-      .limit(limit)
-      .offset((page - 1) * limit);
+    const products = await query
+      .orderBy("sl_products.created_at", "desc");
 
-    return cheers;
+    return products;
   },
 
   getProductById: async (product_id) => {
@@ -746,6 +745,43 @@ export const Suitebite = {
       await cartsTable()
       .where("cart_id", cart.cart_id)
       .del();
+    }
+
+    return true;
+  },
+
+  removeCartItems: async (user_id, cartItemIds) => {
+    if (!cartItemIds || cartItemIds.length === 0) {
+      return true;
+    }
+
+    // Delete cart item variations for the specified items
+    await db("sl_cart_item_variations")
+      .whereIn("cart_item_id", cartItemIds)
+      .del();
+
+    // Delete the specified cart items
+    await cartItemsTable()
+      .whereIn("cart_item_id", cartItemIds)
+      .del();
+
+    // Check if cart is now empty and delete it if so
+    const cart = await cartsTable()
+      .where("user_id", user_id)
+      .first();
+
+    if (cart) {
+      const remainingItems = await cartItemsTable()
+        .where("cart_id", cart.cart_id)
+        .count("* as count")
+        .first();
+
+      if (remainingItems.count === 0) {
+        // Delete empty cart
+        await cartsTable()
+          .where("cart_id", cart.cart_id)
+          .del();
+      }
     }
 
     return true;
