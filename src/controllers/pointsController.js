@@ -200,7 +200,7 @@ export const cheerUser = async (req, res) => {
       to_user_id: targetUserId,
       type: "received",
       amount: heartbitsToSend,
-      description: `Received ${heartbitsToSend} points from cheer`,
+      description: `Received ${heartbitsToSend} points from Admin`,
       message,
       metadata: JSON.stringify({ cheer_id: cheerId, type: "cheer" })
     });
@@ -318,14 +318,15 @@ export const addPointsToUser = async (req, res) => {
       total_earned: userPoints.totalEarned + points
     });
 
-    // Create transaction
+    // Create transaction for admin grant
     await Points.createTransaction({
       transaction_id: uuidv7(),
       from_user_id: admin_user_id,
       to_user_id: user_id,
       type: "admin_grant",
       amount: points,
-      description: reason,
+      description: `Received ${points} points from Admin`,
+      message: reason,
       metadata: JSON.stringify({ admin_action: true, admin_user_id })
     });
 

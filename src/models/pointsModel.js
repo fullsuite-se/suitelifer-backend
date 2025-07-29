@@ -226,7 +226,8 @@ export const Points = {
         "sl_user_points.monthly_cheer_used",
         db.raw("CONCAT(sl_user_accounts.first_name, ' ', sl_user_accounts.last_name) AS userName"),
         "sl_user_accounts.user_email AS email",
-        "sl_user_accounts.profile_pic AS avatar"
+        "sl_user_accounts.profile_pic AS avatar",
+        "sl_user_accounts.user_type"
       )
       .innerJoin("sl_user_accounts", "sl_user_points.user_id", "sl_user_accounts.user_id")
       .orderBy("total_earned", "desc")
@@ -440,6 +441,8 @@ export const Points = {
 
   // Simplified Cheer Feed - get all recent cheers
   getCheerFeed: async (limit = 20, offset = 0, user_id = null, from = null, to = null) => {
+    console.log('getCheerFeed called with:', { limit, offset, user_id, from, to });
+    
     // Simple query to get all cheers with user details
     let query = cheersTable()
       .join("sl_user_accounts as from_user", "sl_cheers.from_user_id", "from_user.user_id")
@@ -450,9 +453,11 @@ export const Points = {
 
     // Apply date filtering if provided
     if (from) {
+      console.log('Applying FROM filter:', from);
       query = query.where("sl_cheers.created_at", ">=", from);
     }
     if (to) {
+      console.log('Applying TO filter:', to);
       query = query.where("sl_cheers.created_at", "<=", to);
     }
 
@@ -479,6 +484,16 @@ export const Points = {
     }
 
     const cheers = await query.select(selectFields);
+    
+    console.log('Query results:', {
+      totalCheers: cheers.length,
+      dateRange: from && to ? `${from} to ${to}` : 'No date filter',
+      sampleDates: cheers.slice(0, 3).map(c => ({
+        cheer_id: c.cheer_id,
+        created_at: c.created_at,
+        message: c.message?.substring(0, 50)
+      }))
+    });
 
     // Get comment and like counts for all cheers
     const allCheerIds = cheers.map(c => c.cheer_id);
@@ -598,6 +613,7 @@ export const Points = {
       .sum('amount as totalPoints')
       .count('* as transactionCount')
       .whereIn('type', ['received', 'earned'])
+      .whereNotIn('type', ['admin_grant', 'admin_added'])
       .where('created_at', '>=', startDate)
       .groupBy('to_user_id')
       .having('totalPoints', '>', 0) // Only include users with points

@@ -343,28 +343,32 @@ export const Suitebite = {
   // ========== PRODUCTS OPERATIONS ==========
 
   getAllProducts: async (activeOnly = true) => {
-    let query = productsTable()
+    let query = cheersTable()
       .select(
-        "sl_products.product_id",
-        "sl_products.name",
-        "sl_products.description",
-        "sl_products.price_points as price",
-        "sl_products.category_id",
-        "sl_products.image_url",
-        "sl_products.images_json",
-        "sl_products.slug",
-        "sl_products.is_active",
-        "sl_products.created_at",
-        "sl_products.updated_at"
+        "sl_cheers.*",
+        db.raw("(SELECT COUNT(*) FROM sl_cheer_likes WHERE cheer_id = sl_cheers.cheer_id) as likes_count"),
+        db.raw("(SELECT COUNT(*) FROM sl_cheer_comments WHERE cheer_id = sl_cheers.cheer_id) as comments_count")
       )
-      .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
-      .select("sl_shop_categories.category_name as category");
+      .leftJoin("sl_user_accounts as from_user", "sl_cheers.from_user_id", "from_user.user_id")
+      .leftJoin("sl_user_accounts as to_user", "sl_cheers.to_user_id", "to_user.user_id")
+      .where(function() {
+        // Exclude admin grants from all feeds
+        this.whereNull("sl_cheers.is_admin_grant").orWhere("sl_cheers.is_admin_grant", false);
+      });
 
-    if (activeOnly) {
-      query = query.where("sl_products.is_active", true);
+    if (user_id) {
+      query = query.where(function() {
+        this.where("sl_cheers.from_user_id", user_id)
+            .orWhere("sl_cheers.to_user_id", user_id);
+      });
     }
 
-    return await query.orderBy("sl_products.name", "asc");
+    const cheers = await query
+      .orderBy("sl_cheers.created_at", "desc")
+      .limit(limit)
+      .offset((page - 1) * limit);
+
+    return cheers;
   },
 
   getProductById: async (product_id) => {
@@ -1309,7 +1313,10 @@ export const Suitebite = {
       .leftJoin("sl_user_accounts as user", 
         type === "given" ? "sl_cheers.from_user_id" : "sl_cheers.to_user_id", 
         "user.user_id"
-      );
+      )
+      .where(function() {
+        this.whereNull("sl_cheers.is_admin_grant").orWhere("sl_cheers.is_admin_grant", false);
+      });
 
     // Add time period filter
     if (period === "day") {
@@ -1345,6 +1352,9 @@ export const Suitebite = {
       )
       .whereRaw("MONTH(sl_cheers.created_at) = ?", [month])
       .whereRaw("YEAR(sl_cheers.created_at) = ?", [year])
+      .where(function() {
+        this.whereNull("sl_cheers.is_admin_grant").orWhere("sl_cheers.is_admin_grant", false);
+      })
       .groupBy(type === "given" ? "from_user_id" : "to_user_id")
       .orderBy("total_heartbits", "desc")
       .limit(limit);
@@ -1354,7 +1364,6 @@ export const Suitebite = {
 
   getPeersWhoCheered: async (user_id, limit = 10, page = 1) => {
     const offset = (page - 1) * limit;
-    
     return await cheersTable()
       .select(
         "cheerer.user_id",
@@ -1367,6 +1376,9 @@ export const Suitebite = {
       )
       .leftJoin("sl_user_accounts as cheerer", "sl_cheers.from_user_id", "cheerer.user_id")
       .where("sl_cheers.to_user_id", user_id)
+      .where(function() {
+        this.whereNull("sl_cheers.is_admin_grant").orWhere("sl_cheers.is_admin_grant", false);
+      })
       .groupBy("sl_cheers.from_user_id")
       .orderBy("last_cheer_date", "desc")
       .limit(limit)
