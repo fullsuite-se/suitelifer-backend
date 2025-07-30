@@ -929,6 +929,7 @@ export const Suitebite = {
     const orders = await ordersTable()
       .select("*")
       .where("user_id", user_id)
+      .whereNull("deleted_at") // Exclude soft-deleted orders for users
       .orderBy("ordered_at", "desc")
       .limit(limit)
       .offset(offset);
@@ -1040,6 +1041,9 @@ export const Suitebite = {
     if (filters.dateTo) {
       query = query.where("sl_orders.ordered_at", "<=", filters.dateTo);
     }
+
+    // Include soft-deleted orders in admin panel (don't filter by deleted_at)
+    // This allows admins to see orders that users have soft-deleted
 
     const orders = await query.orderBy("sl_orders.ordered_at", "desc");
 
@@ -1315,7 +1319,7 @@ export const Suitebite = {
     return true;
   },
 
-  deleteOrder: async (order_id, admin_id, reason) => {
+  deleteOrder: async (order_id, user_id, reason, isAdmin = false) => {
     // Check if order exists
     const order = await ordersTable()
       .where("order_id", order_id)
@@ -1331,49 +1335,62 @@ export const Suitebite = {
     }
 
     try {
-      // Delete order item variations first
-      const orderItems = await orderItemsTable()
-        .where("order_id", order_id)
-        .select("order_item_id");
+      if (isAdmin) {
+        // Admin hard delete - completely remove from database
+        // Delete order item variations first
+        const orderItems = await orderItemsTable()
+          .where("order_id", order_id)
+          .select("order_item_id");
 
-      const orderItemIds = orderItems.map(item => item.order_item_id);
+        const orderItemIds = orderItems.map(item => item.order_item_id);
 
-      if (orderItemIds.length > 0) {
-        await db("sl_order_item_variations")
-          .whereIn("order_item_id", orderItemIds)
+        if (orderItemIds.length > 0) {
+          await db("sl_order_item_variations")
+            .whereIn("order_item_id", orderItemIds)
+            .del();
+        }
+
+        // Delete order items
+        await orderItemsTable()
+          .where("order_id", order_id)
           .del();
+
+        // Log admin action before deletion
+        try {
+          await db("sl_admin_actions").insert({
+            admin_id: user_id,
+            action_type: "DELETE_ORDER",
+            target_type: "ORDER",
+            target_id: order_id,
+            details: JSON.stringify({ 
+              reason: reason || "No reason provided",
+              order_status: order.status,
+              total_points: order.total_points,
+              user_id: order.user_id,
+              delete_type: "HARD_DELETE"
+            }),
+            performed_at: new Date()
+          });
+        } catch (logError) {
+          console.warn('Failed to log admin action:', logError);
+        }
+
+        // Delete the order
+        await ordersTable()
+          .where("order_id", order_id)
+          .del();
+
+        return true;
+      } else {
+        // User soft delete - mark as deleted but keep in database
+        await ordersTable()
+          .where("order_id", order_id)
+          .update({
+            deleted_at: new Date()
+          });
+
+        return true;
       }
-
-      // Delete order items
-      await orderItemsTable()
-        .where("order_id", order_id)
-        .del();
-
-      // Log admin action before deletion
-      try {
-        await db("sl_admin_actions").insert({
-          admin_id,
-          action_type: "DELETE_ORDER",
-          target_type: "ORDER",
-          target_id: order_id,
-          details: JSON.stringify({ 
-            reason: reason || "No reason provided",
-            order_status: order.status,
-            total_points: order.total_points,
-            user_id: order.user_id
-          }),
-          performed_at: new Date()
-        });
-      } catch (logError) {
-        console.warn('Failed to log admin action:', logError);
-      }
-
-      // Delete the order
-      await ordersTable()
-        .where("order_id", order_id)
-        .del();
-
-      return true;
     } catch (error) {
       console.error('Error deleting order:', error);
       throw error;

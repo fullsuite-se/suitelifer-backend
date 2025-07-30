@@ -388,6 +388,8 @@ CREATE TABLE `sl_cart_item_variations` (
 -- ============================================================================
 -- ORDERS TABLE
 -- ============================================================================
+-- Note: deleted_at supports soft deletes - orders with deleted_at timestamp
+-- remain in database but are filtered out of user queries
 CREATE TABLE `sl_orders` (
   `order_id` int NOT NULL AUTO_INCREMENT,
   `user_id` varchar(36) NOT NULL,
@@ -397,6 +399,7 @@ CREATE TABLE `sl_orders` (
   `processed_at` timestamp NULL DEFAULT NULL,
   `completed_at` timestamp NULL DEFAULT NULL,
   `cancelled_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -404,6 +407,9 @@ CREATE TABLE `sl_orders` (
   KEY `idx_orders_user` (`user_id`),
   KEY `idx_orders_status` (`status`),
   KEY `idx_orders_date` (`ordered_at`),
+  KEY `idx_orders_deleted_at` (`deleted_at`),
+  KEY `idx_orders_user_status_date_deleted` (`user_id`, `status`, `ordered_at`, `deleted_at`),
+  KEY `idx_orders_status_date_deleted` (`status`, `ordered_at`, `deleted_at`),
   CONSTRAINT `fk_orders_user` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -499,8 +505,6 @@ CREATE INDEX `idx_variation_types_sort` ON `sl_variation_types` (`sort_order`);
 CREATE INDEX `idx_product_images_product_active_sort` ON `sl_product_images` (`product_id`, `is_active`, `sort_order`);
 
 -- Order management performance indexes
-CREATE INDEX `idx_orders_user_status_date` ON `sl_orders` (`user_id`, `status`, `ordered_at`);
-CREATE INDEX `idx_orders_status_date` ON `sl_orders` (`status`, `ordered_at`);
 CREATE INDEX `idx_order_items_order_product` ON `sl_order_items` (`order_id`, `product_id`);
 CREATE INDEX `idx_order_item_variations_item` ON `sl_order_item_variations` (`order_item_id`);
 
