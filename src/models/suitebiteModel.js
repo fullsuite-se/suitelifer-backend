@@ -797,7 +797,12 @@ export const Suitebite = {
   // ========== ORDER OPERATIONS ==========
 
   createOrder: async (user_id, total_points, cartItems) => {
-    console.log('Creating order with items:', cartItems);
+    console.log('🛍️ Creating order with items:', cartItems.length);
+    console.log('📦 Cart items details:', cartItems.map(item => ({
+      product_id: item.product_id,
+      variations: item.variations,
+      variation_count: item.variations ? item.variations.length : 0
+    })));
     
     // Create order
     const [orderId] = await ordersTable().insert({

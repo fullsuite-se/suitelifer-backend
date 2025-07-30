@@ -1197,7 +1197,11 @@ export const checkout = async (req, res) => {
     const user_id = req.user.id;
     const { items } = req.body;
     
-
+    console.log('🛒 Checkout request:', {
+      user_id,
+      items: items ? items.length : 'null',
+      itemsData: items
+    });
 
     // Handle direct checkout (Buy Now) vs cart checkout
     let orderItems = [];
@@ -1239,16 +1243,29 @@ export const checkout = async (req, res) => {
           const itemTotal = itemPrice * cartItem.quantity;
           totalPoints += itemTotal;
 
+          console.log('📦 Processing cart item:', {
+            cart_item_id: cartItem.cart_item_id,
+            product_id: cartItem.product_id,
+            variations: cartItem.variations,
+            variation_count: cartItem.variations ? cartItem.variations.length : 0
+          });
+
           const orderItem = {
             product_id: cartItem.product_id,
             product_name: cartItem.product_name,
             price_points: itemPrice,
             quantity: cartItem.quantity,
             variation_id: cartItem.variation_id || null,
-            variation_details: cartItem.variation_details || null
+            variation_details: cartItem.variation_details || null,
+            variations: cartItem.variations || [] // Include variations array
           };
           
-  
+          console.log('📋 Created order item:', {
+            product_id: orderItem.product_id,
+            variations: orderItem.variations,
+            variation_count: orderItem.variations.length
+          });
+          
           orderItems.push(orderItem);
           selectedCartItemIds.push(cartItem.cart_item_id);
         }
@@ -1295,7 +1312,11 @@ export const checkout = async (req, res) => {
         });
       }
 
-      orderItems = cart.cartItems;
+      // Ensure cart items have variations property for createOrder function
+      orderItems = cart.cartItems.map(item => ({
+        ...item,
+        variations: item.variations || []
+      }));
       totalPoints = cart.cartItems.reduce((total, item) => {
         return total + (item.price_points * item.quantity);
       }, 0);
@@ -2817,5 +2838,67 @@ export const setPrimaryImage = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+// User delete own order
+export const deleteOwnOrder = async (req, res) => {
+  try {
+    let { order_id } = req.params;
+    const user_id = req.user.id;
+    const { reason } = req.body;
+
+    order_id = parseInt(order_id, 10);
+    if (isNaN(order_id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order ID"
+      });
+    }
+
+    // Check if order exists and belongs to user
+    const order = await Suitebite.getOrderById(order_id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    // Check if user owns this order
+    if (order.user_id !== user_id) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied - you can only delete your own orders"
+      });
+    }
+
+    // Check if order can be deleted (only cancelled or completed)
+    if (order.status !== 'cancelled' && order.status !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: "Only cancelled or completed orders can be deleted"
+      });
+    }
+
+    const result = await Suitebite.deleteOrder(order_id, user_id, reason);
+    
+    if (result) {
+      res.status(200).json({ 
+        success: true, 
+        message: "Order deleted successfully!" 
+      });
+    } else {
+      res.status(404).json({ 
+        success: false, 
+        message: "Order not found" 
+      });
+    }
+  } catch (err) {
+    console.error('Delete own order error:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: err.message || "Failed to delete order" 
+    });
   }
 };
