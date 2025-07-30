@@ -13,7 +13,7 @@ export const startSuitebiteJobs = () => {
   // Auto-complete orders that have been pending for too long
   // ==========================================
   cron.schedule('0 * * * *', async () => {
-    console.log('Running pending orders processor...');
+  
     try {
       // Get system configuration for auto-complete days
       const systemConfig = await Suitebite.getSystemConfiguration();
@@ -128,7 +128,7 @@ export const startSuitebiteJobs = () => {
         }
       );
 
-      console.log(`✅ Monthly reset completed:`);
+
       console.log(`   📊 Users processed: ${resetCount}`);
       console.log(`   💖 Total allowance given: ${allowanceGiven} heartbits`);
       console.log(`   📅 Month: ${currentMonth}`);

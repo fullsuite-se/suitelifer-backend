@@ -27,7 +27,7 @@ export const uploadImage = async (req, res) => {
     const baseUrl = originalResult.secure_url;
     const publicId = originalResult.public_id;
     
-    console.log('🔍 Backend - Cloudinary result:', originalResult);
+
     
     // Use the original URL for all sizes to test if the issue is with transformations
     const thumbnailUrl = baseUrl;
@@ -44,7 +44,7 @@ export const uploadImage = async (req, res) => {
       public_id: publicId  // Also include snake_case version for consistency
     };
     
-    console.log('🔍 Backend - Final response:', response);
+
     
     res.json(response);
   } catch (error) {
