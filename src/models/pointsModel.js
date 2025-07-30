@@ -512,28 +512,33 @@ export const Points = {
     const likeCountMap = new Map(likeCounts.map(l => [l.cheer_id, parseInt(l.count)]));
 
     // Map the results with counts
-    const result = cheers.map(cheer => ({
-      _id: cheer.cheer_id,
-      cheer_id: cheer.cheer_id,
-      fromUser: {
-        _id: cheer.from_user_id,
-        name: `${cheer.from_first_name} ${cheer.from_last_name}`,
-        avatar: cheer.from_avatar
-      },
-      toUser: {
-        _id: cheer.to_user_id,
-        name: `${cheer.to_first_name} ${cheer.to_last_name}`,
-        avatar: cheer.to_avatar
-      },
-      points: cheer.points,
-      message: cheer.message,
-      createdAt: cheer.created_at,
-      commentCount: commentCountMap.get(cheer.cheer_id) || 0,
-      likeCount: likeCountMap.get(cheer.cheer_id) || 0,
-      heartCount: likeCountMap.get(cheer.cheer_id) || 0,
-      userLiked: user_id ? Boolean(cheer.user_liked) : false,
-      userHearted: user_id ? Boolean(cheer.user_liked) : false
-    }));
+    const result = cheers.map((cheer, index) => {
+      const userLikedValue = user_id ? Boolean(cheer.user_liked) : false;
+      const userHeartedValue = user_id ? Boolean(cheer.user_liked) : false;
+      
+      return {
+        _id: cheer.cheer_id,
+        cheer_id: cheer.cheer_id,
+        fromUser: {
+          _id: cheer.from_user_id,
+          name: `${cheer.from_first_name} ${cheer.from_last_name}`,
+          avatar: cheer.from_avatar
+        },
+        toUser: {
+          _id: cheer.to_user_id,
+          name: `${cheer.to_first_name} ${cheer.to_last_name}`,
+          avatar: cheer.to_avatar
+        },
+        points: cheer.points,
+        message: cheer.message,
+        createdAt: cheer.created_at,
+        commentCount: commentCountMap.get(cheer.cheer_id) || 0,
+        likeCount: likeCountMap.get(cheer.cheer_id) || 0,
+        heartCount: likeCountMap.get(cheer.cheer_id) || 0,
+        userLiked: userLikedValue,
+        userHearted: userHeartedValue
+      };
+    });
     
     return result;
   },
