@@ -365,7 +365,8 @@ export const Suitebite = {
         "sl_products.updated_at"
       )
       .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
-      .select("sl_shop_categories.category_name as category");
+      .select("sl_shop_categories.category_name as category")
+      .whereNull("sl_products.deleted_at"); // Filter out soft-deleted products
 
     if (activeOnly) {
       query = query.where("sl_products.is_active", true);
@@ -396,6 +397,7 @@ export const Suitebite = {
       .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
       .select("sl_shop_categories.category_name as category")
       .where("sl_products.product_id", product_id)
+      .whereNull("sl_products.deleted_at") // Filter out soft-deleted products
       .first();
 
     if (!product) return null;
@@ -423,6 +425,52 @@ export const Suitebite = {
     return product;
   },
 
+  getProductByIdForOrders: async (product_id) => {
+    // Fetch base product (including soft-deleted ones for order queries)
+    const product = await productsTable()
+      .select(
+        "sl_products.product_id",
+        "sl_products.name",
+        "sl_products.description",
+        "sl_products.price_points as price",
+        "sl_products.category_id",
+        "sl_products.image_url",
+        "sl_products.images_json",
+        "sl_products.slug",
+        "sl_products.is_active",
+        "sl_products.deleted_at",
+        "sl_products.created_at",
+        "sl_products.updated_at"
+      )
+      .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
+      .select("sl_shop_categories.category_name as category")
+      .where("sl_products.product_id", product_id)
+      .first(); // Include soft-deleted products for orders
+
+    if (!product) return null;
+
+    // Fetch all images for this product
+    const images = await db("sl_product_images")
+      .select(
+        "image_id",
+        "image_url",
+        "thumbnail_url",
+        "medium_url",
+        "large_url",
+        "public_id",
+        "alt_text",
+        "sort_order",
+        "is_primary"
+      )
+      .where("product_id", product.product_id)
+      .andWhere("is_active", true)
+      .orderBy("sort_order", "asc")
+      .orderBy("created_at", "asc");
+
+    product.images = images;
+    return product;
+  },
+
   addProduct: async (productData) => {
     const [productId] = await productsTable().insert(productData);
     return productId;
@@ -435,20 +483,14 @@ export const Suitebite = {
   },
 
   deleteProduct: async (product_id) => {
-    // First delete related cart items
-    await cartItemsTable()
-      .where("product_id", product_id)
-      .del();
-    
-    // Delete product variations
-    await db("sl_product_variations")
-      .where("product_id", product_id)
-      .del();
-    
-    // Finally delete the product
+    // Soft delete the product - mark as deleted but keep in database
+    // This allows orders to retain product information even after deletion
     return await productsTable()
       .where("product_id", product_id)
-      .del();
+      .update({
+        deleted_at: new Date(),
+        is_active: 0 // Also mark as inactive
+      });
   },
 
   // ========== PRODUCT VARIATIONS OPERATIONS ==========
@@ -797,12 +839,7 @@ export const Suitebite = {
   // ========== ORDER OPERATIONS ==========
 
   createOrder: async (user_id, total_points, cartItems) => {
-    console.log('🛍️ Creating order with items:', cartItems.length);
-    console.log('📦 Cart items details:', cartItems.map(item => ({
-      product_id: item.product_id,
-      variations: item.variations,
-      variation_count: item.variations ? item.variations.length : 0
-    })));
+
     
     // Create order
     const [orderId] = await ordersTable().insert({
@@ -824,11 +861,7 @@ export const Suitebite = {
       });
 
       // Transfer variations
-      console.log('Processing variations for item:', {
-        product_id: cartItem.product_id,
-        variations: cartItem.variations,
-        variation_details: cartItem.variation_details
-      });
+
       
       if (cartItem.variations && cartItem.variations.length > 0) {
         const variationData = cartItem.variations.map(variation => ({
@@ -837,13 +870,13 @@ export const Suitebite = {
           option_id: variation.option_id
         }));
 
-        console.log('Inserting variations from cart:', variationData);
+
         await db("sl_order_item_variations").insert(variationData);
       } else if (cartItem.variation_details) {
         // Handle variation_details from direct checkout
         try {
           const variations = JSON.parse(cartItem.variation_details);
-          console.log('Parsed variations from variation_details:', variations);
+
           
           if (Array.isArray(variations) && variations.length > 0) {
             const variationData = variations.map(variation => ({
@@ -852,7 +885,7 @@ export const Suitebite = {
               option_id: variation.option_id
             }));
 
-            console.log('Inserting variations from direct checkout:', variationData);
+
             await db("sl_order_item_variations").insert(variationData);
           }
         } catch (error) {
@@ -947,7 +980,8 @@ export const Suitebite = {
         "p.description as product_description",
         "p.category_id",
         "c.category_name as product_category",
-        "p.slug as product_slug"
+        "p.slug as product_slug",
+        "p.deleted_at as product_deleted_at"
       )
       .leftJoin("sl_products as p", "sl_order_items.product_id", "p.product_id")
       .leftJoin("sl_shop_categories as c", "p.category_id", "c.category_id")
@@ -2454,7 +2488,8 @@ export const Suitebite = {
         "sl_products.updated_at"
       )
       .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
-      .select("sl_shop_categories.category_name as category");
+      .select("sl_shop_categories.category_name as category")
+      .whereNull("sl_products.deleted_at"); // Filter out soft-deleted products
 
     if (activeOnly) {
       baseQuery = baseQuery.where("sl_products.is_active", true);
@@ -2636,17 +2671,17 @@ export const Suitebite = {
   },
 
   deleteProductImage: async (image_id) => {
-    console.log('🔍 Model - deleteProductImage called with image_id:', image_id);
+    
     
     // First check if the image exists
     const image = await db("sl_product_images")
       .where("image_id", image_id)
       .first();
     
-    console.log('🔍 Model - Image found:', image);
+    
     
     if (!image) {
-      console.log('🔍 Model - Image not found in database');
+      
       throw new Error('Image not found');
     }
     
@@ -2655,7 +2690,7 @@ export const Suitebite = {
       .where("image_id", image_id)
       .del();
     
-    console.log('🔍 Model - Delete result:', result);
+    
     return result;
   },
 

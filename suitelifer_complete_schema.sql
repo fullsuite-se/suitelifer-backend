@@ -98,16 +98,18 @@ CREATE TABLE `sl_products` (
   `name` varchar(255) NOT NULL,
   `description` text,
   `image_url` varchar(500) DEFAULT NULL,
-  `price_points` int NOT NULL,
+  `price_points` int NOT NULL DEFAULT 0,
   `category_id` int DEFAULT NULL,
-  `is_active` tinyint(1) DEFAULT 1,
   `slug` varchar(255) DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `deleted_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`product_id`),
   KEY `idx_products_category` (`category_id`),
   KEY `idx_products_active` (`is_active`),
-  KEY `idx_products_slug` (`slug`),
+  KEY `idx_products_deleted_at` (`deleted_at`),
+  KEY `idx_products_category_active_deleted` (`category_id`, `is_active`, `deleted_at`),
   CONSTRAINT `fk_products_category` FOREIGN KEY (`category_id`) REFERENCES `sl_shop_categories` (`category_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -584,6 +586,25 @@ LEFT JOIN `sl_user_points` up ON u.user_id = up.user_id
 WHERE u.is_active = 1;
 
 -- ============================================================================
+-- MOOD LOGS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_mood_logs` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `user_id` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Reference to sl_user_accounts.user_id',
+  `mood_level` TINYINT(1) NOT NULL CHECK (`mood_level` >= 1 AND `mood_level` <= 5) COMMENT 'Mood rating from 1 (very bad) to 5 (excellent)',
+  `notes` TEXT DEFAULT NULL COMMENT 'Optional notes or comments about the mood entry',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_created_at` (`created_at`),
+  KEY `idx_user_date` (`user_id`, `created_at`),
+  KEY `idx_mood_level` (`mood_level`),
+  KEY `idx_user_mood_date` (`user_id`, `mood_level`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Stores user mood tracking entries';
+
+-- ============================================================================
 -- TRIGGERS FOR DATA CONSISTENCY
 -- ============================================================================
 
@@ -642,12 +663,21 @@ INSERT IGNORE INTO `sl_variation_types` (`type_name`, `type_label`, `sort_order`
 -- 3. Shopping cart and order management
 -- 4. Heartbits/points system
 -- 5. Cheer-a-peer social features
--- 6. Performance optimizations with indexes
--- 7. Views for common queries
--- 8. Triggers for data consistency
+-- 6. Mood tracking system
+-- 7. Performance optimizations with indexes
+-- 8. Views for common queries
+-- 9. Triggers for data consistency
+-- 10. Soft delete support (deleted_at columns)
 --
 -- Performance features:
 -- - Optimized queries for shop loading (1-2s instead of 6s)
 -- - Optimized queries for order management (1-2s instead of 4-7s)
 -- - Comprehensive indexing strategy
--- - Caching mechanisms in frontend 
+-- - Caching mechanisms in frontend
+--
+-- Integrated SQL files:
+-- - add_deleted_at_to_orders.sql (already included)
+-- - add_deleted_at_to_products.sql (already included)
+-- - add_indexes_to_orders.sql (already included)
+-- - create_cart_item_variations_table.sql (already included)
+-- - createMoodTable.sql (now included) 

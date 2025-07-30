@@ -1189,11 +1189,7 @@ export const checkout = async (req, res) => {
     const user_id = req.user.id;
     const { items } = req.body;
     
-    console.log('🛒 Checkout request:', {
-      user_id,
-      items: items ? items.length : 'null',
-      itemsData: items
-    });
+
 
     // Handle direct checkout (Buy Now) vs cart checkout
     let orderItems = [];
@@ -1235,12 +1231,7 @@ export const checkout = async (req, res) => {
           const itemTotal = itemPrice * cartItem.quantity;
           totalPoints += itemTotal;
 
-          console.log('📦 Processing cart item:', {
-            cart_item_id: cartItem.cart_item_id,
-            product_id: cartItem.product_id,
-            variations: cartItem.variations,
-            variation_count: cartItem.variations ? cartItem.variations.length : 0
-          });
+
 
           const orderItem = {
             product_id: cartItem.product_id,
@@ -1252,11 +1243,7 @@ export const checkout = async (req, res) => {
             variations: cartItem.variations || [] // Include variations array
           };
           
-          console.log('📋 Created order item:', {
-            product_id: orderItem.product_id,
-            variations: orderItem.variations,
-            variation_count: orderItem.variations.length
-          });
+
           
           orderItems.push(orderItem);
           selectedCartItemIds.push(cartItem.cart_item_id);
@@ -2671,7 +2658,7 @@ export const addProductImage = async (req, res) => {
       is_active = true 
     } = req.body;
 
-    console.log('🔍 Backend - addProductImage called with data:', req.body);
+
 
     if (!image_url) {
       return res.status(400).json({ 
@@ -2702,7 +2689,7 @@ export const addProductImage = async (req, res) => {
       is_active
     });
 
-    console.log('🔍 Backend - Image added with ID:', imageId);
+
 
     // Update product's images_json
     await Suitebite.updateProductImagesJson(productId);
@@ -2748,32 +2735,30 @@ export const updateProductImage = async (req, res) => {
 
 export const deleteProductImage = async (req, res) => {
   try {
-    console.log('🔍 Backend - deleteProductImage endpoint hit');
-    console.log('🔍 Backend - Request params:', req.params);
-    console.log('🔍 Backend - Request headers:', req.headers);
+
     
     const { imageId } = req.params;
-    console.log('🔍 Backend - deleteProductImage called with imageId:', imageId);
+
 
     const image = await Suitebite.getProductImageById(imageId);
-    console.log('🔍 Backend - Found image:', image);
+    
     
     if (!image) {
-      console.log('🔍 Backend - Image not found');
+      
       return res.status(404).json({ 
         success: false, 
         message: "Product image not found" 
       });
     }
 
-    console.log('🔍 Backend - Deleting image from database...');
+    
     const deleteResult = await Suitebite.deleteProductImage(imageId);
-    console.log('🔍 Backend - Image deleted from database, result:', deleteResult);
+    
 
     // Update product's images_json
-    console.log('🔍 Backend - Updating product images JSON...');
+    
     await Suitebite.updateProductImagesJson(image.product_id);
-    console.log('🔍 Backend - Product images JSON updated');
+    
 
     res.status(200).json({ 
       success: true, 
@@ -2840,7 +2825,7 @@ export const deleteOwnOrder = async (req, res) => {
     const user_id = req.user.id;
     const { reason } = req.body;
 
-    console.log('🔍 deleteOwnOrder called with:', { order_id, user_id, reason });
+
 
     order_id = parseInt(order_id, 10);
     if (isNaN(order_id)) {
@@ -2875,11 +2860,11 @@ export const deleteOwnOrder = async (req, res) => {
       });
     }
 
-    console.log('✅ Calling deleteOrder with isAdmin=false for soft delete');
+
     const result = await Suitebite.deleteOrder(order_id, user_id, reason, false); // isAdmin = false for soft delete
     
     if (result) {
-      console.log('✅ Soft delete successful for order:', order_id);
+  
       res.status(200).json({ 
         success: true, 
         message: "Order deleted successfully!" 
