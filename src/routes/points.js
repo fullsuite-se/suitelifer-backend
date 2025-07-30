@@ -1,5 +1,5 @@
 import express from 'express';
-import { 
+import {
   getPointsBalance,
   getTransactionHistory,
   cheerUser,
@@ -19,7 +19,8 @@ import {
   updateLeaderboardCache,
   getLeaderboardPerformance,
   updateCheerComment,
-  deleteCheerComment
+  deleteCheerComment,
+  dismissModerationNotification
 } from '../controllers/pointsController.js';
 import verifyToken from '../middlewares/verifyToken.js';
 import verifyAdmin from '../middlewares/verifyAdmin.js';
@@ -32,8 +33,11 @@ router.use(verifyToken);
 // Get user's current points balance
 router.get('/balance', getPointsBalance);
 
+// Dismiss moderation notification
+router.post('/moderation/:transaction_id/dismiss', verifyToken, dismissModerationNotification);
+
 // Get user's transaction history
-router.get('/transactions', getTransactionHistory);
+router.get('/transactions', verifyToken, getTransactionHistory);
 
 // Cheer/Give points to another user
 router.post('/cheer', (req, res, next) => {
@@ -81,7 +85,7 @@ router.get('/admin/users', getAllUserPoints);
 // Admin: Add points to user
 router.post('/admin/add', addPointsToUser);
 
-// Admin: Deduct points from user  
+// Admin: Deduct points from user
 router.post('/admin/deduct', deductPointsFromUser);
 
 // Admin: Get points analytics

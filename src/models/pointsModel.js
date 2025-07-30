@@ -91,6 +91,25 @@ export const Points = {
     });
   },
 
+  // Mark moderation notification as dismissed
+  markModerationAsDismissed: async (user_id, transaction_id) => {
+    try {
+      // Update the transaction to mark it as dismissed
+      await transactionsTable()
+        .where("transaction_id", transaction_id)
+        .where("to_user_id", user_id)
+        .where("type", "moderation")
+        .update({
+          metadata: db.raw("JSON_SET(COALESCE(metadata, '{}'), '$.dismissed', true, '$.dismissed_at', ?)", [new Date().toISOString()])
+        });
+      
+      return true;
+    } catch (error) {
+      console.error('Error marking moderation as dismissed:', error);
+      return false;
+    }
+  },
+
   getUserTransactions: async (user_id, limit = 20, offset = 0, type = null) => {
     let query = transactionsTable()
       .select(
@@ -133,7 +152,7 @@ export const Points = {
         }).orWhere(function() {
           // User is receiver - show incoming transactions  
           this.where("sl_transactions.to_user_id", user_id)
-              .whereIn("sl_transactions.type", ["received", "admin_grant", "admin_added"]);
+              .whereIn("sl_transactions.type", ["received", "admin_grant", "admin_added", "moderation"]);
         });
       })
       .orderBy("sl_transactions.created_at", "desc")
@@ -447,6 +466,7 @@ export const Points = {
     let query = cheersTable()
       .join("sl_user_accounts as from_user", "sl_cheers.from_user_id", "from_user.user_id")
       .join("sl_user_accounts as to_user", "sl_cheers.to_user_id", "to_user.user_id")
+      .where("sl_cheers.is_hidden", false) // Filter out hidden posts
       .orderBy("sl_cheers.created_at", "desc")
       .limit(limit)
       .offset(offset);

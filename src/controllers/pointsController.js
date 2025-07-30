@@ -857,3 +857,38 @@ export const deleteCheerComment = async (req, res) => {
     });
   }
 };
+
+// Mark moderation notification as dismissed
+export const dismissModerationNotification = async (req, res) => {
+  try {
+    const { id: user_id } = req.user;
+    const { transaction_id } = req.params;
+
+    if (!transaction_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Transaction ID is required"
+      });
+    }
+
+    const success = await Points.markModerationAsDismissed(user_id, transaction_id);
+
+    if (success) {
+      res.status(200).json({
+        success: true,
+        message: "Notification dismissed successfully"
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "Notification not found or already dismissed"
+      });
+    }
+  } catch (error) {
+    console.error("Error dismissing notification:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    });
+  }
+};

@@ -18,7 +18,7 @@ export const createCheerPost = async (req, res) => {
     }
 
     // Determine if sender is admin and wants to send as Admin
-    const isAdmin = req.user && req.user.role === 'ADMIN';
+    const isAdmin = req.user && req.user.user_type === 'admin';
     const sendAsAdmin = isAdmin && as_admin === true;
 
     // Validate points (ensure positive and within reasonable limits)
@@ -1043,7 +1043,17 @@ export const getCart = async (req, res) => {
 
     const cart = await Suitebite.getCart(user_id);
     
-
+    // Debug: Log cart items with variations
+    if (cart && cart.cartItems) {
+      console.log(`🛒 Retrieved cart for user ${user_id}: ${cart.cartItems.length} items`);
+      cart.cartItems.forEach(item => {
+        if (item.variations && item.variations.length > 0) {
+          console.log(`  - ${item.product_name}: ${item.variations.map(v => v.option_label || v.option_value).join(' + ')}`);
+        } else {
+          console.log(`  - ${item.product_name}: No variations`);
+        }
+      });
+    }
     
     res.status(200).json({ success: true, data: cart });
   } catch (err) {
@@ -1109,7 +1119,8 @@ export const addToCart = async (req, res) => {
 
     const cartItemId = await Suitebite.addToCart(user_id, product_id, quantity, processedVariations);
 
-
+    // Debug: Log the variations that were saved
+    console.log(`✅ Added to cart: Product ${product_id}, Quantity ${quantity}, Variations:`, processedVariations);
 
     res.status(201).json({ 
       success: true, 
@@ -1197,11 +1208,7 @@ export const checkout = async (req, res) => {
     const user_id = req.user.id;
     const { items } = req.body;
     
-    console.log('🛒 Checkout request:', {
-      user_id,
-      items: items ? items.length : 'null',
-      itemsData: items
-    });
+    console.log('Checkout request:', { user_id, items, body: req.body });
 
     // Handle direct checkout (Buy Now) vs cart checkout
     let orderItems = [];
@@ -1214,7 +1221,7 @@ export const checkout = async (req, res) => {
       
       if (isCartItems) {
         // Selected cart items checkout
-    
+        console.log('Selected cart items checkout:', items);
         
         // Get the full cart to process selected items
         const cart = await Suitebite.getCart(user_id);
@@ -1243,39 +1250,26 @@ export const checkout = async (req, res) => {
           const itemTotal = itemPrice * cartItem.quantity;
           totalPoints += itemTotal;
 
-          console.log('📦 Processing cart item:', {
-            cart_item_id: cartItem.cart_item_id,
-            product_id: cartItem.product_id,
-            variations: cartItem.variations,
-            variation_count: cartItem.variations ? cartItem.variations.length : 0
-          });
-
           const orderItem = {
             product_id: cartItem.product_id,
             product_name: cartItem.product_name,
             price_points: itemPrice,
             quantity: cartItem.quantity,
             variation_id: cartItem.variation_id || null,
-            variation_details: cartItem.variation_details || null,
-            variations: cartItem.variations || [] // Include variations array
+            variation_details: cartItem.variation_details || null
           };
           
-          console.log('📋 Created order item:', {
-            product_id: orderItem.product_id,
-            variations: orderItem.variations,
-            variation_count: orderItem.variations.length
-          });
-          
+          console.log('Created order item from cart:', orderItem);
           orderItems.push(orderItem);
           selectedCartItemIds.push(cartItem.cart_item_id);
         }
       } else {
         // Direct checkout from Buy Now
-  
+        console.log('Direct checkout with items:', items);
         
         // Process each item and calculate total
         for (const item of items) {
-  
+          console.log('Processing item:', item);
           
           const product = await Suitebite.getProductById(item.product_id);
           if (!product) {
@@ -1298,7 +1292,7 @@ export const checkout = async (req, res) => {
             variation_details: item.variations ? JSON.stringify(item.variations) : null
           };
           
-          
+          console.log('Created order item:', orderItem);
           orderItems.push(orderItem);
         }
       }
@@ -1312,11 +1306,7 @@ export const checkout = async (req, res) => {
         });
       }
 
-      // Ensure cart items have variations property for createOrder function
-      orderItems = cart.cartItems.map(item => ({
-        ...item,
-        variations: item.variations || []
-      }));
+      orderItems = cart.cartItems;
       totalPoints = cart.cartItems.reduce((total, item) => {
         return total + (item.price_points * item.quantity);
       }, 0);
@@ -1451,7 +1441,7 @@ export const cancelOrder = async (req, res) => {
     const normalizedRole = userRole.toLowerCase().replace(/\s+/g, '_');
     const isAdmin = normalizedRole === 'admin' || normalizedRole === 'superadmin' || normalizedRole === 'super_admin';
     
-    console.log(`Cancel order request - order_id: ${order_id}, user_id: ${user_id}, role: ${req.user.role}, userRole: ${userRole}, normalizedRole: ${normalizedRole}, isAdmin: ${isAdmin}`);
+    console.log(`Cancel order request - order_id: ${order_id}, user_id: ${user_id}, user_type: ${req.user.user_type}, role: ${req.user.role}, userRole: ${userRole}, normalizedRole: ${normalizedRole}, isAdmin: ${isAdmin}`);
 
     const result = await Suitebite.cancelOrder(order_id, user_id, reason, isAdmin);
     
@@ -1504,7 +1494,7 @@ export const getOrderById = async (req, res) => {
     }
 
     // Check if user owns this order (unless admin)
-    if (order.user_id !== user_id && !['ADMIN', 'SUPER_ADMIN', 'SUPER ADMIN'].includes(req.user.role)) {
+    if (order.user_id !== user_id && req.user.user_type !== 'ADMIN') {
       return res.status(403).json({ 
         success: false, 
         message: "Access denied" 
@@ -1788,13 +1778,13 @@ export const getMonthlyLimits = async (req, res) => {
 
 export const getCheerPostsAdmin = async (req, res) => {
   try {
-    const { page = 1, limit = 20, search, date_from, date_to } = req.query;
+    const { page = 1, limit = 20, search, date_from, date_to, filter = 'all' } = req.query;
 
-    const posts = await Suitebite.getCheerPostsForAdmin(page, limit, search, date_from, date_to);
+    const posts = await Suitebite.getCheerPostsAdmin(page, limit, filter, search, date_from, date_to);
     
     res.status(200).json({ success: true, posts });
   } catch (err) {
-    console.error(err);
+    console.error('Error in getCheerPostsAdmin:', err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -1804,8 +1794,8 @@ export const deleteCheerPost = async (req, res) => {
     const { id } = req.params;
     const { reason } = req.body;
 
-    // Check if post exists
-    const post = await Suitebite.getCheerPostById(id);
+    // Check if post exists (admin can see all posts including hidden ones)
+    const post = await Suitebite.getCheerPostByIdAdmin(id);
     if (!post) {
       return res.status(404).json({ 
         success: false, 
@@ -1837,10 +1827,10 @@ export const deleteCheerPost = async (req, res) => {
 export const moderateCheerPost = async (req, res) => {
   try {
     const { id } = req.params;
-    const { action, reason } = req.body; // action: 'approve', 'reject', 'hide', 'show', 'flag', 'unflag', 'warn'
+    const { action, reason } = req.body; // action: 'hide', 'unhide', 'delete'
 
     // Validate action
-    const validActions = ['approve', 'reject', 'hide', 'show', 'flag', 'unflag', 'warn'];
+    const validActions = ['hide', 'unhide', 'delete'];
     if (!validActions.includes(action)) {
       return res.status(400).json({ 
         success: false, 
@@ -1848,8 +1838,8 @@ export const moderateCheerPost = async (req, res) => {
       });
     }
 
-    // Check if post exists
-    const post = await Suitebite.getCheerPostById(id);
+    // Check if post exists (admin can see all posts including hidden ones)
+    const post = await Suitebite.getCheerPostByIdAdmin(id);
     if (!post) {
       return res.status(404).json({ 
         success: false, 
@@ -1857,30 +1847,112 @@ export const moderateCheerPost = async (req, res) => {
       });
     }
 
-    // For warn action, reason is required
-    if (action === 'warn' && !reason) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Warning message is required for warn action" 
+    const result = await Suitebite.moderateCheerPost(id, action, reason || '', req.user.id);
+
+    // Handle delete action
+    if (result && result.action === 'delete') {
+      // Create transaction for delete action before deleting the post
+      if (post.cheerer_id) {
+        console.log('Creating delete notification for user:', post.cheerer_id, 'with reason:', reason);
+        try {
+          await Suitebite.createModerationTransaction(
+            req.user.id,
+            post.cheerer_id,
+            'delete',
+            reason,
+            id,
+            post.cheer_message
+          );
+          console.log('Delete notification created successfully');
+        } catch (error) {
+          console.error('Error creating delete notification:', error);
+        }
+      } else {
+        console.log('No cheerer_id found for post:', post);
+      }
+      
+      // Delete the post and all related data
+      await Suitebite.deleteCheerPost(id);
+      
+      // Log admin action
+      await Suitebite.logAdminAction(
+        req.user.id,
+        "DELETE_CHEER_POST",
+        "CHEER_POST",
+        id,
+        { action, reason, post_body: post.cheer_message }
+      );
+
+      return res.status(200).json({ 
+        success: true, 
+        message: "Post deleted successfully"
       });
     }
 
-    await Suitebite.moderateCheerPost(id, action, reason, req.user.id);
+    // Handle hide action
+    if (result && result.action === 'hide') {
+      // Create notification for user when their post is hidden
+      if (post.cheerer_id) {
+        try {
+          await Suitebite.createModerationNotification(
+            post.cheerer_id,
+            'hidden',
+            reason,
+            post.cheer_message
+          );
+        } catch (error) {
+          console.error('Error creating moderation notification:', error);
+          // Don't fail the moderation if notification fails
+        }
+      }
 
-    // Log admin action
-    await Suitebite.logAdminAction(
-      req.user.id,
-      "CHEER_POST_MODERATE",
-      "CHEER_POST",
-      id,
-      { action, reason: reason || "No reason provided", post_body: post.post_body }
-    );
+      // Log admin action
+      await Suitebite.logAdminAction(
+        req.user.id,
+        "HIDE_CHEER_POST",
+        "CHEER_POST",
+        id,
+        { action, reason, post_body: post.cheer_message }
+      );
 
-    res.status(200).json({ 
-      success: true, 
-      message: `Cheer post ${action} successfully`,
-      action: action
-    });
+      res.status(200).json({ 
+        success: true, 
+        message: "Post hidden successfully"
+      });
+    }
+
+    // Handle unhide action
+    if (result && result.action === 'unhide') {
+      // Create notification for user when their post is unhidden
+      if (post.cheerer_id) {
+        try {
+          await Suitebite.createModerationNotification(
+            post.cheerer_id,
+            'unhidden',
+            reason || 'Post has been restored',
+            post.cheer_message
+          );
+        } catch (error) {
+          console.error('Error creating moderation notification:', error);
+          // Don't fail the moderation if notification fails
+        }
+      }
+
+      // Log admin action
+      await Suitebite.logAdminAction(
+        req.user.id,
+        "UNHIDE_CHEER_POST",
+        "CHEER_POST",
+        id,
+        { action, reason: reason || 'No reason provided', post_body: post.cheer_message }
+      );
+
+      res.status(200).json({ 
+        success: true, 
+        message: "Post unhidden successfully"
+      });
+    }
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -2203,6 +2275,47 @@ export const getSystemAuditLogs = async (req, res) => {
     );
     
     res.status(200).json({ success: true, logs });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const getUserNotifications = async (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+    const user_id = req.user.id;
+
+    const notifications = await Suitebite.getUserNotifications(user_id, limit);
+    
+    res.status(200).json({ success: true, notifications });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const markNotificationAsRead = async (req, res) => {
+  try {
+    const { notification_id } = req.params;
+    const user_id = req.user.id;
+
+    // Verify the notification belongs to the user
+    const notification = await db('sl_user_notifications')
+      .where('notification_id', notification_id)
+      .where('user_id', user_id)
+      .first();
+
+    if (!notification) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Notification not found" 
+      });
+    }
+
+    await Suitebite.markNotificationAsRead(notification_id);
+    
+    res.status(200).json({ success: true, message: "Notification marked as read" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -2838,67 +2951,5 @@ export const setPrimaryImage = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
-  }
-};
-
-// User delete own order
-export const deleteOwnOrder = async (req, res) => {
-  try {
-    let { order_id } = req.params;
-    const user_id = req.user.id;
-    const { reason } = req.body;
-
-    order_id = parseInt(order_id, 10);
-    if (isNaN(order_id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid order ID"
-      });
-    }
-
-    // Check if order exists and belongs to user
-    const order = await Suitebite.getOrderById(order_id);
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found"
-      });
-    }
-
-    // Check if user owns this order
-    if (order.user_id !== user_id) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied - you can only delete your own orders"
-      });
-    }
-
-    // Check if order can be deleted (only cancelled or completed)
-    if (order.status !== 'cancelled' && order.status !== 'completed') {
-      return res.status(400).json({
-        success: false,
-        message: "Only cancelled or completed orders can be deleted"
-      });
-    }
-
-    const result = await Suitebite.deleteOrder(order_id, user_id, reason);
-    
-    if (result) {
-      res.status(200).json({ 
-        success: true, 
-        message: "Order deleted successfully!" 
-      });
-    } else {
-      res.status(404).json({ 
-        success: false, 
-        message: "Order not found" 
-      });
-    }
-  } catch (err) {
-    console.error('Delete own order error:', err);
-    res.status(500).json({ 
-      success: false, 
-      message: err.message || "Failed to delete order" 
-    });
   }
 };

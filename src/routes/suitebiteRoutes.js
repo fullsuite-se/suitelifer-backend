@@ -65,7 +65,6 @@ import {
   approveOrder,
   completeOrder,
   deleteOrder,
-  deleteOwnOrder,
   
   // Leaderboard endpoints
   getLeaderboard,
@@ -183,7 +182,7 @@ router.post("/orders/checkout", verifyToken, checkout);
 router.get("/orders/history", verifyToken, getOrderHistory);
 router.get("/orders/:id", verifyToken, getOrderById);
 router.put("/orders/:order_id/cancel", verifyToken, cancelOrder);
-router.delete("/orders/:order_id", verifyToken, deleteOwnOrder);
+router.delete("/orders/:order_id", verifyToken, deleteOrder);
 router.get("/admin/orders", verifyToken, verifyAdmin, getAllOrders);
 router.put("/admin/orders/:order_id/status", verifyToken, verifyAdmin, updateOrderStatus);
 router.put("/admin/orders/:order_id/approve", verifyToken, verifyAdmin, approveOrder);
