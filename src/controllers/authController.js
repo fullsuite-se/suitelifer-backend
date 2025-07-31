@@ -206,8 +206,9 @@ export const sendAccountVerificationLink = async (req, res) => {
       message: "Account verification link sent! Check your email.",
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error('Error in sendAccountVerificationLink:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 };
 
