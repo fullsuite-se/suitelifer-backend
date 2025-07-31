@@ -2693,24 +2693,25 @@ export const Suitebite = {
   // ========== CHEER POST MODERATION ==========
 
   getCheerPostsAdmin: async (page = 1, limit = 20, filter = 'all', search = '', dateFrom = '', dateTo = '') => {
-    const offset = (page - 1) * limit;
-    
-    let query = cheersTable()
-      .select(
-        "sl_cheers.*",
-        "from_user.first_name as from_user_first_name",
-        "from_user.last_name as from_user_last_name",
-        "from_user.profile_pic as from_user_profile_pic",
-        "from_user.user_email as from_user_email",
-        "to_user.first_name as to_user_first_name",
-        "to_user.last_name as to_user_last_name",
-        "to_user.profile_pic as to_user_profile_pic",
-        "to_user.user_email as to_user_email",
-        db.raw("(SELECT COUNT(*) FROM sl_cheer_likes WHERE cheer_id = sl_cheers.cheer_id) as likes_count"),
-        db.raw("(SELECT COUNT(*) FROM sl_cheer_comments WHERE cheer_id = sl_cheers.cheer_id) as comments_count")
-      )
-      .leftJoin("sl_user_accounts as from_user", "sl_cheers.from_user_id", "from_user.user_id")
-      .leftJoin("sl_user_accounts as to_user", "sl_cheers.to_user_id", "to_user.user_id");
+    try {
+      const offset = (page - 1) * limit;
+      
+      let query = cheersTable()
+        .select(
+          "sl_cheers.*",
+          "from_user.first_name as from_user_first_name",
+          "from_user.last_name as from_user_last_name",
+          "from_user.profile_pic as from_user_profile_pic",
+          "from_user.user_email as from_user_email",
+          "to_user.first_name as to_user_first_name",
+          "to_user.last_name as to_user_last_name",
+          "to_user.profile_pic as to_user_profile_pic",
+          "to_user.user_email as to_user_email",
+          db.raw("(SELECT COUNT(*) FROM sl_cheer_likes WHERE cheer_id = sl_cheers.cheer_id) as likes_count"),
+          db.raw("(SELECT COUNT(*) FROM sl_cheer_comments WHERE cheer_id = sl_cheers.cheer_id) as comments_count")
+        )
+        .leftJoin("sl_user_accounts as from_user", "sl_cheers.from_user_id", "from_user.user_id")
+        .leftJoin("sl_user_accounts as to_user", "sl_cheers.to_user_id", "to_user.user_id");
 
     // Apply filters
     if (filter === 'hidden') {
@@ -2729,10 +2730,15 @@ export const Suitebite = {
     if (search) {
       query = query.where(function() {
         this.where("sl_cheers.message", "like", `%${search}%`)
+             .orWhere("sl_cheers.cheer_id", "like", `%${search}%`)
              .orWhere("from_user.first_name", "like", `%${search}%`)
              .orWhere("from_user.last_name", "like", `%${search}%`)
+             .orWhere("from_user.user_email", "like", `%${search}%`)
              .orWhere("to_user.first_name", "like", `%${search}%`)
-             .orWhere("to_user.last_name", "like", `%${search}%`);
+             .orWhere("to_user.last_name", "like", `%${search}%`)
+             .orWhere("to_user.user_email", "like", `%${search}%`)
+             .orWhere(db.raw("CONCAT(from_user.first_name, ' ', from_user.last_name)"), "like", `%${search}%`)
+             .orWhere(db.raw("CONCAT(to_user.first_name, ' ', to_user.last_name)"), "like", `%${search}%`);
       });
     }
 
@@ -2777,6 +2783,10 @@ export const Suitebite = {
       moderated_by: post.moderated_by,
       moderated_at: post.moderated_at
     }));
+    } catch (error) {
+      console.error('Error in getCheerPostsAdmin:', error);
+      throw new Error('Failed to fetch cheer posts');
+    }
   },
 
   getCheerPostByIdAdmin: async (post_id) => {
@@ -2827,59 +2837,107 @@ export const Suitebite = {
   },
 
   moderateCheerPost: async (post_id, action, reason, admin_id) => {
-    const updateData = {
-      moderated_by: admin_id,
-      moderated_at: new Date()
-    };
+    try {
+      // Validate inputs
+      if (!post_id || !action || !admin_id) {
+        throw new Error('Missing required parameters for moderation');
+      }
 
-    switch (action) {
-      case 'hide':
-        updateData.is_hidden = true;
-        updateData.moderation_reason = reason;
-        break;
-      case 'unhide':
-        updateData.is_hidden = false;
-        updateData.moderation_reason = null;
-        break;
-      case 'delete':
-        return { action: 'delete' };
-      default:
-        throw new Error(`Invalid moderation action: ${action}`);
+      const updateData = {
+        moderated_by: admin_id,
+        moderated_at: new Date()
+      };
+
+      switch (action) {
+        case 'hide':
+          updateData.is_hidden = true;
+          updateData.moderation_reason = reason;
+          break;
+        case 'unhide':
+          updateData.is_hidden = false;
+          updateData.moderation_reason = null;
+          break;
+        case 'delete':
+          return { action: 'delete' };
+        default:
+          throw new Error(`Invalid moderation action: ${action}`);
+      }
+
+      const result = await cheersTable()
+        .where("cheer_id", post_id)
+        .update(updateData);
+
+      if (result === 0) {
+        throw new Error('Post not found or no changes made');
+      }
+
+      return { action };
+    } catch (error) {
+      console.error('Error in moderateCheerPost:', error);
+      throw error;
     }
-
-    await cheersTable()
-      .where("cheer_id", post_id)
-      .update(updateData);
-
-    return { action };
   },
 
   deleteCheerPost: async (post_id) => {
-    // Delete related data first
-    await cheerLikesTable().where("cheer_id", post_id).del();
-    await cheerCommentsTable().where("cheer_id", post_id).del();
-    
-    // Delete the cheer post
-    await cheersTable().where("cheer_id", post_id).del();
+    try {
+      // Validate input
+      if (!post_id) {
+        throw new Error('Post ID is required for deletion');
+      }
+
+      console.log('Starting deletion for post ID:', post_id);
+
+      // Use transaction to ensure data consistency
+      await db.transaction(async (trx) => {
+        console.log('Transaction started');
+        
+        // Delete related data first
+        const likesDeleted = await trx('sl_cheer_likes').where("cheer_id", post_id).del();
+        console.log('Likes deleted:', likesDeleted);
+        
+        const commentsDeleted = await trx('sl_cheer_comments').where("cheer_id", post_id).del();
+        console.log('Comments deleted:', commentsDeleted);
+        
+        // Delete the cheer post
+        const deletedCount = await trx('sl_cheers').where("cheer_id", post_id).del();
+        console.log('Main post deleted:', deletedCount);
+        
+        if (deletedCount === 0) {
+          throw new Error('Post not found for deletion');
+        }
+      });
+      
+      console.log('Deletion completed successfully');
+    } catch (error) {
+      console.error('Error in deleteCheerPost:', error);
+      throw error;
+    }
   },
 
   createModerationTransaction: async (admin_id, user_id, action, reason, post_id, post_content) => {
-    return await transactionsTable().insert({
-      transaction_id: uuidv7(),
-      from_user_id: admin_id,
-      to_user_id: user_id,
-      type: "moderation",
-      amount: 0, // No points involved in moderation
-      description: `Post ${action} by admin`,
-      message: reason,
-      metadata: JSON.stringify({
-        action,
-        post_id,
-        post_content: post_content?.substring(0, 100) + (post_content?.length > 100 ? '...' : ''),
-        admin_action: true
-      }),
-      created_at: new Date()
-    });
+    try {
+      const result = await transactionsTable().insert({
+        transaction_id: uuidv7(),
+        from_user_id: admin_id,
+        to_user_id: user_id,
+        type: "moderation",
+        amount: 0, // No points involved in moderation
+        description: `Post ${action} by admin`,
+        message: reason,
+        metadata: JSON.stringify({
+          action,
+          post_id,
+          post_content: post_content?.substring(0, 100) + (post_content?.length > 100 ? '...' : ''),
+          admin_action: true
+        }),
+        created_at: new Date()
+      });
+      
+      return result;
+    } catch (error) {
+      console.error('Error creating moderation transaction:', error);
+      throw error;
+    }
   },
 
   // Create notification for user when their post is moderated
@@ -2904,7 +2962,7 @@ export const Suitebite = {
     
     // Always use transactions table for consistency
     try {
-      await transactionsTable().insert({
+      const result = await transactionsTable().insert({
         transaction_id: uuidv7(),
         from_user_id: null, // System notification
         to_user_id: user_id,
@@ -2920,6 +2978,8 @@ export const Suitebite = {
         }),
         created_at: new Date()
       });
+      
+      return result;
     } catch (error) {
       console.error('Error creating moderation notification:', error);
       throw error;

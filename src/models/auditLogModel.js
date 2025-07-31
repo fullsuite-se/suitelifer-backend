@@ -1,4 +1,5 @@
 import { db } from "../config/db.js";
+import { v7 as uuidv7 } from "uuid";
 
 const auditLogsTable = () => db("sl_audit_logs");
 
@@ -30,6 +31,13 @@ export const AuditLog = {
   },
 
   addLog: async (newLog) => {
-    return auditLogsTable().insert(newLog);
+    // Add log_id if not provided
+    const logData = {
+      log_id: uuidv7(),
+      ...newLog
+    };
+    
+    const result = await auditLogsTable().insert(logData);
+    return result;
   },
 };

@@ -1780,12 +1780,60 @@ export const getCheerPostsAdmin = async (req, res) => {
   try {
     const { page = 1, limit = 20, search, date_from, date_to, filter = 'all' } = req.query;
 
-    const posts = await Suitebite.getCheerPostsAdmin(page, limit, filter, search, date_from, date_to);
+    // Input validation
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    
+    if (isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid page number. Must be a positive integer." 
+      });
+    }
+    
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid limit. Must be between 1 and 100." 
+      });
+    }
+
+    // Validate filter
+    const validFilters = ['all', 'active', 'hidden', 'flagged', 'reported'];
+    if (!validFilters.includes(filter)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Invalid filter. Valid filters are: ${validFilters.join(', ')}` 
+      });
+    }
+
+    // Validate date format if provided
+    if (date_from && !Date.parse(date_from)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid date_from format. Use ISO 8601 format (YYYY-MM-DD)" 
+      });
+    }
+    
+    if (date_to && !Date.parse(date_to)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid date_to format. Use ISO 8601 format (YYYY-MM-DD)" 
+      });
+    }
+
+    // Sanitize search input
+    const sanitizedSearch = search ? search.trim().substring(0, 100) : '';
+
+    const posts = await Suitebite.getCheerPostsAdmin(pageNum, limitNum, filter, sanitizedSearch, date_from, date_to);
     
     res.status(200).json({ success: true, posts });
   } catch (err) {
     console.error('Error in getCheerPostsAdmin:', err);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error. Please try again later." 
+    });
   }
 };
 
@@ -1793,6 +1841,16 @@ export const deleteCheerPost = async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
+
+    console.log('Delete request for post ID:', id, 'Reason:', reason);
+
+    // Validate input
+    if (!id || typeof id !== 'string' || id.trim().length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid post ID provided" 
+      });
+    }
 
     // Check if post exists (admin can see all posts including hidden ones)
     const post = await Suitebite.getCheerPostByIdAdmin(id);
@@ -1803,31 +1861,54 @@ export const deleteCheerPost = async (req, res) => {
       });
     }
 
-    // Log admin action
-    await Suitebite.logAdminAction(
-      req.user.id, // Changed from req.user.user_id
-      "CHEER_POST_DELETE",
-      "CHEER_POST",
-      id,
-      { reason: reason || "No reason provided", post_body: post.post_body }
-    );
+    console.log('Post found:', post.cheer_post_id);
 
+    // Log admin action
+    try {
+      await Suitebite.logAdminAction(
+        req.user.id,
+        "CHEER_POST_DELETE",
+        "CHEER_POST",
+        id,
+        { reason: reason || "No reason provided", post_body: post.post_body }
+      );
+      console.log('Admin action logged successfully');
+    } catch (logError) {
+      console.error('Error logging admin action:', logError);
+      // Don't fail the main operation if logging fails
+    }
+
+    // Delete the post
     await Suitebite.deleteCheerPost(id);
+    console.log('Post deleted successfully');
 
     res.status(200).json({ 
       success: true, 
       message: "Cheer post deleted successfully" 
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    console.error('Error in deleteCheerPost controller:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error: " + err.message 
+    });
   }
 };
+
+
 
 export const moderateCheerPost = async (req, res) => {
   try {
     const { id } = req.params;
     const { action, reason } = req.body; // action: 'hide', 'unhide', 'delete'
+
+    // Validate post ID
+    if (!id || typeof id !== 'string' || id.trim().length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid post ID provided" 
+      });
+    }
 
     // Validate action
     const validActions = ['hide', 'unhide', 'delete'];
@@ -1838,6 +1919,9 @@ export const moderateCheerPost = async (req, res) => {
       });
     }
 
+    // Sanitize reason
+    const sanitizedReason = reason ? reason.trim().substring(0, 500) : '';
+
     // Check if post exists (admin can see all posts including hidden ones)
     const post = await Suitebite.getCheerPostByIdAdmin(id);
     if (!post) {
@@ -1847,28 +1931,23 @@ export const moderateCheerPost = async (req, res) => {
       });
     }
 
-    const result = await Suitebite.moderateCheerPost(id, action, reason || '', req.user.id);
+    const result = await Suitebite.moderateCheerPost(id, action, sanitizedReason, req.user.id);
 
     // Handle delete action
     if (result && result.action === 'delete') {
-      // Create transaction for delete action before deleting the post
+      // Create notification for user when their post is deleted
       if (post.cheerer_id) {
-        console.log('Creating delete notification for user:', post.cheerer_id, 'with reason:', reason);
         try {
-          await Suitebite.createModerationTransaction(
-            req.user.id,
+          await Suitebite.createModerationNotification(
             post.cheerer_id,
-            'delete',
-            reason,
-            id,
+            'deleted',
+            sanitizedReason,
             post.cheer_message
           );
-          console.log('Delete notification created successfully');
         } catch (error) {
           console.error('Error creating delete notification:', error);
+          // Don't fail the main operation if notification fails
         }
-      } else {
-        console.log('No cheerer_id found for post:', post);
       }
       
       // Delete the post and all related data
@@ -1880,7 +1959,7 @@ export const moderateCheerPost = async (req, res) => {
         "DELETE_CHEER_POST",
         "CHEER_POST",
         id,
-        { action, reason, post_body: post.cheer_message }
+        { action, reason: sanitizedReason, post_body: post.cheer_message }
       );
 
       return res.status(200).json({ 
@@ -1897,7 +1976,7 @@ export const moderateCheerPost = async (req, res) => {
           await Suitebite.createModerationNotification(
             post.cheerer_id,
             'hidden',
-            reason,
+            sanitizedReason,
             post.cheer_message
           );
         } catch (error) {
@@ -1912,7 +1991,7 @@ export const moderateCheerPost = async (req, res) => {
         "HIDE_CHEER_POST",
         "CHEER_POST",
         id,
-        { action, reason, post_body: post.cheer_message }
+        { action, reason: sanitizedReason, post_body: post.cheer_message }
       );
 
       res.status(200).json({ 
@@ -1929,7 +2008,7 @@ export const moderateCheerPost = async (req, res) => {
           await Suitebite.createModerationNotification(
             post.cheerer_id,
             'unhidden',
-            reason || 'Post has been restored',
+            sanitizedReason || 'Post has been restored',
             post.cheer_message
           );
         } catch (error) {
@@ -1944,7 +2023,7 @@ export const moderateCheerPost = async (req, res) => {
         "UNHIDE_CHEER_POST",
         "CHEER_POST",
         id,
-        { action, reason: reason || 'No reason provided', post_body: post.cheer_message }
+        { action, reason: sanitizedReason || 'No reason provided', post_body: post.cheer_message }
       );
 
       res.status(200).json({ 
