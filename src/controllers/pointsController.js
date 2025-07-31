@@ -1,4 +1,6 @@
 import { Points } from "../models/pointsModel.js";
+import { AuditLog } from "../models/auditLogModel.js";
+import { User } from "../models/userModel.js";
 import { db } from "../config/db.js";
 import { v7 as uuidv7 } from "uuid";
 import { now } from "../utils/date.js";
@@ -83,18 +85,8 @@ export const getTransactionHistory = async (req, res) => {
 // Send heartbits to cheer another user
 export const cheerUser = async (req, res) => {
   try {
-    const { id: user_id } = req.user; // Extract id as user_id
+    const { id: user_id } = req.user;
     const { to_user_id, recipientId, points, amount, message } = req.body;
-    
-    // Debug logging to track the issue
-    console.log('=== CHEER REQUEST DEBUG ===');
-    console.log('Full request body:', JSON.stringify(req.body, null, 2));
-    console.log('Extracted values:');
-    console.log('  - to_user_id:', to_user_id);
-    console.log('  - recipientId:', recipientId);
-    console.log('  - points:', points, '(type:', typeof points, ')');
-    console.log('  - amount:', amount, '(type:', typeof amount, ')');
-    console.log('  - message:', message);
     
     // Support both parameter names for compatibility - prioritize amount over points
     const targetUserId = to_user_id || recipientId;
@@ -103,20 +95,16 @@ export const cheerUser = async (req, res) => {
     let heartbitsToSend;
     if (amount !== undefined && amount !== null && amount !== '') {
       heartbitsToSend = parseInt(amount, 10);
-      
+
     } else if (points !== undefined && points !== null && points !== '') {
       heartbitsToSend = parseInt(points, 10);
-      
+
     } else {
       heartbitsToSend = 10; // Default fallback
-      console.log('⚠️  Using default fallback: 10');
     }
-    console.log('FINAL heartbitsToSend:', heartbitsToSend);
-    console.log('=== END DEBUG ===\n');
     
     // Validate that it's a valid number
     if (isNaN(heartbitsToSend)) {
-      console.log('❌ Invalid heartbits amount detected');
       return res.status(400).json({
         success: false,
         message: "Invalid heartbits amount provided"
@@ -200,7 +188,7 @@ export const cheerUser = async (req, res) => {
       to_user_id: targetUserId,
       type: "received",
       amount: heartbitsToSend,
-      description: `Received ${heartbitsToSend} points from Admin`,
+      description: `Received ${heartbitsToSend} heartbits from peer`,
       message,
       metadata: JSON.stringify({ cheer_id: cheerId, type: "cheer" })
     });
@@ -217,6 +205,45 @@ export const cheerUser = async (req, res) => {
     // Get updated heartbits remaining for response
     const heartbitsRemaining = await Points.getHeartbitsRemaining(user_id);
 
+
+    // Get user names for audit logging
+    let senderName = 'Unknown User';
+    let recipientName = 'Unknown User';
+    
+    try {
+      const [sender, recipient] = await Promise.all([
+        User.getUser(user_id),
+        User.getUser(targetUserId)
+      ]);
+      
+      if (sender) {
+        senderName = `${sender.first_name} ${sender.last_name}`.trim();
+      }
+      
+      if (recipient) {
+        recipientName = `${recipient.first_name} ${recipient.last_name}`.trim();
+      }
+    } catch (nameError) {
+      console.error("Error getting user names for audit log:", nameError);
+      // Continue with default names if user lookup fails
+    }
+
+    // Log the cheer action to audit logs
+    try {
+      const auditData = {
+        user_id: user_id,
+        action: "CREATE",
+        description: `${senderName} sent ${heartbitsToSend} heartbits to ${recipientName}${message ? ` with message: "${message}"` : ''}`,
+        date: now()
+      };
+      
+      await AuditLog.addLog(auditData);
+    } catch (auditError) {
+      console.error("Error logging audit entry:", auditError);
+      // Don't fail the main request if audit logging fails
+    }
+
+
     res.status(200).json({
       success: true,
       message: "Heartbits sent successfully",
@@ -229,6 +256,48 @@ export const cheerUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Error sending cheer:", error);
+    
+    // Log failed cheer attempt to audit logs
+    try {
+      const { id: user_id } = req.user;
+      const { to_user_id, recipientId, points, amount, message } = req.body;
+      const targetUserId = to_user_id || recipientId;
+      
+      // Get user names for failed audit logging
+      let senderName = 'Unknown User';
+      let recipientName = 'Unknown User';
+      
+      try {
+        const [sender, recipient] = await Promise.all([
+          User.getUser(user_id),
+          targetUserId ? User.getUser(targetUserId) : null
+        ]);
+        
+        if (sender) {
+          senderName = `${sender.first_name} ${sender.last_name}`.trim();
+        }
+        
+        if (recipient) {
+          recipientName = `${recipient.first_name} ${recipient.last_name}`.trim();
+        }
+      } catch (nameError) {
+        console.error("Error getting user names for failed audit log:", nameError);
+        // Continue with default names if user lookup fails
+      }
+      
+      const failedAuditData = {
+        user_id: user_id,
+        action: "UPDATE",
+        description: `${senderName} failed to send ${amount || points || 'unknown'} heartbits to ${recipientName || 'unknown user'}. Error: ${error.message}`,
+        date: now()
+      };
+      
+      await AuditLog.addLog(failedAuditData);
+    } catch (auditError) {
+      console.error("Error logging failed audit entry:", auditError);
+      // Don't fail the main request if audit logging fails
+    }
+    
     res.status(500).json({
       success: false,
       message: "Internal Server Error"
@@ -290,7 +359,7 @@ export const getAllUserPoints = async (req, res) => {
 export const addPointsToUser = async (req, res) => {
   try {
     const { user_id, points, reason = "Admin bonus" } = req.body;
-    const { user_id: admin_user_id } = req.user;
+    const admin_user_id = req.user?.id || req.user?.user_id || 'unknown';
 
     if (!user_id || !points) {
       return res.status(400).json({
@@ -304,6 +373,22 @@ export const addPointsToUser = async (req, res) => {
         success: false,
         message: "Points must be positive"
       });
+    }
+
+    // Get admin user details for audit log
+    let adminUser = null;
+    let targetUser = null;
+    
+    try {
+      adminUser = await User.getUser(admin_user_id);
+    } catch (error) {
+      console.error("Error getting admin user:", error);
+    }
+    
+    try {
+      targetUser = await User.getUser(user_id);
+    } catch (error) {
+      console.error("Error getting target user:", error);
     }
 
     // Get or create user points
@@ -325,14 +410,30 @@ export const addPointsToUser = async (req, res) => {
       to_user_id: user_id,
       type: "admin_grant",
       amount: points,
-      description: `Received ${points} points from Admin`,
+      description: `Received ${points} heartbits from Admin`,
       message: reason,
       metadata: JSON.stringify({ admin_action: true, admin_user_id })
     });
 
+    // Log admin action to audit logs with enhanced details
+    try {
+      const adminName = adminUser ? `${adminUser.first_name} ${adminUser.last_name}` : `Admin ${admin_user_id}`;
+      const targetUserName = targetUser ? `${targetUser.first_name} ${targetUser.last_name}` : `User ${user_id}`;
+      
+      await AuditLog.addLog({
+        user_id: admin_user_id,
+        action: "UPDATE",
+        description: `${adminName} granted ${points} heartbits to ${targetUserName}. Reason: ${reason}`,
+        date: now()
+      });
+    } catch (auditError) {
+      console.error("Error logging admin action to audit logs:", auditError);
+      // Don't fail the main request if audit logging fails
+    }
+
     res.status(200).json({
       success: true,
-      message: "Points added successfully",
+      message: "Heartbits added successfully",
       data: {
         pointsAdded: points,
         newBalance: userPoints.availablePoints + points
@@ -351,7 +452,7 @@ export const addPointsToUser = async (req, res) => {
 export const deductPointsFromUser = async (req, res) => {
   try {
     const { user_id, points, reason = "Admin deduction" } = req.body;
-    const { user_id: admin_user_id } = req.user;
+    const admin_user_id = req.user?.id || req.user?.user_id || 'unknown';
 
     if (!user_id || !points) {
       return res.status(400).json({
@@ -365,6 +466,22 @@ export const deductPointsFromUser = async (req, res) => {
         success: false,
         message: "Points must be positive"
       });
+    }
+
+    // Get admin user details for audit log
+    let adminUser = null;
+    let targetUser = null;
+    
+    try {
+      adminUser = await User.getUser(admin_user_id);
+    } catch (error) {
+      console.error("Error getting admin user:", error);
+    }
+    
+    try {
+      targetUser = await User.getUser(user_id);
+    } catch (error) {
+      console.error("Error getting target user:", error);
     }
 
     const userPoints = await Points.getUserPoints(user_id);
@@ -399,9 +516,25 @@ export const deductPointsFromUser = async (req, res) => {
       metadata: JSON.stringify({ admin_action: true, admin_user_id })
     });
 
+    // Log admin action to audit logs with enhanced details
+    try {
+      const adminName = adminUser ? `${adminUser.first_name} ${adminUser.last_name}` : `Admin ${admin_user_id}`;
+      const targetUserName = targetUser ? `${targetUser.first_name} ${targetUser.last_name}` : `User ${user_id}`;
+      
+      await AuditLog.addLog({
+        user_id: admin_user_id,
+        action: "UPDATE",
+        description: `${adminName} deducted ${points} heartbits from ${targetUserName}. Reason: ${reason}`,
+        date: now()
+      });
+    } catch (auditError) {
+      console.error("Error logging admin action to audit logs:", auditError);
+      // Don't fail the main request if audit logging fails
+    }
+
     res.status(200).json({
       success: true,
-      message: "Points deducted successfully",
+      message: "Heartbits deducted successfully",
       data: {
         pointsDeducted: points,
         newBalance: userPoints.availablePoints - points
@@ -658,23 +791,26 @@ export const getLeaderboardWithPeriod = async (req, res) => {
       throw new Error('Invalid leaderboard data structure');
     }
 
-    // Sort the leaderboard by points in descending order
+    // Sort the leaderboard by points in descending order, then by name A-Z for ties
     const sortedLeaderboard = leaderboardData.leaderboard.map(entry => ({
       ...entry,
       totalPoints: Number(entry.totalPoints || entry.total_earned || 0)
-    })).sort((a, b) => b.totalPoints - a.totalPoints);
-
-
-
-    // Assign ranks based on points
-    let currentRank = 1;
-    let previousPoints = null;
-    sortedLeaderboard.forEach((entry, index) => {
-      if (previousPoints !== null && entry.totalPoints < previousPoints) {
-        currentRank = index + 1;
+    })).sort((a, b) => {
+      // First sort by points (descending)
+      if (b.totalPoints !== a.totalPoints) {
+        return b.totalPoints - a.totalPoints;
       }
-      entry.rank = currentRank;
-      previousPoints = entry.totalPoints;
+      // If points are equal, sort by name A-Z
+      const nameA = (a.name || a.userName || '').toLowerCase();
+      const nameB = (b.name || b.userName || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+
+
+
+    // Assign sequential ranks (ties broken by alphabetical order)
+    sortedLeaderboard.forEach((entry, index) => {
+      entry.rank = index + 1;
     });
 
     // Calculate current user's rank
@@ -857,3 +993,47 @@ export const deleteCheerComment = async (req, res) => {
     });
   }
 };
+
+// Mark moderation notification as dismissed
+export const dismissModerationNotification = async (req, res) => {
+  try {
+    const user_id = req.user.id || req.user.user_id;
+    const { transaction_id } = req.params;
+
+    if (!transaction_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Transaction ID is required"
+      });
+    }
+
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required"
+      });
+    }
+
+    const success = await Points.markModerationAsDismissed(user_id, transaction_id);
+
+    if (success) {
+      res.status(200).json({
+        success: true,
+        message: "Notification dismissed successfully"
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "Notification not found or already dismissed"
+      });
+    }
+  } catch (error) {
+    console.error("Error dismissing notification:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    });
+  }
+};
+
+

@@ -43,9 +43,8 @@ export const User = {
   },
 
   getUser: async (user_id) => {
-    return await db
-      .select("*")
-      .from(userAccounts)
+    return await db('sl_user_accounts')
+      .select('user_id', 'first_name', 'last_name', 'user_email', 'user_type')
       .where({ user_id: user_id })
       .first();
   },
