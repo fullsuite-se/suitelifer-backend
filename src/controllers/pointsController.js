@@ -410,7 +410,7 @@ export const addPointsToUser = async (req, res) => {
       to_user_id: user_id,
       type: "admin_grant",
       amount: points,
-      description: `Received ${points} points from Admin`,
+      description: `Received ${points} heartbits from Admin`,
       message: reason,
       metadata: JSON.stringify({ admin_action: true, admin_user_id })
     });
