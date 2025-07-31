@@ -95,8 +95,10 @@ export const cheerUser = async (req, res) => {
     let heartbitsToSend;
     if (amount !== undefined && amount !== null && amount !== '') {
       heartbitsToSend = parseInt(amount, 10);
+
     } else if (points !== undefined && points !== null && points !== '') {
       heartbitsToSend = parseInt(points, 10);
+
     } else {
       heartbitsToSend = 10; // Default fallback
     }

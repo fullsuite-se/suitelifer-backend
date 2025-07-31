@@ -483,25 +483,17 @@ export const deleteProduct = async (req, res) => {
       // Try to hard delete the product
       await Suitebite.deleteProduct(id);
     } catch (err) {
-      // If foreign key error, try to delete referencing cart items and orders
+      // If foreign key error, try to delete referencing cart items only
+      // Don't delete orders - they should remain visible in admin panel
       if (err && err.code && (err.code === 'ER_ROW_IS_REFERENCED_2' || err.code === 'ER_ROW_IS_REFERENCED')) {
         // Remove cart items for this product
         await cartItemsTable()
           .where('product_id', id)
           .del();
-        // Remove order items and orders for this product
-        const orderItems = await orderItemsTable()
-          .where('product_id', id)
-          .select('order_id');
-        const orderIds = orderItems.map(oi => oi.order_id);
-        if (orderIds.length > 0) {
-          await orderItemsTable()
-            .whereIn('order_id', orderIds)
-            .del();
-          await ordersTable()
-            .whereIn('order_id', orderIds)
-            .del();
-        }
+        
+        // Don't delete order items or orders - let them remain for admin visibility
+        // This allows orders with deleted products to still be visible in admin panel
+        
         // Retry product deletion
         try {
           await Suitebite.deleteProduct(id);
@@ -1210,6 +1202,7 @@ export const checkout = async (req, res) => {
     
     console.log('Checkout request:', { user_id, items, body: req.body });
 
+
     // Handle direct checkout (Buy Now) vs cart checkout
     let orderItems = [];
     let totalPoints = 0;
@@ -1259,6 +1252,7 @@ export const checkout = async (req, res) => {
             variation_details: cartItem.variation_details || null
           };
           
+
           console.log('Created order item from cart:', orderItem);
           orderItems.push(orderItem);
           selectedCartItemIds.push(cartItem.cart_item_id);
@@ -1521,7 +1515,7 @@ export const getAllOrders = async (req, res) => {
     
     res.status(200).json({ success: true, orders });
   } catch (err) {
-    console.error(err);
+    console.error('getAllOrders error:', err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -1569,7 +1563,7 @@ export const deleteOrder = async (req, res) => {
       });
     }
 
-    const result = await Suitebite.deleteOrder(order_id, admin_id, reason);
+    const result = await Suitebite.deleteOrder(order_id, admin_id, reason, true); // isAdmin = true for hard delete
     
     if (result) {
       res.status(200).json({ 
@@ -2871,7 +2865,7 @@ export const addProductImage = async (req, res) => {
       is_active = true 
     } = req.body;
 
-    console.log('🔍 Backend - addProductImage called with data:', req.body);
+
 
     if (!image_url) {
       return res.status(400).json({ 
@@ -2902,7 +2896,7 @@ export const addProductImage = async (req, res) => {
       is_active
     });
 
-    console.log('🔍 Backend - Image added with ID:', imageId);
+
 
     // Update product's images_json
     await Suitebite.updateProductImagesJson(productId);
@@ -2948,32 +2942,30 @@ export const updateProductImage = async (req, res) => {
 
 export const deleteProductImage = async (req, res) => {
   try {
-    console.log('🔍 Backend - deleteProductImage endpoint hit');
-    console.log('🔍 Backend - Request params:', req.params);
-    console.log('🔍 Backend - Request headers:', req.headers);
+
     
     const { imageId } = req.params;
-    console.log('🔍 Backend - deleteProductImage called with imageId:', imageId);
+
 
     const image = await Suitebite.getProductImageById(imageId);
-    console.log('🔍 Backend - Found image:', image);
+    
     
     if (!image) {
-      console.log('🔍 Backend - Image not found');
+      
       return res.status(404).json({ 
         success: false, 
         message: "Product image not found" 
       });
     }
 
-    console.log('🔍 Backend - Deleting image from database...');
+    
     const deleteResult = await Suitebite.deleteProductImage(imageId);
-    console.log('🔍 Backend - Image deleted from database, result:', deleteResult);
+    
 
     // Update product's images_json
-    console.log('🔍 Backend - Updating product images JSON...');
+    
     await Suitebite.updateProductImagesJson(image.product_id);
-    console.log('🔍 Backend - Product images JSON updated');
+    
 
     res.status(200).json({ 
       success: true, 
@@ -3032,3 +3024,72 @@ export const setPrimaryImage = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+
+
+// User delete own order
+export const deleteOwnOrder = async (req, res) => {
+  try {
+    let { order_id } = req.params;
+    const user_id = req.user.id;
+    const { reason } = req.body;
+
+
+
+    order_id = parseInt(order_id, 10);
+    if (isNaN(order_id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order ID"
+      });
+    }
+
+    // Check if order exists and belongs to user
+    const order = await Suitebite.getOrderById(order_id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    // Check if user owns this order
+    if (order.user_id !== user_id) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied - you can only delete your own orders"
+      });
+    }
+
+    // Check if order can be deleted (only cancelled or completed)
+    if (order.status !== 'cancelled' && order.status !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: "Only cancelled or completed orders can be deleted"
+      });
+    }
+
+
+    const result = await Suitebite.deleteOrder(order_id, user_id, reason, false); // isAdmin = false for soft delete
+    
+    if (result) {
+  
+      res.status(200).json({ 
+        success: true, 
+        message: "Order deleted successfully!" 
+      });
+    } else {
+      console.log('❌ Soft delete failed for order:', order_id);
+      res.status(404).json({ 
+        success: false, 
+        message: "Order not found" 
+      });
+    }
+  } catch (err) {
+    console.error('❌ Delete own order error:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: err.message || "Failed to delete order" 
+    });
+  }
+};
+

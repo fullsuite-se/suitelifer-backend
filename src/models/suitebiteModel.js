@@ -366,7 +366,8 @@ export const Suitebite = {
         "sl_products.updated_at"
       )
       .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
-      .select("sl_shop_categories.category_name as category");
+      .select("sl_shop_categories.category_name as category")
+      .whereNull("sl_products.deleted_at"); // Filter out soft-deleted products
 
     if (activeOnly) {
       query = query.where("sl_products.is_active", true);
@@ -397,6 +398,7 @@ export const Suitebite = {
       .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
       .select("sl_shop_categories.category_name as category")
       .where("sl_products.product_id", product_id)
+      .whereNull("sl_products.deleted_at") // Filter out soft-deleted products
       .first();
 
     if (!product) return null;
@@ -424,6 +426,52 @@ export const Suitebite = {
     return product;
   },
 
+  getProductByIdForOrders: async (product_id) => {
+    // Fetch base product (including soft-deleted ones for order queries)
+    const product = await productsTable()
+      .select(
+        "sl_products.product_id",
+        "sl_products.name",
+        "sl_products.description",
+        "sl_products.price_points as price",
+        "sl_products.category_id",
+        "sl_products.image_url",
+        "sl_products.images_json",
+        "sl_products.slug",
+        "sl_products.is_active",
+        "sl_products.deleted_at",
+        "sl_products.created_at",
+        "sl_products.updated_at"
+      )
+      .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
+      .select("sl_shop_categories.category_name as category")
+      .where("sl_products.product_id", product_id)
+      .first(); // Include soft-deleted products for orders
+
+    if (!product) return null;
+
+    // Fetch all images for this product
+    const images = await db("sl_product_images")
+      .select(
+        "image_id",
+        "image_url",
+        "thumbnail_url",
+        "medium_url",
+        "large_url",
+        "public_id",
+        "alt_text",
+        "sort_order",
+        "is_primary"
+      )
+      .where("product_id", product.product_id)
+      .andWhere("is_active", true)
+      .orderBy("sort_order", "asc")
+      .orderBy("created_at", "asc");
+
+    product.images = images;
+    return product;
+  },
+
   addProduct: async (productData) => {
     const [productId] = await productsTable().insert(productData);
     return productId;
@@ -436,20 +484,14 @@ export const Suitebite = {
   },
 
   deleteProduct: async (product_id) => {
-    // First delete related cart items
-    await cartItemsTable()
-      .where("product_id", product_id)
-      .del();
-    
-    // Delete product variations
-    await db("sl_product_variations")
-      .where("product_id", product_id)
-      .del();
-    
-    // Finally delete the product
+    // Soft delete the product - mark as deleted but keep in database
+    // This allows orders to retain product information even after deletion
     return await productsTable()
       .where("product_id", product_id)
-      .del();
+      .update({
+        deleted_at: new Date(),
+        is_active: 0 // Also mark as inactive
+      });
   },
 
   // ========== PRODUCT VARIATIONS OPERATIONS ==========
@@ -798,12 +840,7 @@ export const Suitebite = {
   // ========== ORDER OPERATIONS ==========
 
   createOrder: async (user_id, total_points, cartItems) => {
-    console.log('🛍️ Creating order with items:', cartItems.length);
-    console.log('📦 Cart items details:', cartItems.map(item => ({
-      product_id: item.product_id,
-      variations: item.variations,
-      variation_count: item.variations ? item.variations.length : 0
-    })));
+
     
     // Create order
     const [orderId] = await ordersTable().insert({
@@ -825,11 +862,7 @@ export const Suitebite = {
       });
 
       // Transfer variations
-      console.log('Processing variations for item:', {
-        product_id: cartItem.product_id,
-        variations: cartItem.variations,
-        variation_details: cartItem.variation_details
-      });
+
       
       if (cartItem.variations && cartItem.variations.length > 0) {
         const variationData = cartItem.variations.map(variation => ({
@@ -838,13 +871,13 @@ export const Suitebite = {
           option_id: variation.option_id
         }));
 
-        console.log('Inserting variations from cart:', variationData);
+
         await db("sl_order_item_variations").insert(variationData);
       } else if (cartItem.variation_details) {
         // Handle variation_details from direct checkout
         try {
           const variations = JSON.parse(cartItem.variation_details);
-          console.log('Parsed variations from variation_details:', variations);
+
           
           if (Array.isArray(variations) && variations.length > 0) {
             const variationData = variations.map(variation => ({
@@ -853,7 +886,7 @@ export const Suitebite = {
               option_id: variation.option_id
             }));
 
-            console.log('Inserting variations from direct checkout:', variationData);
+
             await db("sl_order_item_variations").insert(variationData);
           }
         } catch (error) {
@@ -930,6 +963,7 @@ export const Suitebite = {
     const orders = await ordersTable()
       .select("*")
       .where("user_id", user_id)
+      .whereNull("deleted_at") // Exclude soft-deleted orders for users
       .orderBy("ordered_at", "desc")
       .limit(limit)
       .offset(offset);
@@ -947,7 +981,8 @@ export const Suitebite = {
         "p.description as product_description",
         "p.category_id",
         "c.category_name as product_category",
-        "p.slug as product_slug"
+        "p.slug as product_slug",
+        "p.deleted_at as product_deleted_at"
       )
       .leftJoin("sl_products as p", "sl_order_items.product_id", "p.product_id")
       .leftJoin("sl_shop_categories as c", "p.category_id", "c.category_id")
@@ -1041,6 +1076,9 @@ export const Suitebite = {
     if (filters.dateTo) {
       query = query.where("sl_orders.ordered_at", "<=", filters.dateTo);
     }
+
+    // Include soft-deleted orders in admin panel (don't filter by deleted_at)
+    // This allows admins to see orders that users have soft-deleted
 
     const orders = await query.orderBy("sl_orders.ordered_at", "desc");
 
@@ -1316,7 +1354,7 @@ export const Suitebite = {
     return true;
   },
 
-  deleteOrder: async (order_id, admin_id, reason) => {
+  deleteOrder: async (order_id, user_id, reason, isAdmin = false) => {
     // Check if order exists
     const order = await ordersTable()
       .where("order_id", order_id)
@@ -1332,49 +1370,62 @@ export const Suitebite = {
     }
 
     try {
-      // Delete order item variations first
-      const orderItems = await orderItemsTable()
-        .where("order_id", order_id)
-        .select("order_item_id");
+      if (isAdmin) {
+        // Admin hard delete - completely remove from database
+        // Delete order item variations first
+        const orderItems = await orderItemsTable()
+          .where("order_id", order_id)
+          .select("order_item_id");
 
-      const orderItemIds = orderItems.map(item => item.order_item_id);
+        const orderItemIds = orderItems.map(item => item.order_item_id);
 
-      if (orderItemIds.length > 0) {
-        await db("sl_order_item_variations")
-          .whereIn("order_item_id", orderItemIds)
+        if (orderItemIds.length > 0) {
+          await db("sl_order_item_variations")
+            .whereIn("order_item_id", orderItemIds)
+            .del();
+        }
+
+        // Delete order items
+        await orderItemsTable()
+          .where("order_id", order_id)
           .del();
+
+        // Log admin action before deletion
+        try {
+          await db("sl_admin_actions").insert({
+            admin_id: user_id,
+            action_type: "DELETE_ORDER",
+            target_type: "ORDER",
+            target_id: order_id,
+            details: JSON.stringify({ 
+              reason: reason || "No reason provided",
+              order_status: order.status,
+              total_points: order.total_points,
+              user_id: order.user_id,
+              delete_type: "HARD_DELETE"
+            }),
+            performed_at: new Date()
+          });
+        } catch (logError) {
+          console.warn('Failed to log admin action:', logError);
+        }
+
+        // Delete the order
+        await ordersTable()
+          .where("order_id", order_id)
+          .del();
+
+        return true;
+      } else {
+        // User soft delete - mark as deleted but keep in database
+        await ordersTable()
+          .where("order_id", order_id)
+          .update({
+            deleted_at: new Date()
+          });
+
+        return true;
       }
-
-      // Delete order items
-      await orderItemsTable()
-        .where("order_id", order_id)
-        .del();
-
-      // Log admin action before deletion
-      try {
-        await db("sl_admin_actions").insert({
-          admin_id,
-          action_type: "DELETE_ORDER",
-          target_type: "ORDER",
-          target_id: order_id,
-          details: JSON.stringify({ 
-            reason: reason || "No reason provided",
-            order_status: order.status,
-            total_points: order.total_points,
-            user_id: order.user_id
-          }),
-          performed_at: new Date()
-        });
-      } catch (logError) {
-        console.warn('Failed to log admin action:', logError);
-      }
-
-      // Delete the order
-      await ordersTable()
-        .where("order_id", order_id)
-        .del();
-
-      return true;
     } catch (error) {
       console.error('Error deleting order:', error);
       throw error;
@@ -2438,7 +2489,8 @@ export const Suitebite = {
         "sl_products.updated_at"
       )
       .leftJoin("sl_shop_categories", "sl_products.category_id", "sl_shop_categories.category_id")
-      .select("sl_shop_categories.category_name as category");
+      .select("sl_shop_categories.category_name as category")
+      .whereNull("sl_products.deleted_at"); // Filter out soft-deleted products
 
     if (activeOnly) {
       baseQuery = baseQuery.where("sl_products.is_active", true);
@@ -2620,17 +2672,17 @@ export const Suitebite = {
   },
 
   deleteProductImage: async (image_id) => {
-    console.log('🔍 Model - deleteProductImage called with image_id:', image_id);
+    
     
     // First check if the image exists
     const image = await db("sl_product_images")
       .where("image_id", image_id)
       .first();
     
-    console.log('🔍 Model - Image found:', image);
+    
     
     if (!image) {
-      console.log('🔍 Model - Image not found in database');
+      
       throw new Error('Image not found');
     }
     
@@ -2639,7 +2691,7 @@ export const Suitebite = {
       .where("image_id", image_id)
       .del();
     
-    console.log('🔍 Model - Delete result:', result);
+    
     return result;
   },
 
