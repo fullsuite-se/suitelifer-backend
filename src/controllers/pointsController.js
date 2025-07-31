@@ -359,7 +359,7 @@ export const getAllUserPoints = async (req, res) => {
 export const addPointsToUser = async (req, res) => {
   try {
     const { user_id, points, reason = "Admin bonus" } = req.body;
-    const { user_id: admin_user_id } = req.user;
+    const admin_user_id = req.user?.id || req.user?.user_id || 'unknown';
 
     if (!user_id || !points) {
       return res.status(400).json({
@@ -373,6 +373,22 @@ export const addPointsToUser = async (req, res) => {
         success: false,
         message: "Points must be positive"
       });
+    }
+
+    // Get admin user details for audit log
+    let adminUser = null;
+    let targetUser = null;
+    
+    try {
+      adminUser = await User.getUser(admin_user_id);
+    } catch (error) {
+      console.error("Error getting admin user:", error);
+    }
+    
+    try {
+      targetUser = await User.getUser(user_id);
+    } catch (error) {
+      console.error("Error getting target user:", error);
     }
 
     // Get or create user points
@@ -399,6 +415,24 @@ export const addPointsToUser = async (req, res) => {
       metadata: JSON.stringify({ admin_action: true, admin_user_id })
     });
 
+    // Log admin action to audit logs with enhanced details
+    try {
+      const adminName = adminUser ? `${adminUser.first_name} ${adminUser.last_name}` : `Admin ${admin_user_id}`;
+      const targetUserName = targetUser ? `${targetUser.first_name} ${targetUser.last_name}` : `User ${user_id}`;
+      const targetEmail = targetUser ? targetUser.user_email : 'Unknown Email';
+      const adminEmail = adminUser ? adminUser.user_email : 'Unknown Email';
+      
+      await AuditLog.addLog({
+        user_id: admin_user_id,
+        action: "UPDATE",
+        description: `${adminName} (${adminEmail}) granted ${points} heartbits to ${targetUserName} (${targetEmail}). Reason: ${reason}`,
+        date: now()
+      });
+    } catch (auditError) {
+      console.error("Error logging admin action to audit logs:", auditError);
+      // Don't fail the main request if audit logging fails
+    }
+
     res.status(200).json({
       success: true,
       message: "Points added successfully",
@@ -420,7 +454,7 @@ export const addPointsToUser = async (req, res) => {
 export const deductPointsFromUser = async (req, res) => {
   try {
     const { user_id, points, reason = "Admin deduction" } = req.body;
-    const { user_id: admin_user_id } = req.user;
+    const admin_user_id = req.user?.id || req.user?.user_id || 'unknown';
 
     if (!user_id || !points) {
       return res.status(400).json({
@@ -434,6 +468,22 @@ export const deductPointsFromUser = async (req, res) => {
         success: false,
         message: "Points must be positive"
       });
+    }
+
+    // Get admin user details for audit log
+    let adminUser = null;
+    let targetUser = null;
+    
+    try {
+      adminUser = await User.getUser(admin_user_id);
+    } catch (error) {
+      console.error("Error getting admin user:", error);
+    }
+    
+    try {
+      targetUser = await User.getUser(user_id);
+    } catch (error) {
+      console.error("Error getting target user:", error);
     }
 
     const userPoints = await Points.getUserPoints(user_id);
@@ -467,6 +517,24 @@ export const deductPointsFromUser = async (req, res) => {
       description: reason,
       metadata: JSON.stringify({ admin_action: true, admin_user_id })
     });
+
+    // Log admin action to audit logs with enhanced details
+    try {
+      const adminName = adminUser ? `${adminUser.first_name} ${adminUser.last_name}` : `Admin ${admin_user_id}`;
+      const targetUserName = targetUser ? `${targetUser.first_name} ${targetUser.last_name}` : `User ${user_id}`;
+      const targetEmail = targetUser ? targetUser.user_email : 'Unknown Email';
+      const adminEmail = adminUser ? adminUser.user_email : 'Unknown Email';
+      
+      await AuditLog.addLog({
+        user_id: admin_user_id,
+        action: "UPDATE",
+        description: `${adminName} (${adminEmail}) deducted ${points} heartbits from ${targetUserName} (${targetEmail}). Reason: ${reason}`,
+        date: now()
+      });
+    } catch (auditError) {
+      console.error("Error logging admin action to audit logs:", auditError);
+      // Don't fail the main request if audit logging fails
+    }
 
     res.status(200).json({
       success: true,
