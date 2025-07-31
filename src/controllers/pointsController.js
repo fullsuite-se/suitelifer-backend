@@ -419,13 +419,11 @@ export const addPointsToUser = async (req, res) => {
     try {
       const adminName = adminUser ? `${adminUser.first_name} ${adminUser.last_name}` : `Admin ${admin_user_id}`;
       const targetUserName = targetUser ? `${targetUser.first_name} ${targetUser.last_name}` : `User ${user_id}`;
-      const targetEmail = targetUser ? targetUser.user_email : 'Unknown Email';
-      const adminEmail = adminUser ? adminUser.user_email : 'Unknown Email';
       
       await AuditLog.addLog({
         user_id: admin_user_id,
         action: "UPDATE",
-        description: `${adminName} (${adminEmail}) granted ${points} heartbits to ${targetUserName} (${targetEmail}). Reason: ${reason}`,
+        description: `${adminName} granted ${points} heartbits to ${targetUserName}. Reason: ${reason}`,
         date: now()
       });
     } catch (auditError) {
@@ -522,13 +520,11 @@ export const deductPointsFromUser = async (req, res) => {
     try {
       const adminName = adminUser ? `${adminUser.first_name} ${adminUser.last_name}` : `Admin ${admin_user_id}`;
       const targetUserName = targetUser ? `${targetUser.first_name} ${targetUser.last_name}` : `User ${user_id}`;
-      const targetEmail = targetUser ? targetUser.user_email : 'Unknown Email';
-      const adminEmail = adminUser ? adminUser.user_email : 'Unknown Email';
       
       await AuditLog.addLog({
         user_id: admin_user_id,
         action: "UPDATE",
-        description: `${adminName} (${adminEmail}) deducted ${points} heartbits from ${targetUserName} (${targetEmail}). Reason: ${reason}`,
+        description: `${adminName} deducted ${points} heartbits from ${targetUserName}. Reason: ${reason}`,
         date: now()
       });
     } catch (auditError) {
