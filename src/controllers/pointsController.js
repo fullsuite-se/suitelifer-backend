@@ -435,7 +435,7 @@ export const addPointsToUser = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Points added successfully",
+      message: "Heartbits added successfully",
       data: {
         pointsAdded: points,
         newBalance: userPoints.availablePoints + points
@@ -538,7 +538,7 @@ export const deductPointsFromUser = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Points deducted successfully",
+      message: "Heartbits deducted successfully",
       data: {
         pointsDeducted: points,
         newBalance: userPoints.availablePoints - points
