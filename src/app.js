@@ -33,20 +33,25 @@ import testMoodRoutes from "./routes/testMoodRoutes.js";
 const app = express();
 dotenv.config();
 
+// CORS configuration using environment variables
+const allowedOrigins = [
+  process.env.FRONTEND_URL, // Current frontend URL from env
+  process.env.VITE_FRONTEND_URL, // Frontend URL matching VITE naming convention
+  process.env.LIVE_URL, // Live URL from env
+  // "https://suitelifer-frontend-mu.vercel.app", // Legacy frontend
+  "http://localhost:5173", // Frontend development server
+  "http://localhost:5174", // Alternative frontend port
+  "http://localhost:5175", // Alternative frontend port
+  "http://localhost:5176", // Alternative frontend port
+  "http://127.0.0.1:5173",  // Alternative localhost format
+  "http://127.0.0.1:5174",  // Alternative localhost format
+  "http://127.0.0.1:5175",  // Alternative localhost format
+  "http://127.0.0.1:5176"   // Alternative localhost format
+].filter(Boolean); // Remove any undefined values
+
 app.use(
   cors({
-    origin: [
-      "https://suitelifer-frontend-mu.vercel.app", // Your Vercel frontend
-      "https://www.suitelifer.com", // Your live URL
-      "http://localhost:5173", // Frontend development server
-      "http://localhost:5174", // Alternative frontend port
-      "http://localhost:5175", // Alternative frontend port
-      "http://localhost:5176", // Alternative frontend port
-      "http://127.0.0.1:5173",  // Alternative localhost format
-      "http://127.0.0.1:5174",  // Alternative localhost format
-      "http://127.0.0.1:5175",  // Alternative localhost format
-      "http://127.0.0.1:5176"   // Alternative localhost format
-    ],
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true, // This allows cookies to be sent
   })
