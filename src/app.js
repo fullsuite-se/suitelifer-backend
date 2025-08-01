@@ -36,8 +36,8 @@ dotenv.config();
 app.use(
   cors({
     origin: [
-      process.env.VITE_API_BASE_URL, 
-      process.env.LIVE_URL,
+      "https://suitelifer-frontend-mu.vercel.app", // Your Vercel frontend
+      "https://www.suitelifer.com", // Your live URL
       "http://localhost:5173", // Frontend development server
       "http://localhost:5174", // Alternative frontend port
       "http://localhost:5175", // Alternative frontend port

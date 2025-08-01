@@ -315,6 +315,15 @@ export const addProduct = async (req, res) => {
       });
     }
 
+    // Check maximum price limit
+    const priceValue = parseInt(price || price_points);
+    if (priceValue > 100000) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Price cannot exceed 100,000 heartbits" 
+      });
+    }
+
     // Handle category - either get existing or create new
     let finalCategoryId = category_id;
     
@@ -411,6 +420,14 @@ export const updateProduct = async (req, res) => {
       return res.status(400).json({ 
         success: false, 
         message: "Price must be a valid positive number" 
+      });
+    }
+
+    // Check maximum price limit if price is being updated
+    if (updateData.price !== undefined && parseFloat(updateData.price) > 100000) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Price cannot exceed 100,000 heartbits" 
       });
     }
 
@@ -1249,7 +1266,7 @@ export const checkout = async (req, res) => {
             price_points: itemPrice,
             quantity: cartItem.quantity,
             variation_id: cartItem.variation_id || null,
-            variation_details: cartItem.variation_details || null
+            variations: cartItem.variations || null
           };
           
 
@@ -1487,8 +1504,13 @@ export const getOrderById = async (req, res) => {
       });
     }
 
+    // Check if user is admin (handle both role and user_type fields, and different case formats)
+    const userRole = req.user.role || req.user.user_type || '';
+    const normalizedRole = userRole.toLowerCase().replace(/\s+/g, '_');
+    const isAdmin = normalizedRole === 'admin' || normalizedRole === 'superadmin' || normalizedRole === 'super_admin';
+
     // Check if user owns this order (unless admin)
-    if (order.user_id !== user_id && req.user.user_type !== 'ADMIN') {
+    if (order.user_id !== user_id && !isAdmin) {
       return res.status(403).json({ 
         success: false, 
         message: "Access denied" 

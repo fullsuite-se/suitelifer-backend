@@ -1,8 +1,8 @@
 -- ============================================================================
 -- SUITELIFER COMPLETE DATABASE SCHEMA
 -- ============================================================================
--- Date: 2025-07-28
--- Description: Complete database schema for the Suitebite system
+-- Date: 2025-01-27
+-- Description: Complete database schema for the Suitelifer system
 -- Features: E-commerce, Points/Rewards, Peer Recognition, Social Interactions
 -- Includes: All tables, indexes, views, and performance optimizations
 -- ============================================================================
@@ -15,43 +15,35 @@ SET sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVIS
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS `sl_user_accounts` (
   `user_id` varchar(36) NOT NULL,
-  `user_email` varchar(255) NOT NULL,
-  `user_password` varchar(255) NOT NULL,
-  `user_type` enum('employee','admin','superadmin') NOT NULL DEFAULT 'employee',
-  `first_name` varchar(100) NOT NULL,
-  `middle_name` varchar(100) DEFAULT NULL,
-  `last_name` varchar(100) NOT NULL,
-  `profile_pic` varchar(500) DEFAULT NULL,
-  `is_verified` tinyint(1) DEFAULT 0,
-  `is_active` tinyint(1) DEFAULT 1,
-  `last_login` timestamp NULL DEFAULT NULL,
-  `suspension_end` timestamp NULL DEFAULT NULL,
-  `suspension_reason` text DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `user_email` varchar(100) NOT NULL,
+  `user_password` varchar(100) NOT NULL,
+  `user_type` enum('SUPER ADMIN','ADMIN','EMPLOYEE') NOT NULL DEFAULT 'EMPLOYEE',
+  `first_name` varchar(50) NOT NULL,
+  `middle_name` varchar(50) DEFAULT NULL,
+  `last_name` varchar(50) NOT NULL,
+  `profile_pic` text,
+  `is_verified` tinyint(1) NOT NULL DEFAULT '0',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NOT NULL,
   PRIMARY KEY (`user_id`),
-  UNIQUE KEY `unique_email` (`user_email`),
+  KEY `idx_user_email` (`user_email`),
+  KEY `idx_user_type` (`user_type`),
   KEY `idx_user_active` (`is_active`),
-  KEY `idx_user_type` (`user_type`)
+  KEY `idx_users_active` (`is_active`,`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- USER SUSPENSIONS TABLE
+-- AUDIT LOGS TABLE
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS `sl_user_suspensions` (
-  `suspension_id` int NOT NULL AUTO_INCREMENT,
-  `user_id` varchar(36) NOT NULL,
-  `reason` text DEFAULT NULL,
-  `suspension_start` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `suspension_end` timestamp NULL DEFAULT NULL,
-  `is_active` tinyint(1) DEFAULT 1,
-  `ended_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`suspension_id`),
-  KEY `idx_suspensions_user` (`user_id`),
-  KEY `idx_suspensions_active` (`is_active`),
-  KEY `idx_suspensions_dates` (`suspension_start`, `suspension_end`),
-  CONSTRAINT `fk_suspensions_user` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS `sl_audit_logs` (
+  `log_id` char(36) NOT NULL,
+  `description` text NOT NULL,
+  `date` timestamp NOT NULL,
+  `action` enum('CREATE','UPDATE','DELETE') NOT NULL,
+  `user_id` char(36) NOT NULL,
+  PRIMARY KEY (`log_id`),
+  KEY `sl_audit_logs_ibfk_1_idx` (`user_id`),
+  CONSTRAINT `sl_audit_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -62,15 +54,14 @@ CREATE TABLE IF NOT EXISTS `sl_admin_actions` (
   `admin_id` varchar(36) NOT NULL,
   `action_type` varchar(255) NOT NULL,
   `target_type` varchar(100) DEFAULT NULL,
-  `target_id` varchar(100) DEFAULT NULL,
   `details` json DEFAULT NULL,
-  `performed_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`action_id`),
-  KEY `idx_admin_actions_admin` (`admin_id`),
-  KEY `idx_admin_actions_type` (`action_type`),
-  KEY `idx_admin_actions_target` (`target_type`, `target_id`),
-  KEY `idx_admin_actions_date` (`performed_at`),
-  CONSTRAINT `fk_admin_actions_admin` FOREIGN KEY (`admin_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+  `target_id` varchar(36) DEFAULT NULL,
+  `action_details` json DEFAULT NULL,
+  `reason` text,
+  `performed_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` text,
+  PRIMARY KEY (`action_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -79,15 +70,11 @@ CREATE TABLE IF NOT EXISTS `sl_admin_actions` (
 CREATE TABLE `sl_shop_categories` (
   `category_id` int NOT NULL AUTO_INCREMENT,
   `category_name` varchar(100) NOT NULL,
-  `description` text DEFAULT NULL,
   `is_active` tinyint(1) DEFAULT 1,
-  `sort_order` int DEFAULT 0,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`category_id`),
-  UNIQUE KEY `category_name` (`category_name`),
-  KEY `idx_category_active` (`is_active`),
-  KEY `idx_category_sort` (`sort_order`)
+  UNIQUE KEY `category_name` (`category_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -95,17 +82,19 @@ CREATE TABLE `sl_shop_categories` (
 -- ============================================================================
 CREATE TABLE `sl_products` (
   `product_id` int NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) NOT NULL,
-  `description` text,
-  `image_url` varchar(500) DEFAULT NULL,
-  `price_points` int NOT NULL DEFAULT 0,
-  `category_id` int DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
   `slug` varchar(255) DEFAULT NULL,
-  `is_active` tinyint(1) DEFAULT 1,
+  `description` text,
+  `image_url` varchar(255) DEFAULT NULL,
+  `price_points` int DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `category_id` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `images_json` json DEFAULT NULL COMMENT 'Array of image URLs for quick access',
   PRIMARY KEY (`product_id`),
+  UNIQUE KEY `unique_product_slug` (`slug`),
   KEY `idx_products_category` (`category_id`),
   KEY `idx_products_active` (`is_active`),
   KEY `idx_products_deleted_at` (`deleted_at`),
@@ -184,18 +173,28 @@ CREATE TABLE `sl_product_variation_options` (
 -- ============================================================================
 -- USER HEARTBITS TABLE
 -- ============================================================================
+-- USER HEARTBITS TABLE
+-- ============================================================================
 CREATE TABLE `sl_user_heartbits` (
+  `heartbits_id` int NOT NULL AUTO_INCREMENT,
   `user_id` varchar(36) NOT NULL,
-  `heartbits_balance` int NOT NULL DEFAULT 0,
-  `total_heartbits_earned` int NOT NULL DEFAULT 0,
-  `total_heartbits_spent` int NOT NULL DEFAULT 0,
+  `heartbits_balance` int DEFAULT 0,
+  `total_heartbits_earned` int DEFAULT 0,
+  `total_heartbits_spent` int DEFAULT 0,
   `is_suspended` tinyint(1) DEFAULT 0,
-  `suspension_reason` text DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`user_id`),
+  `suspension_reason` text,
+  `suspended_until` timestamp NULL DEFAULT NULL,
+  `suspended_by` varchar(36) DEFAULT NULL,
+  `suspended_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`heartbits_id`),
+  KEY `fk_user_heartbits_suspended_by` (`suspended_by`),
+  KEY `idx_user_heartbits_user_id` (`user_id`),
   KEY `idx_user_heartbits_balance` (`heartbits_balance`),
   KEY `idx_user_heartbits_suspended` (`is_suspended`),
+  KEY `idx_user_heartbits_user` (`user_id`),
+  CONSTRAINT `fk_user_heartbits_suspended_by` FOREIGN KEY (`suspended_by`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE SET NULL,
   CONSTRAINT `fk_user_heartbits_user` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -205,17 +204,17 @@ CREATE TABLE `sl_user_heartbits` (
 CREATE TABLE `sl_heartbits_transactions` (
   `transaction_id` int NOT NULL AUTO_INCREMENT,
   `user_id` varchar(36) NOT NULL,
-  `transaction_type` enum('earned','spent','refunded','bonus','deducted') NOT NULL,
-  `amount` int NOT NULL,
-  `description` text DEFAULT NULL,
-  `reference_type` varchar(50) DEFAULT NULL,
-  `reference_id` varchar(100) DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `transaction_type` varchar(32) NOT NULL,
+  `points_amount` int NOT NULL,
+  `reference_type` enum('cheer_received','order','admin_adjustment','refund','bonus') DEFAULT NULL,
+  `reference_id` int DEFAULT NULL,
+  `description` text,
+  `processed_by` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`transaction_id`),
-  KEY `idx_heartbits_transactions_user` (`user_id`),
-  KEY `idx_heartbits_transactions_type` (`transaction_type`),
-  KEY `idx_heartbits_transactions_date` (`created_at`),
-  CONSTRAINT `fk_heartbits_transactions_user` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+  KEY `idx_transactions_user` (`user_id`),
+  KEY `idx_transactions_type` (`transaction_type`),
+  CONSTRAINT `fk_transactions_user` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -224,17 +223,14 @@ CREATE TABLE `sl_heartbits_transactions` (
 CREATE TABLE `sl_monthly_limits` (
   `limit_id` int NOT NULL AUTO_INCREMENT,
   `user_id` varchar(36) NOT NULL,
-  `limit_type` varchar(50) NOT NULL,
-  `limit_value` int NOT NULL,
-  `used_amount` int NOT NULL DEFAULT 0,
-  `reset_date` timestamp NOT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `month_year` varchar(7) DEFAULT NULL,
+  `heartbits_sent` int DEFAULT NULL,
+  `heartbits_limit` int DEFAULT NULL,
   PRIMARY KEY (`limit_id`),
-  UNIQUE KEY `unique_user_limit_type` (`user_id`, `limit_type`),
+  UNIQUE KEY `unique_user_month` (`user_id`,`month_year`),
   KEY `idx_monthly_limits_user` (`user_id`),
-  KEY `idx_monthly_limits_type` (`limit_type`),
-  CONSTRAINT `fk_monthly_limits_user` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+  KEY `idx_monthly_limits_month` (`month_year`),
+  CONSTRAINT `sl_monthly_limits_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -242,97 +238,109 @@ CREATE TABLE `sl_monthly_limits` (
 -- ============================================================================
 CREATE TABLE `sl_user_points` (
   `user_id` varchar(36) NOT NULL,
-  `available_points` int NOT NULL DEFAULT 0,
-  `total_earned` int NOT NULL DEFAULT 0,
-  `total_spent` int NOT NULL DEFAULT 0,
-  `monthly_cheer_limit` int NOT NULL DEFAULT 100,
-  `monthly_cheer_used` int NOT NULL DEFAULT 0,
-  `last_monthly_reset` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `available_points` int DEFAULT 0,
+  `total_earned` int DEFAULT 0,
+  `total_spent` int DEFAULT 0,
+  `monthly_cheer_limit` int DEFAULT 100,
+  `monthly_cheer_used` int DEFAULT 0,
+  `last_monthly_reset` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`user_id`),
-  KEY `idx_user_points_available` (`available_points`),
-  KEY `idx_user_points_monthly_reset` (`last_monthly_reset`),
-  CONSTRAINT `fk_user_points_user` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+  KEY `sl_user_points_user_id_index` (`user_id`),
+  KEY `sl_user_points_total_earned_index` (`total_earned`),
+  CONSTRAINT `sl_user_points_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- CHEERS TABLE
 -- ============================================================================
+-- CHEERS TABLE
+-- ============================================================================
 CREATE TABLE `sl_cheers` (
-  `cheer_id` int NOT NULL AUTO_INCREMENT,
-  `from_user_id` varchar(36) NOT NULL,
-  `to_user_id` varchar(36) NOT NULL,
-  `points` int NOT NULL DEFAULT 1,
-  `message` text DEFAULT NULL,
-  `is_anonymous` tinyint(1) DEFAULT 0,
-  `is_moderated` tinyint(1) DEFAULT 0,
-  `moderation_status` enum('pending','approved','rejected') DEFAULT 'pending',
-  `moderation_notes` text DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `cheer_id` varchar(36) NOT NULL,
+  `from_user_id` varchar(36) DEFAULT NULL,
+  `to_user_id` varchar(36) DEFAULT NULL,
+  `points` int DEFAULT 1,
+  `message` text,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `is_flagged` tinyint(1) DEFAULT 0 COMMENT 'Whether this cheer has been flagged for review',
+  `is_visible` tinyint(1) DEFAULT 1 COMMENT 'Whether this cheer is visible to users',
+  `is_hidden` tinyint(1) DEFAULT 0 COMMENT 'Whether this cheer is hidden by moderators',
+  `is_warned` tinyint(1) DEFAULT 0 COMMENT 'Whether this cheer has received a warning',
+  `warned_at` timestamp NULL DEFAULT NULL COMMENT 'When this cheer was warned',
+  `warned_by` varchar(36) DEFAULT NULL COMMENT 'Which admin warned this cheer',
+  `warning_message` text COMMENT 'Warning message for this cheer',
+  `moderated_at` timestamp NULL DEFAULT NULL COMMENT 'When this cheer was moderated',
+  `moderated_by` varchar(36) DEFAULT NULL COMMENT 'Which admin moderated this cheer',
+  `is_reported` tinyint(1) DEFAULT 0,
+  `moderation_reason` text,
   PRIMARY KEY (`cheer_id`),
-  KEY `idx_cheers_from_user` (`from_user_id`),
-  KEY `idx_cheers_to_user` (`to_user_id`),
-  KEY `idx_cheers_points` (`points`),
-  KEY `idx_cheers_moderation` (`moderation_status`),
-  KEY `idx_cheers_date` (`created_at`),
-  CONSTRAINT `fk_cheers_from_user` FOREIGN KEY (`from_user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_cheers_to_user` FOREIGN KEY (`to_user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+  KEY `sl_cheers_from_user_id_created_at_index` (`from_user_id`,`created_at`),
+  KEY `sl_cheers_to_user_id_created_at_index` (`to_user_id`,`created_at`),
+  KEY `idx_cheers_performance` (`from_user_id`,`to_user_id`,`created_at`,`points`),
+  KEY `fk_cheers_moderated_by` (`moderated_by`),
+  CONSTRAINT `fk_cheers_moderated_by` FOREIGN KEY (`moderated_by`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE SET NULL,
+  CONSTRAINT `sl_cheers_from_user_id_foreign` FOREIGN KEY (`from_user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `sl_cheers_to_user_id_foreign` FOREIGN KEY (`to_user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- CHEER COMMENTS TABLE
 -- ============================================================================
 CREATE TABLE `sl_cheer_comments` (
-  `comment_id` int NOT NULL AUTO_INCREMENT,
-  `cheer_id` int NOT NULL,
-  `user_id` varchar(36) NOT NULL,
-  `comment_text` text NOT NULL,
-  `is_moderated` tinyint(1) DEFAULT 0,
-  `moderation_status` enum('pending','approved','rejected') DEFAULT 'pending',
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`comment_id`),
-  KEY `idx_cheer_comments_cheer` (`cheer_id`),
-  KEY `idx_cheer_comments_user` (`user_id`),
-  KEY `idx_cheer_comments_date` (`created_at`),
-  CONSTRAINT `fk_cheer_comments_cheer` FOREIGN KEY (`cheer_id`) REFERENCES `sl_cheers` (`cheer_id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_cheer_comments_user` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `cheer_id` varchar(36) DEFAULT NULL,
+  `user_id` varchar(36) DEFAULT NULL,
+  `comment` text,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `sl_cheer_comments_user_id_foreign` (`user_id`),
+  KEY `sl_cheer_comments_cheer_id_created_at_index` (`cheer_id`,`created_at`),
+  CONSTRAINT `sl_cheer_comments_cheer_id_foreign` FOREIGN KEY (`cheer_id`) REFERENCES `sl_cheers` (`cheer_id`) ON DELETE CASCADE,
+  CONSTRAINT `sl_cheer_comments_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- CHEER LIKES TABLE
 -- ============================================================================
 CREATE TABLE `sl_cheer_likes` (
-  `like_id` int NOT NULL AUTO_INCREMENT,
-  `cheer_id` int NOT NULL,
+  `cheer_id` varchar(36) NOT NULL,
   `user_id` varchar(36) NOT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`like_id`),
-  UNIQUE KEY `unique_cheer_like` (`cheer_id`, `user_id`),
-  KEY `idx_cheer_likes_cheer` (`cheer_id`),
-  KEY `idx_cheer_likes_user` (`user_id`),
-  KEY `idx_cheer_likes_date` (`created_at`),
-  CONSTRAINT `fk_cheer_likes_cheer` FOREIGN KEY (`cheer_id`) REFERENCES `sl_cheers` (`cheer_id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_cheer_likes_user` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`cheer_id`,`user_id`),
+  KEY `sl_cheer_likes_cheer_id_index` (`cheer_id`),
+  KEY `sl_cheer_likes_user_id_index` (`user_id`),
+  CONSTRAINT `sl_cheer_likes_cheer_id_foreign` FOREIGN KEY (`cheer_id`) REFERENCES `sl_cheers` (`cheer_id`) ON DELETE CASCADE,
+  CONSTRAINT `sl_cheer_likes_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- TRANSACTIONS TABLE
 -- ============================================================================
 CREATE TABLE `sl_transactions` (
-  `transaction_id` int NOT NULL AUTO_INCREMENT,
-  `user_id` varchar(36) NOT NULL,
-  `type` enum('earned','spent','refunded','bonus','deducted') NOT NULL,
-  `amount` int NOT NULL,
-  `description` text DEFAULT NULL,
-  `reference_type` varchar(50) DEFAULT NULL,
-  `reference_id` varchar(100) DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `transaction_id` varchar(36) NOT NULL,
+  `from_user_id` varchar(36) DEFAULT NULL,
+  `to_user_id` varchar(36) DEFAULT NULL,
+  `type` enum('earned','spent','given','received','bonus','admin_grant','admin_deduct','moderation') DEFAULT NULL,
+  `amount` int DEFAULT NULL,
+  `description` varchar(500) DEFAULT NULL,
+  `message` text,
+  `metadata` json DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`transaction_id`),
-  KEY `idx_transactions_user` (`user_id`),
-  KEY `idx_transactions_type` (`type`),
-  KEY `idx_transactions_date` (`created_at`),
-  CONSTRAINT `fk_transactions_user` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+  KEY `sl_transactions_to_user_id_created_at_index` (`to_user_id`,`created_at`),
+  KEY `sl_transactions_from_user_id_created_at_index` (`from_user_id`,`created_at`),
+  KEY `sl_transactions_type_created_at_index` (`type`,`created_at`),
+  KEY `idx_transactions_leaderboard_performance` (`type`,`created_at`,`to_user_id`,`amount`),
+  KEY `idx_transactions_date_type` (`created_at`,`type`),
+  KEY `idx_transactions_user_amount` (`to_user_id`,`amount` DESC),
+  CONSTRAINT `sl_transactions_from_user_id_foreign` FOREIGN KEY (`from_user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE SET NULL,
+  CONSTRAINT `sl_transactions_to_user_id_foreign` FOREIGN KEY (`to_user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -340,33 +348,30 @@ CREATE TABLE `sl_transactions` (
 -- ============================================================================
 CREATE TABLE `sl_carts` (
   `cart_id` int NOT NULL AUTO_INCREMENT,
-  `user_id` varchar(36) NOT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `user_id` char(36) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`cart_id`),
-  UNIQUE KEY `unique_user_cart` (`user_id`),
-  KEY `idx_carts_user` (`user_id`),
-  CONSTRAINT `fk_carts_user` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `sl_carts_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- CART ITEMS TABLE
 -- ============================================================================
+-- CART ITEMS TABLE
+-- ============================================================================
 CREATE TABLE `sl_cart_items` (
   `cart_item_id` int NOT NULL AUTO_INCREMENT,
-  `cart_id` int NOT NULL,
-  `product_id` int NOT NULL,
-  `quantity` int NOT NULL DEFAULT 1,
-  `variation_id` int DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `cart_id` int DEFAULT NULL,
+  `product_id` int DEFAULT NULL,
+  `quantity` int DEFAULT NULL,
+  `added_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`cart_item_id`),
   KEY `idx_cart_items_cart` (`cart_id`),
   KEY `idx_cart_items_product` (`product_id`),
-  KEY `idx_cart_items_variation` (`variation_id`),
-  CONSTRAINT `fk_cart_items_cart` FOREIGN KEY (`cart_id`) REFERENCES `sl_carts` (`cart_id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_cart_items_product` FOREIGN KEY (`product_id`) REFERENCES `sl_products` (`product_id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_cart_items_variation` FOREIGN KEY (`variation_id`) REFERENCES `sl_product_variations` (`variation_id`) ON DELETE SET NULL
+  CONSTRAINT `fk_cart_item_product` FOREIGN KEY (`product_id`) REFERENCES `sl_products` (`product_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_cart_items_cart` FOREIGN KEY (`cart_id`) REFERENCES `sl_carts` (`cart_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -391,28 +396,28 @@ CREATE TABLE `sl_cart_item_variations` (
 -- ORDERS TABLE
 -- ============================================================================
 -- Note: deleted_at supports soft deletes - orders with deleted_at timestamp
--- remain in database but are filtered out of user queries
+-- ============================================================================
+-- ORDERS TABLE
+-- ============================================================================
 CREATE TABLE `sl_orders` (
   `order_id` int NOT NULL AUTO_INCREMENT,
-  `user_id` varchar(36) NOT NULL,
-  `status` enum('pending','processing','completed','cancelled') NOT NULL DEFAULT 'pending',
-  `total_points` int NOT NULL DEFAULT 0,
-  `ordered_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `processed_at` timestamp NULL DEFAULT NULL,
-  `completed_at` timestamp NULL DEFAULT NULL,
+  `user_id` char(36) DEFAULT NULL,
+  `total_points` int DEFAULT NULL,
+  `ordered_at` datetime DEFAULT NULL,
+  `status` enum('pending','processing','completed','cancelled') DEFAULT NULL,
+  `processed_at` datetime DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
   `cancelled_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `notes` text,
   PRIMARY KEY (`order_id`),
   KEY `idx_orders_user` (`user_id`),
   KEY `idx_orders_status` (`status`),
-  KEY `idx_orders_date` (`ordered_at`),
+  KEY `idx_orders_cancelled_at` (`cancelled_at`),
   KEY `idx_orders_deleted_at` (`deleted_at`),
   KEY `idx_orders_user_status_date_deleted` (`user_id`, `status`, `ordered_at`, `deleted_at`),
   KEY `idx_orders_status_date_deleted` (`status`, `ordered_at`, `deleted_at`),
-  CONSTRAINT `fk_orders_user` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+  CONSTRAINT `fk_orders_user` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -420,19 +425,18 @@ CREATE TABLE `sl_orders` (
 -- ============================================================================
 CREATE TABLE `sl_order_items` (
   `order_item_id` int NOT NULL AUTO_INCREMENT,
-  `order_id` int NOT NULL,
-  `product_id` int NOT NULL,
-  `quantity` int NOT NULL DEFAULT 1,
+  `order_id` int DEFAULT NULL,
+  `product_id` int DEFAULT NULL,
+  `quantity` int DEFAULT NULL,
+  `points_spent` int DEFAULT NULL,
+  `product_name` varchar(255) NOT NULL,
   `price_points` int NOT NULL,
-  `variation_id` int DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`order_item_id`),
   KEY `idx_order_items_order` (`order_id`),
   KEY `idx_order_items_product` (`product_id`),
-  KEY `idx_order_items_variation` (`variation_id`),
+  KEY `idx_order_items_order_product` (`order_id`,`product_id`),
   CONSTRAINT `fk_order_items_order` FOREIGN KEY (`order_id`) REFERENCES `sl_orders` (`order_id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_order_items_product` FOREIGN KEY (`product_id`) REFERENCES `sl_products` (`product_id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_order_items_variation` FOREIGN KEY (`variation_id`) REFERENCES `sl_product_variations` (`variation_id`) ON DELETE SET NULL
+  CONSTRAINT `fk_order_items_product` FOREIGN KEY (`product_id`) REFERENCES `sl_products` (`product_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -443,14 +447,15 @@ CREATE TABLE `sl_order_item_variations` (
   `order_item_id` int NOT NULL,
   `variation_type_id` int NOT NULL,
   `option_id` int NOT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`order_item_variation_id`),
+  KEY `fk_order_item_variations_type` (`variation_type_id`),
+  KEY `fk_order_item_variations_option` (`option_id`),
   KEY `idx_order_item_variations_item` (`order_item_id`),
-  KEY `idx_order_item_variations_type` (`variation_type_id`),
-  KEY `idx_order_item_variations_option` (`option_id`),
-  CONSTRAINT `fk_order_item_variations_item` FOREIGN KEY (`order_item_id`) REFERENCES `sl_order_items` (`order_item_id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_order_item_variations_type` FOREIGN KEY (`variation_type_id`) REFERENCES `sl_variation_types` (`variation_type_id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_order_item_variations_option` FOREIGN KEY (`option_id`) REFERENCES `sl_variation_options` (`option_id`) ON DELETE RESTRICT
+  CONSTRAINT `fk_order_item_variations_option` FOREIGN KEY (`option_id`) REFERENCES `sl_variation_options` (`option_id`),
+  CONSTRAINT `fk_order_item_variations_order_item` FOREIGN KEY (`order_item_id`) REFERENCES `sl_order_items` (`order_item_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_order_item_variations_type` FOREIGN KEY (`variation_type_id`) REFERENCES `sl_variation_types` (`variation_type_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -468,14 +473,16 @@ CREATE TABLE `sl_product_images` (
   `sort_order` int DEFAULT 0,
   `is_primary` tinyint(1) DEFAULT 0,
   `is_active` tinyint(1) DEFAULT 1,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`image_id`),
-  KEY `idx_product_images_product` (`product_id`),
-  KEY `idx_product_images_active` (`is_active`),
-  KEY `idx_product_images_sort` (`sort_order`),
-  KEY `idx_product_images_primary` (`is_primary`),
-  CONSTRAINT `fk_product_images_product` FOREIGN KEY (`product_id`) REFERENCES `sl_products` (`product_id`) ON DELETE CASCADE
+  KEY `idx_product_images_product_id` (`product_id`),
+  KEY `idx_product_images_sort_order` (`sort_order`),
+  KEY `idx_product_images_is_primary` (`is_primary`),
+  KEY `idx_product_images_product_active` (`product_id`,`is_active`),
+  KEY `idx_product_images_primary` (`product_id`,`is_primary`),
+  KEY `idx_product_images_product_active_sort` (`product_id`,`is_active`,`sort_order`),
+  CONSTRAINT `fk_product_images_product_id` FOREIGN KEY (`product_id`) REFERENCES `sl_products` (`product_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -514,15 +521,6 @@ CREATE INDEX `idx_order_item_variations_item` ON `sl_order_item_variations` (`or
 -- VIEWS FOR COMMON QUERIES
 -- ============================================================================
 
--- View for products with category names
-CREATE VIEW `v_products_with_categories` AS
-SELECT 
-    p.*,
-    c.category_name
-FROM `sl_products` p
-LEFT JOIN `sl_shop_categories` c ON p.category_id = c.category_id
-WHERE p.is_active = 1 AND (c.is_active = 1 OR c.is_active IS NULL);
-
 -- View for user heartbits summary
 CREATE VIEW `v_user_heartbits_summary` AS
 SELECT 
@@ -530,59 +528,13 @@ SELECT
     u.first_name,
     u.last_name,
     u.user_email,
-    h.heartbits_balance,
-    h.total_heartbits_earned,
-    h.total_heartbits_spent,
-    h.is_suspended,
-    h.suspension_reason
-FROM `sl_user_accounts` u
-LEFT JOIN `sl_user_heartbits` h ON u.user_id = h.user_id
-WHERE u.is_active = 1;
-
--- View for order summary with user details
-CREATE VIEW `v_orders_summary` AS
-SELECT 
-    o.*,
-    u.first_name,
-    u.last_name,
-    u.user_email,
-    COUNT(oi.order_item_id) as total_items
-FROM `sl_orders` o
-JOIN `sl_user_accounts` u ON o.user_id = u.user_id
-LEFT JOIN `sl_order_items` oi ON o.order_id = oi.order_id
-GROUP BY o.order_id, u.user_id, u.first_name, u.last_name, u.user_email;
-
--- View for cheers with user details
-CREATE VIEW `v_cheers_with_users` AS
-SELECT 
-    c.*,
-    from_user.first_name as from_first_name,
-    from_user.last_name as from_last_name,
-    from_user.user_email as from_email,
-    to_user.first_name as to_first_name,
-    to_user.last_name as to_last_name,
-    to_user.user_email as to_email,
-    (SELECT COUNT(*) FROM sl_cheer_likes cl WHERE cl.cheer_id = c.cheer_id) as likes_count,
-    (SELECT COUNT(*) FROM sl_cheer_comments cc WHERE cc.cheer_id = c.cheer_id) as comments_count
-FROM `sl_cheers` c
-LEFT JOIN `sl_user_accounts` from_user ON c.from_user_id = from_user.user_id
-LEFT JOIN `sl_user_accounts` to_user ON c.to_user_id = to_user.user_id;
-
--- View for user points summary
-CREATE VIEW `v_user_points_summary` AS
-SELECT 
-    u.user_id,
-    u.first_name,
-    u.last_name,
-    u.user_email,
-    up.available_points,
-    up.total_earned,
-    up.total_spent,
-    up.monthly_cheer_limit,
-    up.monthly_cheer_used,
-    up.last_monthly_reset
-FROM `sl_user_accounts` u
-LEFT JOIN `sl_user_points` up ON u.user_id = up.user_id
+    p.available_points AS heartbits_balance,
+    p.total_earned AS total_heartbits_earned,
+    p.total_spent AS total_heartbits_spent,
+    0 AS is_suspended,
+    NULL AS suspension_reason
+FROM sl_user_accounts u
+LEFT JOIN sl_user_points p ON u.user_id = p.user_id
 WHERE u.is_active = 1;
 
 -- ============================================================================
@@ -603,6 +555,554 @@ CREATE TABLE IF NOT EXISTS `sl_mood_logs` (
   KEY `idx_user_mood_date` (`user_id`, `mood_level`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Stores user mood tracking entries';
+
+-- ============================================================================
+-- VERIFICATION CODES TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_verification_codes` (
+  `code_id` char(36) NOT NULL,
+  `user_id` char(36) NOT NULL,
+  `verification_code` char(60) NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `expires_at` timestamp NOT NULL,
+  PRIMARY KEY (`code_id`),
+  KEY `sl_email_verification_codes_ibfk_1_idx` (`user_id`),
+  CONSTRAINT `sl_verification_codes_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- ADMIN PERMISSIONS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_admin_permissions` (
+  `permission_id` int NOT NULL AUTO_INCREMENT,
+  `permission_name` varchar(100) NOT NULL,
+  `permission_description` text,
+  `permission_category` enum('USER_MANAGEMENT','CONTENT_MODERATION','SHOP_MANAGEMENT','ANALYTICS','SYSTEM_CONFIG') NOT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`permission_id`),
+  UNIQUE KEY `permission_name` (`permission_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- ADMIN ROLES TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_admin_roles` (
+  `role_id` int NOT NULL AUTO_INCREMENT,
+  `role_name` varchar(50) NOT NULL,
+  `role_description` text,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`role_id`),
+  UNIQUE KEY `role_name` (`role_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- EMPLOYEE BLOGS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_employee_blogs` (
+  `eblog_id` char(36) NOT NULL,
+  `title` varchar(70) NOT NULL,
+  `description` text NOT NULL,
+  `is_shown` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`eblog_id`),
+  KEY `sl_employee_blogs_ibfk_1_idx` (`created_by`),
+  CONSTRAINT `sl_employee_blogs_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- EVENTS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_events` (
+  `event_id` char(36) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text NOT NULL,
+  `date_start` timestamp NOT NULL,
+  `date_end` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`event_id`),
+  KEY `sl_events_ibfk_1_idx` (`created_by`),
+  CONSTRAINT `sl_events_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- COMPANY JOBS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_company_jobs` (
+  `job_id` char(36) NOT NULL,
+  `title` varchar(60) NOT NULL,
+  `industry_id` char(36) NOT NULL,
+  `employment_type` enum('Full-time','Part-time','Contract','Internship') NOT NULL,
+  `setup_id` char(36) NOT NULL,
+  `description` text NOT NULL,
+  `salary_min` int DEFAULT 0,
+  `salary_max` int DEFAULT 0,
+  `responsibility` text,
+  `requirement` text,
+  `preferred_qualification` text,
+  `is_open` tinyint(1) NOT NULL,
+  `is_shown` tinyint(1) NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  `company_id` char(36) NOT NULL,
+  PRIMARY KEY (`job_id`),
+  KEY `company_id` (`company_id`),
+  KEY `setup_id` (`setup_id`),
+  KEY `industry_id` (`industry_id`),
+  KEY `created_by` (`created_by`),
+  CONSTRAINT `sl_company_jobs_ibfk_2` FOREIGN KEY (`setup_id`) REFERENCES `sl_company_jobs_setups` (`setup_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `sl_company_jobs_ibfk_3` FOREIGN KEY (`industry_id`) REFERENCES `sl_job_industries` (`job_ind_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- NEWSLETTERS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_newsletters` (
+  `newsletter_id` char(36) NOT NULL,
+  `title` varchar(150) NOT NULL,
+  `article` text NOT NULL,
+  `section` tinyint NOT NULL DEFAULT 0,
+  `pseudonym` varchar(50) DEFAULT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  `issue_id` char(36) NOT NULL,
+  PRIMARY KEY (`newsletter_id`),
+  KEY `sl_news_ibfk_1_idx` (`created_by`),
+  KEY `sl_newsletters_ibfk_1_idx` (`issue_id`),
+  CONSTRAINT `sl_newsletters_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`),
+  CONSTRAINT `sl_newsletters_ibfk_2` FOREIGN KEY (`issue_id`) REFERENCES `sl_newsletter_issues` (`issue_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- COMPANY JOBS SETUPS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_company_jobs_setups` (
+  `setup_id` char(36) NOT NULL,
+  `setup_name` varchar(20) NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`setup_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- JOB INDUSTRIES TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_job_industries` (
+  `job_ind_id` char(36) NOT NULL,
+  `industry_name` varchar(50) NOT NULL,
+  `company_id` char(36) NOT NULL,
+  `image_url` text,
+  `assessment_url` text NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`job_ind_id`),
+  KEY `created_by` (`created_by`),
+  KEY `sl_job_industries_ibfk_1` (`company_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- NEWSLETTER ISSUES TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_newsletter_issues` (
+  `issue_id` char(36) NOT NULL,
+  `month` tinyint NOT NULL,
+  `year` year NOT NULL,
+  `is_published` tinyint NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`issue_id`),
+  KEY `sl_issues_ibfk_1_idx` (`created_by`),
+  CONSTRAINT `sl_newsletter_issues_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- CONTACT TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_contact` (
+  `contact_id` char(36) NOT NULL,
+  `website_email` varchar(100) NOT NULL,
+  `website_tel` varchar(30) NOT NULL,
+  `website_phone` varchar(30) NOT NULL,
+  `careers_email` varchar(100) NOT NULL,
+  `internship_email` varchar(100) NOT NULL,
+  `careers_phone` varchar(30) NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`contact_id`),
+  KEY `sl_contact_ibfk_1_idx` (`created_by`),
+  CONSTRAINT `sl_contact_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- CONTENT TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_content` (
+  `content_id` char(36) NOT NULL,
+  `get_in_touch_image` text NOT NULL,
+  `kickstart_video` text NOT NULL,
+  `text_banner` text NOT NULL,
+  `about_hero_image` text NOT NULL,
+  `about_background_image` text NOT NULL,
+  `about_video` text NOT NULL,
+  `team_player_video` text NOT NULL,
+  `understood_video` text NOT NULL,
+  `focused_video` text NOT NULL,
+  `upholds_video` text NOT NULL,
+  `harmony_video` text NOT NULL,
+  `mission_slogan` varchar(255) NOT NULL,
+  `mission` text NOT NULL,
+  `mission_video` text NOT NULL,
+  `vision_slogan` varchar(255) NOT NULL,
+  `vision` text NOT NULL,
+  `vision_video` text NOT NULL,
+  `day_in_pod_url` text NOT NULL,
+  `careers_main_image` text NOT NULL,
+  `careers_left_image` text NOT NULL,
+  `careers_right_image` text NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`content_id`),
+  KEY `sl_content_ibfk_1_idx` (`created_by`),
+  CONSTRAINT `sl_content_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- COURSES TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_courses` (
+  `course_id` char(36) NOT NULL,
+  `title` varchar(50) NOT NULL,
+  `description` text NOT NULL,
+  `url` text NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`course_id`),
+  KEY `sl_courses_ibfk_1_idx` (`created_by`),
+  CONSTRAINT `sl_courses_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- FAQS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_faqs` (
+  `faq_id` char(36) NOT NULL,
+  `question` text NOT NULL,
+  `answer` text NOT NULL,
+  `is_shown` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`faq_id`),
+  KEY `sl_faqs_ibfk_1_idx` (`created_by`),
+  CONSTRAINT `sl_faqs_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- TESTIMONIALS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_testimonials` (
+  `testimonial_id` char(36) NOT NULL,
+  `employee_name` text NOT NULL,
+  `position` text NOT NULL,
+  `testimony` text NOT NULL,
+  `is_shown` tinyint NOT NULL DEFAULT 1,
+  `employee_image_url` text NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`testimonial_id`),
+  KEY `sl_testimonials_ibfk_1_idx` (`created_by`),
+  CONSTRAINT `sl_testimonials_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- PRIVACY POLICY TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_privacy_policy` (
+  `policy_id` char(36) NOT NULL,
+  `title` text NOT NULL,
+  `description` text NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`policy_id`),
+  KEY `sl_privacy_policy_ibfk_1_idx` (`created_by`),
+  CONSTRAINT `sl_privacy_policy_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- TERMS OF USE TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_terms_of_use` (
+  `terms_id` char(36) NOT NULL,
+  `title` text NOT NULL,
+  `description` text NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`terms_id`),
+  KEY `sl_terms_of_use_ibfk_1_idx` (`created_by`),
+  CONSTRAINT `sl_terms_of_use_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- PERSONALITY TESTS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_personality_tests` (
+  `test_id` char(36) NOT NULL,
+  `test_title` varchar(50) NOT NULL,
+  `test_url` text NOT NULL,
+  `test_description` text NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`test_id`),
+  KEY `sl_personality_tests_ibfk_1_idx` (`created_by`),
+  CONSTRAINT `sl_personality_tests_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- CERTIFICATIONS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_certifications` (
+  `cert_id` char(36) NOT NULL,
+  `cert_img_url` text NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`cert_id`),
+  KEY `sl_certifications_ibfk_1_idx` (`created_by`),
+  CONSTRAINT `sl_certifications_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- SPOTIFY EMBEDS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_spotify_embeds` (
+  `episode_id` char(36) NOT NULL,
+  `spotify_id` char(22) NOT NULL,
+  `embed_type` enum('EPISODE','PLAYLIST') NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`episode_id`),
+  KEY `sl_spotify_embeds_ibfk_1_idx` (`created_by`),
+  CONSTRAINT `sl_spotify_embeds_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- SYSTEM CONFIG TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_system_config` (
+  `config_id` int NOT NULL AUTO_INCREMENT,
+  `config_key` varchar(100) NOT NULL,
+  `config_value` text,
+  `config_description` text,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `description` text,
+  `config_type` enum('string','integer','boolean','json') DEFAULT 'string',
+  `is_editable` tinyint(1) DEFAULT 1,
+  PRIMARY KEY (`config_id`),
+  UNIQUE KEY `config_key` (`config_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- CHEER POST TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_cheer_post` (
+  `cheer_post_id` int NOT NULL AUTO_INCREMENT,
+  `cheerer_id` char(36) DEFAULT NULL,
+  `peer_id` char(36) DEFAULT NULL,
+  `post_body` text,
+  `heartbits_given` int DEFAULT NULL,
+  `hashtags` varchar(255) DEFAULT NULL,
+  `posted_at` datetime DEFAULT NULL,
+  `is_flagged` tinyint(1) DEFAULT 0,
+  `is_visible` tinyint(1) DEFAULT 1,
+  `is_approved` tinyint(1) DEFAULT NULL,
+  `is_warned` tinyint(1) DEFAULT 0,
+  `is_hidden` tinyint(1) DEFAULT 0,
+  `warning_message` text,
+  `warned_at` timestamp NULL DEFAULT NULL,
+  `warned_by` varchar(36) DEFAULT NULL,
+  `moderation_reason` text,
+  `moderated_at` timestamp NULL DEFAULT NULL,
+  `moderated_by` varchar(36) DEFAULT NULL,
+  PRIMARY KEY (`cheer_post_id`),
+  KEY `idx_cheer_cheerer` (`cheerer_id`),
+  KEY `idx_cheer_peer` (`peer_id`),
+  KEY `idx_cheer_posted` (`posted_at`),
+  CONSTRAINT `sl_cheer_post_ibfk_1` FOREIGN KEY (`cheerer_id`) REFERENCES `sl_user_accounts` (`user_id`),
+  CONSTRAINT `sl_cheer_post_ibfk_2` FOREIGN KEY (`peer_id`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- CHEER DESIGNATION TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_cheer_designation` (
+  `cheer_designation_id` int NOT NULL AUTO_INCREMENT,
+  `cheer_post_id` int DEFAULT NULL,
+  `peer_id` char(36) DEFAULT NULL,
+  `heartbits_given` int DEFAULT NULL,
+  PRIMARY KEY (`cheer_designation_id`),
+  KEY `cheer_post_id` (`cheer_post_id`),
+  KEY `peer_id` (`peer_id`),
+  CONSTRAINT `sl_cheer_designation_ibfk_1` FOREIGN KEY (`cheer_post_id`) REFERENCES `sl_cheer_post` (`cheer_post_id`),
+  CONSTRAINT `sl_cheer_designation_ibfk_2` FOREIGN KEY (`peer_id`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- E-BLOG COMMENTS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_eblog_comments` (
+  `comment_id` char(36) NOT NULL,
+  `comment` varchar(100) NOT NULL,
+  `content_id` char(36) NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `created_by` char(36) NOT NULL,
+  PRIMARY KEY (`comment_id`),
+  KEY `content_id` (`content_id`),
+  KEY `sl_eblog_comments_ibfk_2_idx` (`created_by`),
+  CONSTRAINT `sl_eblog_comments_ibfk_1` FOREIGN KEY (`content_id`) REFERENCES `sl_employee_blogs` (`eblog_id`),
+  CONSTRAINT `sl_eblog_comments_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- E-BLOG LIKES TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_eblog_likes` (
+  `like_id` char(36) NOT NULL,
+  `eblog_id` char(36) NOT NULL,
+  `user_id` char(36) NOT NULL,
+  `created_at` timestamp NOT NULL,
+  PRIMARY KEY (`like_id`),
+  KEY `eblog_id` (`eblog_id`),
+  KEY `sl_eblog_likes_ibfk_2_idx` (`created_at`),
+  KEY `sl_eblog_likes_ibfk_2_idx1` (`user_id`),
+  CONSTRAINT `sl_eblog_likes_ibfk_1` FOREIGN KEY (`eblog_id`) REFERENCES `sl_employee_blogs` (`eblog_id`),
+  CONSTRAINT `sl_eblog_likes_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- EMPLOYEE BLOG IMAGES TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_employee_blog_images` (
+  `eblog_image_id` char(36) NOT NULL,
+  `image_url` text NOT NULL,
+  `eblog_id` char(36) NOT NULL,
+  PRIMARY KEY (`eblog_image_id`),
+  KEY `sl_employee_blogs_ibfk_1_idx` (`eblog_id`),
+  KEY `sl_employee_blog_images_ibfk_1_idx` (`eblog_id`),
+  CONSTRAINT `sl_employee_blog_images_ibfk_1` FOREIGN KEY (`eblog_id`) REFERENCES `sl_employee_blogs` (`eblog_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- SHOP COMMENTS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_shop_comments` (
+  `comment_id` int NOT NULL AUTO_INCREMENT,
+  `product_id` int NOT NULL,
+  `user_id` varchar(36) NOT NULL,
+  `parent_comment_id` int DEFAULT NULL,
+  `comment_text` text NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `is_deleted` tinyint(1) DEFAULT 0,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`comment_id`),
+  KEY `idx_product_id` (`product_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_parent_comment_id` (`parent_comment_id`),
+  KEY `idx_created_at` (`created_at`),
+  KEY `idx_not_deleted` (`is_deleted`),
+  CONSTRAINT `sl_shop_comments_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `sl_order_items` (`product_id`) ON DELETE CASCADE,
+  CONSTRAINT `sl_shop_comments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `sl_user_accounts` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `sl_shop_comments_ibfk_3` FOREIGN KEY (`parent_comment_id`) REFERENCES `sl_shop_comments` (`comment_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- DAILY STATS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_daily_stats` (
+  `stat_id` int NOT NULL AUTO_INCREMENT,
+  `stat_date` date NOT NULL,
+  `total_cheers` int DEFAULT 0,
+  `total_heartbits_given` int DEFAULT 0,
+  `total_orders` int DEFAULT 0,
+  `total_heartbits_spent` int DEFAULT 0,
+  `active_users` int DEFAULT 0,
+  `new_users` int DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`stat_id`),
+  UNIQUE KEY `stat_date` (`stat_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- USER MONTHLY STATS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_user_monthly_stats` (
+  `stat_id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `month_year` varchar(7) NOT NULL,
+  `cheers_sent` int DEFAULT 0,
+  `cheers_received` int DEFAULT 0,
+  `heartbits_earned` int DEFAULT 0,
+  `heartbits_spent` int DEFAULT 0,
+  `orders_placed` int DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`stat_id`),
+  UNIQUE KEY `unique_user_month_stats` (`user_id`,`month_year`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- USER NOTIFICATIONS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_user_notifications` (
+  `notification_id` int NOT NULL AUTO_INCREMENT,
+  `user_id` varchar(36) NOT NULL COMMENT 'User who receives the notification',
+  `notification_type` enum('warning','info','success','error') NOT NULL DEFAULT 'warning',
+  `title` varchar(255) NOT NULL,
+  `message` text NOT NULL,
+  `is_read` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `read_at` timestamp NULL DEFAULT NULL,
+  `expires_at` timestamp NULL DEFAULT NULL,
+  `created_by` varchar(36) DEFAULT NULL COMMENT 'Admin who created the notification',
+  `reference_type` varchar(100) DEFAULT NULL COMMENT 'Type of reference (e.g., cheer_post)',
+  `reference_id` varchar(100) DEFAULT NULL COMMENT 'ID of the referenced item',
+  PRIMARY KEY (`notification_id`),
+  KEY `idx_notifications_user` (`user_id`),
+  KEY `idx_notifications_type` (`notification_type`),
+  KEY `idx_notifications_read` (`is_read`),
+  KEY `idx_notifications_created` (`created_at`),
+  KEY `idx_notifications_expires` (`expires_at`),
+  KEY `idx_notifications_reference` (`reference_type`,`reference_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- NEWSLETTER IMAGES TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `sl_newsletter_images` (
+  `newsletter_image_id` char(36) NOT NULL,
+  `image_url` text NOT NULL,
+  `newsletter_id` char(36) NOT NULL,
+  PRIMARY KEY (`newsletter_image_id`),
+  KEY `sl_news_images_ibfk_1_idx` (`newsletter_id`),
+  CONSTRAINT `sl_newsletter_images_ibfk_1` FOREIGN KEY (`newsletter_id`) REFERENCES `sl_newsletters` (`newsletter_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- LEADERBOARD CACHE TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `leaderboard_cache` (
+  `period` varchar(20) NOT NULL,
+  `user_id` varchar(36) NOT NULL,
+  `total_points` int DEFAULT NULL,
+  `rank_position` int DEFAULT NULL,
+  `last_updated` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`period`,`user_id`),
+  KEY `leaderboard_cache_period_rank_position_index` (`period`,`rank_position`),
+  KEY `leaderboard_cache_period_total_points_index` (`period`,`total_points`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- TRIGGERS FOR DATA CONSISTENCY
