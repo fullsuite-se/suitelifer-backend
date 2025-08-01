@@ -14,7 +14,7 @@
 -- - Enhanced admin system (4 tables)
 -- - Mood tracking (1 table)
 -- 
--- Migration Date: December 2024
+
 -- ============================================================================
 
 -- Set MySQL mode for compatibility
