@@ -8,7 +8,7 @@ export const User = {
     return await userAccountsTable().insert(userData);
   },
   getAllUsers: async () => {
-    return await userAccountsTable()
+    const users = await userAccountsTable()
       .select(
         "user_id AS userId",
         "user_email AS userEmail",
@@ -25,6 +25,12 @@ export const User = {
         "sl_user_accounts.created_at AS createdAt"
       )
       .orderBy("fullName");
+    
+    // Add isSuspended field (temporarily set to false until database is migrated)
+    return users.map(user => ({
+      ...user,
+      isSuspended: false // TODO: Update when suspension columns are added to database
+    }));
   },
 
   updateUserRole: async (user_type, user_id) => {
@@ -40,9 +46,8 @@ export const User = {
   },
 
   getUser: async (user_id) => {
-    return await db
-      .select("*")
-      .from(userAccounts)
+    return await db('sl_user_accounts')
+      .select('user_id', 'first_name', 'last_name', 'user_email', 'user_type')
       .where({ user_id: user_id })
       .first();
   },

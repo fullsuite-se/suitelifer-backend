@@ -38,7 +38,12 @@ export const getUsers = async (req, res) => {
     const users = await User.getAllUsers();
     res.json({ success: true, users });
   } catch (err) {
-    console.log("Unable to fetch Users",err);
+    console.log("Unable to fetch Users", err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal Server Error - Unable to fetch users",
+      error: err.message 
+    });
   }
 };
 
@@ -167,3 +172,17 @@ export const updateUserPassword = async (req, res) => {
       .json({ isSuccess: false, message: "Invalid request" });
   }
 };
+
+async function searchUsers(req, res) {
+  const query = (req.query.q || '').toLowerCase();
+  const users = await db.query(
+    `SELECT user_id, CONCAT(first_name, ' ', last_name) AS name, email, avatar
+     FROM sl_user_accounts
+     WHERE LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR LOWER(email) LIKE ?
+     LIMIT 10`,
+    [`%${query}%`, `%${query}%`, `%${query}%`]
+  );
+  res.json({ success: true, data: users });
+}
+
+export { searchUsers };
