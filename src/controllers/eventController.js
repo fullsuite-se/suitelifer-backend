@@ -43,7 +43,7 @@ export const getUpcomingEvents = async (req, res) => {
 
 export const insertEvent = async (req, res) => {
   try {
-    const { title, description, start, end, userId } = req.body;
+    const { title, description, start, end, userId, gdrive_link } = req.body;
 
     if ((!title, !description, !start, !userId)) {
       return res
@@ -58,6 +58,7 @@ export const insertEvent = async (req, res) => {
       date_start: new Date(start).toISOString().slice(0, 19).replace("T", " "),
       date_end:
         new Date(end).toISOString().slice(0, 19).replace("T", " ") ?? null,
+      gdrive_link: gdrive_link,
       created_at: now(),
       created_by: userId,
     };
