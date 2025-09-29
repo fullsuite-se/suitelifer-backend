@@ -8,6 +8,7 @@ export const Event = {
       .select(
         "event_id AS eventId",
         "title",
+        "category",
         "description",
         "date_start AS start",
         "date_end AS end",
@@ -31,6 +32,7 @@ export const Event = {
       .select(
         "event_id AS eventId",
         "title",
+        "category",
         "description",
         "date_start AS start",
         "date_end AS end",
@@ -54,6 +56,7 @@ export const Event = {
       .select(
         "event_id AS eventId",
         "title",
+        "category",
         "description",
         "date_start AS start",
         "date_end AS end",
