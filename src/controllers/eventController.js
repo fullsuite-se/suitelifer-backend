@@ -42,7 +42,7 @@ export const getUpcomingEvents = async (req, res) => {
 
 export const insertEvent = async (req, res) => {
   try {
-    const { title, description, start, end, userId, gdrive_link } = req.body;
+    const { title, category, description, start, end, userId, gdrive_link } = req.body;
     console.log(`Upon insert: ${start}, ${end}`)
 
     if ((!title, !description, !start, !userId)) {
@@ -54,6 +54,7 @@ export const insertEvent = async (req, res) => {
     const newEvent = {
       event_id: uuidv7(),
       title,
+      category,
       description,
       date_start: start,
       date_end: end,
@@ -75,7 +76,7 @@ export const insertEvent = async (req, res) => {
 
 export const updateEvent = async (req, res) => {
   try {
-    const { eventId, title, description, start, end, userId, gdrive_link } = req.body;
+    const { eventId, title, category, description, start, end, userId, gdrive_link } = req.body;
 
     if ((!eventId, !title, !description, !start, !userId)) {
       return res.status(400).json({
@@ -87,6 +88,7 @@ export const updateEvent = async (req, res) => {
 
     const updates = {
       title,
+      category,
       description,
       date_start: start,
       date_end: end,
