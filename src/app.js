@@ -29,6 +29,7 @@ import privacyPolicyRoutes from "./routes/privacyPolicyRoutes.js";
 import pointsRoutes from "./routes/points.js";
 import moodRoutes from "./routes/moodRoutes.js";
 import testMoodRoutes from "./routes/testMoodRoutes.js";
+import companyBlogRoutes from "./routes/companyBlogRoutes.js";
 
 const app = express();
 dotenv.config();
@@ -90,6 +91,7 @@ app.use("/api", privacyPolicyRoutes);
 app.use("/api/points", pointsRoutes);
 app.use("/api", moodRoutes);
 app.use("/api", testMoodRoutes);
+app.use("/api", companyBlogRoutes)
 
 app.use("/", (req, res) => {
   res.send(
