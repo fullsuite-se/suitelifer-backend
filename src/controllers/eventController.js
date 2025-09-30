@@ -1,4 +1,4 @@
-import moment from "moment";
+import moment from "moment-timezone";
 import { Event } from "../models/eventModel.js";
 import { now } from "../utils/date.js";
 import { v7 as uuidv7 } from "uuid";
@@ -6,22 +6,21 @@ import { v7 as uuidv7 } from "uuid";
 export const getAllEvents = async (req, res) => {
   try {
     const events = await Event.getAllEvents();
+
     res.status(200).json({ success: true, events });
   } catch (err) {
-    console.log("Unable to fetch Events", err);
+    console.error("Unable to fetch Events:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
+
 export const getTodayEvents = async (req, res) => {
   try {
     const today = moment().format("YYYY-MM-DD");
-
     const todayEvents = await Event.getTodayEvents(today);
 
     return res.status(200).json({ success: true, todayEvents });
-
-    return res.status(200);
   } catch (err) {
     console.log("Unable to fetch today's Events", err);
     res.status(500).json({ error: "Internal Server Error" });
@@ -43,7 +42,8 @@ export const getUpcomingEvents = async (req, res) => {
 
 export const insertEvent = async (req, res) => {
   try {
-    const { title, description, start, end, userId } = req.body;
+    const { title, category, description, start, end, userId, gdrive_link } = req.body;
+    console.log(`Upon insert: ${start}, ${end}`)
 
     if ((!title, !description, !start, !userId)) {
       return res
@@ -54,10 +54,11 @@ export const insertEvent = async (req, res) => {
     const newEvent = {
       event_id: uuidv7(),
       title,
+      category,
       description,
-      date_start: new Date(start).toISOString().slice(0, 19).replace("T", " "),
-      date_end:
-        new Date(end).toISOString().slice(0, 19).replace("T", " ") ?? null,
+      date_start: start,
+      date_end: end,
+      gdrive_link: gdrive_link,
       created_at: now(),
       created_by: userId,
     };
@@ -75,7 +76,7 @@ export const insertEvent = async (req, res) => {
 
 export const updateEvent = async (req, res) => {
   try {
-    const { eventId, title, description, start, end, userId } = req.body;
+    const { eventId, title, category, description, start, end, userId, gdrive_link } = req.body;
 
     if ((!eventId, !title, !description, !start, !userId)) {
       return res.status(400).json({
@@ -87,10 +88,11 @@ export const updateEvent = async (req, res) => {
 
     const updates = {
       title,
+      category,
       description,
-      date_start: new Date(start).toISOString().slice(0, 19).replace("T", " "),
-      date_end:
-        new Date(end).toISOString().slice(0, 19).replace("T", " ") ?? null,
+      date_start: start,
+      date_end: end,
+      gdrive_link: gdrive_link
     };
 
     await Event.updateEvent(eventId, updates);
