@@ -1,4 +1,5 @@
 import { db } from "../config/db.js";
+import { v7 as uuidv7 } from "uuid";
 
 const companyBlogTable = () => db("sl_company_blogs");
 // To be implemented later on
@@ -45,5 +46,20 @@ export const CompanyBlog = {
     // Insert into the blog image table 
     insertBlogImage: async(newBlogImage)  => {
         return await companyBlogImageTable().insert(newBlogImage)
+    },
+    editBlogImage: async (blog_id, imageUrl) => {
+    // If image record exists → update, else insert
+    const existing = await companyBlogImageTable().where({ blog_id }).first();
+    if (existing) {
+        return await companyBlogImageTable()
+            .where({ blog_id })
+            .update({ blog_image_url: imageUrl });
+    } else {
+        return await companyBlogImageTable().insert({
+            blog_image_id: uuidv7(),
+            blog_id,
+            blog_image_url: imageUrl,
+        });
     }
+    },
 };

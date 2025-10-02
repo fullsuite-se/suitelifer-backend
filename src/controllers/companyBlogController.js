@@ -53,7 +53,7 @@ export const addBlog = async(req, res) => {
 // Edit Blog
 export const editBlog = async(req, res) => {
     try {
-        const { blogId, title, section, article } = req.body
+        const { blogId, title, section, imageUrl, article } = req.body
 
         if(!blogId || !title || !article){
             return res.status(400).json({status: false, message: 'Missing field!: blog_id| title | article'})
@@ -67,6 +67,10 @@ export const editBlog = async(req, res) => {
         }
 
         await CompanyBlog.editBlog(blogId,updatedBlog)
+
+        if (imageUrl !== null) {
+            await CompanyBlog.editBlogImage(blogId, imageUrl);
+        }
         
         res.status(200).json({status: true, message: 'Blog Updated Successfully!'})
 
