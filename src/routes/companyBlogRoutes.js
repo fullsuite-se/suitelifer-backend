@@ -8,6 +8,6 @@ const router = express.Router()
 router.get('/blogs', getBlogs)
 router.post('/blogs',verifyToken, verifyAdmin, addBlog)
 router.put('/blogs', verifyToken, verifyAdmin, editBlog)
-router.delete('/blogs',verifyToken, verifyAdmin, deleteBlog)
+router.delete('/blogs/:blogId',verifyToken, verifyAdmin, deleteBlog)
 
 export default router

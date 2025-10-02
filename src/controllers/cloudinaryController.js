@@ -9,13 +9,11 @@ export const uploadImage = async (req, res) => {
     }
 
     const { folder } = req.params;
-    
-    // Upload original image with minimal processing - no format conversion
+
     const originalResult = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         { 
           folder: `suitelifer/${folder}`,
-          // Don't force any format conversion
           quality: "auto"
         },
         (error, result) => (error ? reject(error) : resolve(result))
@@ -23,13 +21,8 @@ export const uploadImage = async (req, res) => {
       stream.end(req.file.buffer);
     });
 
-    // Generate different sizes using Cloudinary transformations
     const baseUrl = originalResult.secure_url;
     const publicId = originalResult.public_id;
-    
-
-    
-    // Use the original URL for all sizes to test if the issue is with transformations
     const thumbnailUrl = baseUrl;
     const mediumUrl = baseUrl;
     const largeUrl = baseUrl;
@@ -41,7 +34,7 @@ export const uploadImage = async (req, res) => {
       mediumUrl: mediumUrl,
       largeUrl: largeUrl,
       publicId: publicId,
-      public_id: publicId  // Also include snake_case version for consistency
+      public_id: publicId 
     };
     
 
@@ -52,6 +45,30 @@ export const uploadImage = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const deleteBlogImage = async (req, res) => {
+  try {
+    const { publicId } = req.params;
+
+    console.log(publicId)
+
+    if (!publicId) {
+      return res.status(400).json({ error: "Missing required field: publicId" });
+    }
+
+    const result = await cloudinary.uploader.destroy(publicId);
+
+    if (result.result !== "ok") {
+      return res.status(400).json({ success: false, message: "Failed to delete image", result });
+    }
+
+    res.json({ success: true, message: "Image deleted successfully", result });
+  } catch (error) {
+    console.error("❌ Backend - Delete error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 
 export const uploadAndSaveImages = async (req, res) => {
   const { table, folder, id } = req.params;
