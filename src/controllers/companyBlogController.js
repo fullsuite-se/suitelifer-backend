@@ -13,10 +13,10 @@ export const getBlogs = async(req, res) => {
 }
 
 // Add Blog
-export const haddBlog = async(req, res) => {
+export const addBlog = async(req, res) => {
     
     try {
-        const { title, article, imageUrl } = req.body
+        const { title, article, section, imageUrl } = req.body
 
         if(!title || !article){
             return res.status(400).json({status: false, message: 'Missing field!: title | article '})
@@ -27,6 +27,7 @@ export const haddBlog = async(req, res) => {
               blog_id : blogId,
               title: title,
               article: article,
+              section: section,
               created_at: now()
         }
 
@@ -52,7 +53,7 @@ export const haddBlog = async(req, res) => {
 // Edit Blog
 export const editBlog = async(req, res) => {
     try {
-        const { blogId, title, article } = req.body
+        const { blogId, title, section, article } = req.body
 
         if(!blogId || !title || !article){
             return res.status(400).json({status: false, message: 'Missing field!: blog_id| title | article'})
@@ -61,6 +62,7 @@ export const editBlog = async(req, res) => {
         const updatedBlog = {
             title: title, 
             article: article,
+            section: section,
             updated_at: now()
         }
 

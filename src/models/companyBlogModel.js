@@ -15,6 +15,7 @@ export const CompanyBlog = {
             "sl_company_blogs.blog_id AS blogId",
             "sl_company_blogs.title",
             "sl_company_blogs.article",
+            "sl_company_blogs.section",
             "sl_company_blogs.created_at AS createdAt",
             "sl_company_blog_images.blog_image_url AS imageUrl"
             )
@@ -28,6 +29,7 @@ export const CompanyBlog = {
             blogId: row.blogId,
             title: row.title,
             article: row.article,
+            section: row.section,
             imageUrl: row.imageUrl,
             createdAt: row.createdAt,
         }));
@@ -43,8 +45,5 @@ export const CompanyBlog = {
     // Insert into the blog image table 
     insertBlogImage: async(newBlogImage)  => {
         return await companyBlogImageTable().insert(newBlogImage)
-    },
-    // deleteBlogImage: async(publicId) => {
-
-    // }
+    }
 };
