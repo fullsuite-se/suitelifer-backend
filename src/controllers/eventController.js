@@ -14,7 +14,6 @@ export const getAllEvents = async (req, res) => {
   }
 };
 
-
 export const getTodayEvents = async (req, res) => {
   try {
     const today = moment().format("YYYY-MM-DD");
@@ -42,8 +41,9 @@ export const getUpcomingEvents = async (req, res) => {
 
 export const insertEvent = async (req, res) => {
   try {
-    const { title, category, description, start, end, userId, gdrive_link } = req.body;
-    console.log(`Upon insert: ${start}, ${end}`)
+    const { title, category, description, start, end, userId, gdrive_link } =
+      req.body;
+    console.log(`Upon insert: ${start}, ${end}`);
 
     if ((!title, !description, !start, !userId)) {
       return res
@@ -69,14 +69,23 @@ export const insertEvent = async (req, res) => {
       .status(201)
       .json({ success: true, message: "Event added successfully" });
   } catch (err) {
-    console.log("Unable to add Event",err);
+    console.log("Unable to add Event", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
 export const updateEvent = async (req, res) => {
   try {
-    const { eventId, title, category, description, start, end, userId, gdrive_link } = req.body;
+    const {
+      eventId,
+      title,
+      category,
+      description,
+      start,
+      end,
+      userId,
+      gdrive_link,
+    } = req.body;
 
     if ((!eventId, !title, !description, !start, !userId)) {
       return res.status(400).json({
@@ -92,7 +101,7 @@ export const updateEvent = async (req, res) => {
       description,
       date_start: start,
       date_end: end,
-      gdrive_link: gdrive_link
+      gdrive_link: gdrive_link,
     };
 
     await Event.updateEvent(eventId, updates);
@@ -119,7 +128,7 @@ export const deleteEvent = async (req, res) => {
 
     res
       .status(200)
-      .json({ succes: true, message: "Event Deleted Successfully" });
+      .json({ success: true, message: "Event Deleted Successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal Server Error" });
