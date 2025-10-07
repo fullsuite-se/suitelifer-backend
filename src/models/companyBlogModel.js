@@ -27,13 +27,37 @@ export const CompanyBlog = {
             );
 
         return rows.map((row) => ({
-            blogId: row.blogId,
-            title: row.title,
-            article: row.article,
-            section: row.section,
-            imageUrl: row.imageUrl,
-            createdAt: row.createdAt,
+                blogId: row.blogId,
+                title: row.title,
+                article: row.article,
+                section: row.section,
+                imageUrl: row.imageUrl,
+                createdAt: row.createdAt,
         }));
+        },
+
+        getCompanyBlogById: async(blogId)  => {
+            const rows = await companyBlogTable()
+            .select(
+                  "sl_company_blogs.blog_id AS blogId",
+            "sl_company_blogs.title",
+            "sl_company_blogs.article",
+            "sl_company_blogs.section",
+            "sl_company_blogs.created_at AS createdAt",
+            "sl_company_blog_images.blog_image_url AS imageUrl"
+            )
+            .leftJoin(
+            "sl_company_blog_images",
+            "sl_company_blog_images.blog_id",
+            "sl_company_blogs.blog_id"
+            )
+            .where("sl_company_blogs.blog_id", blogId)
+            .first()
+
+            if (!rows) return null;
+
+             return { ...rows }
+
         },
 
     editBlog: async (blog_id, data) => {

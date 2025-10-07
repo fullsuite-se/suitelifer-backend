@@ -12,6 +12,27 @@ export const getBlogs = async(req, res) => {
     }
 }
 
+// Get Only one Blog
+export const getBlogById = async(req, res) => {
+
+    try {
+        const { blogId } = req.params
+
+        const blog = await CompanyBlog.getCompanyBlogById(blogId)
+
+        if (!blog) {
+            return res
+                .status(404)
+                .json({ success: false, message: "Blog not found" });
+        }
+
+        res.status(200).json({ success: true, blog });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+}
+
 // Add Blog
 export const addBlog = async(req, res) => {
     
