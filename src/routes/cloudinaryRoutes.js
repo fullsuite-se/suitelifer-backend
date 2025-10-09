@@ -16,7 +16,7 @@ const router = express.Router();
 
 router.post(
   "/upload-image/:folder",
-  verifyToken,
+  // verifyToken,
   upload.single("file"),
   uploadImage
 );

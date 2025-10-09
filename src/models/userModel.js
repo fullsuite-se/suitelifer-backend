@@ -25,7 +25,7 @@ export const User = {
         "sl_user_accounts.created_at AS createdAt"
       )
       .orderBy("fullName");
-    
+
     // Add isSuspended field (temporarily set to false until database is migrated)
     return users.map(user => ({
       ...user,
@@ -41,13 +41,41 @@ export const User = {
     return await userAccountsTable().update({ is_active }).where({ user_id });
   },
 
+
+  updatePersonalDetails: async (user_id, updatedData) => {
+    const allowedFields = ['first_name', 'middle_name', 'last_name', 'extension_name', 'profile_pic'];
+
+    const filteredData = {};
+
+    allowedFields.forEach(field => {
+      if (updatedData.hasOwnProperty(field)) {
+        if (['middle_name', 'extension_name', 'profile_pic'].includes(field)) {
+          filteredData[field] = updatedData[field] === '' ? null : updatedData[field];
+        } else if (updatedData[field] !== undefined && updatedData[field] !== null) {
+          filteredData[field] = updatedData[field];
+        }
+      }
+    });
+
+    if (Object.keys(filteredData).length === 0) {
+      return 0;
+    }
+
+    return await userAccountsTable()
+      .update(filteredData)
+      .where({ user_id });
+  },
+
+
+
+
   deleteUserAccount: async (user_id) => {
     return await userAccountsTable().where({ user_id }).del();
   },
 
   getUser: async (user_id) => {
     return await db('sl_user_accounts')
-      .select('user_id', 'first_name', 'last_name', 'user_email', 'user_type')
+      .select('user_id', 'first_name', 'last_name', 'user_email', 'user_type', 'profile_pic')
       .where({ user_id: user_id })
       .first();
   },
@@ -64,9 +92,9 @@ export const User = {
       .update({ reset_key: generatedKey });
   },
 
-  updatePassword: async (userId, newPassword) => {
-    return await db(userAccounts)
-      .where({ user_id: userId })
-      .update({ user_password: newPassword });
-  },
+  // updatePassword: async (userId, newPassword) => {
+  //   return await db(userAccounts)
+  //     .where({ user_id: userId })
+  //     .update({ user_password: newPassword });
+  // },
 };

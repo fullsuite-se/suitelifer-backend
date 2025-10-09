@@ -119,7 +119,7 @@ export const getCheerFeed = async (req, res) => {
     const user_id = user_filter || null;
 
     const posts = await Suitebite.getCheerPosts(page, limit, user_id);
-    
+
     res.status(200).json({ success: true, posts });
   } catch (err) {
     console.error(err);
@@ -132,11 +132,11 @@ export const getCheerPost = async (req, res) => {
     const { id } = req.params;
 
     const post = await Suitebite.getCheerPostById(id);
-    
+
     if (!post) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Cheer post not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Cheer post not found"
       });
     }
 
@@ -153,17 +153,17 @@ export const getCheerPostDetails = async (req, res) => {
     const { id } = req.params;
 
     const post = await Suitebite.getCheerPostById(id);
-    
+
     if (!post) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Cheer post not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Cheer post not found"
       });
     }
 
     // Get likes with user details
     const likes = await Suitebite.getCheerLikes(id);
-    
+
     // Get comments with user details
     const comments = await Suitebite.getCheerComments(id);
 
@@ -172,8 +172,8 @@ export const getCheerPostDetails = async (req, res) => {
     post.detailed_comments = comments;
     post.total_interactions = likes.length + comments.length;
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       post,
       interaction_summary: {
         total_likes: likes.length,
@@ -208,9 +208,9 @@ export const addCheerComment = async (req, res) => {
     // Check if post exists
     const post = await Suitebite.getCheerPostById(cheer_post_id);
     if (!post) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Cheer post not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Cheer post not found"
       });
     }
 
@@ -229,9 +229,9 @@ export const addCheerComment = async (req, res) => {
       await Suitebite.updateUserHeartbits(post.peer_id, additional_heartbits);
     }
 
-    res.status(201).json({ 
-      success: true, 
-      message: "Comment added successfully!" 
+    res.status(201).json({
+      success: true,
+      message: "Comment added successfully!"
     });
   } catch (err) {
     console.error(err);
@@ -248,8 +248,8 @@ export const toggleCheerLike = async (req, res) => {
 
     const result = await Suitebite.toggleCheerLike(cheer_post_id, user_id);
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: `Post ${result.action} successfully!`,
       action: result.action
     });
@@ -266,7 +266,7 @@ export const getAllProducts = async (req, res) => {
     const { active_only = "true" } = req.query;
 
     const products = await Suitebite.getAllProducts(active_only === "true");
-    
+
     res.status(200).json({ success: true, products });
   } catch (err) {
     console.error(err);
@@ -281,9 +281,9 @@ export const getProductById = async (req, res) => {
     const product = await Suitebite.getProductById(id);
     console.log('[getProductById CONTROLLER] product.images:', product?.images);
     if (!product) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Product not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Product not found"
       });
     }
 
@@ -296,37 +296,37 @@ export const getProductById = async (req, res) => {
 
 export const addProduct = async (req, res) => {
   try {
-    const { 
-      name, 
-      description, 
-      price, 
-      price_points, 
-      image_url, 
-      category, 
+    const {
+      name,
+      description,
+      price,
+      price_points,
+      image_url,
+      category,
       category_id,
       slug,
       is_active = true
     } = req.body;
 
     if (!name || (!price && !price_points) || (price || price_points) <= 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Name and valid price are required" 
+      return res.status(400).json({
+        success: false,
+        message: "Name and valid price are required"
       });
     }
 
     // Check maximum price limit
     const priceValue = parseInt(price || price_points);
     if (priceValue > 100000) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Price cannot exceed 100,000 heartbits" 
+      return res.status(400).json({
+        success: false,
+        message: "Price cannot exceed 100,000 heartbits"
       });
     }
 
     // Handle category - either get existing or create new
     let finalCategoryId = category_id;
-    
+
     if (category && !category_id) {
       // Check if category exists by name
       const existingCategory = await Suitebite.getCategoryByName(category);
@@ -372,8 +372,8 @@ export const addProduct = async (req, res) => {
         "ADD_PRODUCT",
         "PRODUCT",
         productId,
-        { 
-          product_name: name, 
+        {
+          product_name: name,
           price: price || price_points,
           category: category,
           slug: finalSlug
@@ -383,8 +383,8 @@ export const addProduct = async (req, res) => {
       console.warn('Failed to log admin action:', logError.message);
     }
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       message: "Product added successfully!",
       product: { ...productData, product_id: productId }
     });
@@ -401,39 +401,39 @@ export const updateProduct = async (req, res) => {
 
     // Validate product ID
     if (!id || isNaN(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid product ID" 
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID"
       });
     }
 
     const product = await Suitebite.getProductById(id);
     if (!product) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Product not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Product not found"
       });
     }
 
     // Validate price if provided
     if (updateData.price !== undefined && (isNaN(updateData.price) || parseFloat(updateData.price) < 0)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Price must be a valid positive number" 
+      return res.status(400).json({
+        success: false,
+        message: "Price must be a valid positive number"
       });
     }
 
     // Check maximum price limit if price is being updated
     if (updateData.price !== undefined && parseFloat(updateData.price) > 100000) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Price cannot exceed 100,000 heartbits" 
+      return res.status(400).json({
+        success: false,
+        message: "Price cannot exceed 100,000 heartbits"
       });
     }
 
     // Create clean update data without the category field
     const cleanUpdateData = { ...updateData };
-    
+
     // Handle category update if provided
     if (updateData.category && !updateData.category_id) {
       try {
@@ -452,7 +452,7 @@ export const updateProduct = async (req, res) => {
         // Continue without category update rather than failing the entire request
       }
     }
-    
+
     // Remove the category field from update data since it doesn't exist in database
     delete cleanUpdateData.category;
 
@@ -465,7 +465,7 @@ export const updateProduct = async (req, res) => {
         "UPDATE_PRODUCT",
         "PRODUCT",
         id,
-        { 
+        {
           product_name: product.name || product.product_name,
           changes: updateData
         }
@@ -474,9 +474,9 @@ export const updateProduct = async (req, res) => {
       console.warn('Failed to log admin action:', logError.message);
     }
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Product updated successfully!" 
+    res.status(200).json({
+      success: true,
+      message: "Product updated successfully!"
     });
   } catch (err) {
     console.error(err);
@@ -490,9 +490,9 @@ export const deleteProduct = async (req, res) => {
 
     const product = await Suitebite.getProductById(id);
     if (!product) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Product not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Product not found"
       });
     }
 
@@ -507,10 +507,10 @@ export const deleteProduct = async (req, res) => {
         await cartItemsTable()
           .where('product_id', id)
           .del();
-        
+
         // Don't delete order items or orders - let them remain for admin visibility
         // This allows orders with deleted products to still be visible in admin panel
-        
+
         // Retry product deletion
         try {
           await Suitebite.deleteProduct(id);
@@ -534,7 +534,7 @@ export const deleteProduct = async (req, res) => {
         "DELETE_PRODUCT",
         "PRODUCT",
         id,
-        { 
+        {
           product_name: product.name || product.product_name,
           price: product.price || product.price_points
         }
@@ -543,9 +543,9 @@ export const deleteProduct = async (req, res) => {
       console.warn('Failed to log admin action:', logError.message);
     }
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Product deleted successfully!" 
+    res.status(200).json({
+      success: true,
+      message: "Product deleted successfully!"
     });
   } catch (err) {
     console.error(err);
@@ -558,7 +558,7 @@ export const deleteProduct = async (req, res) => {
 export const getAllCategories = async (req, res) => {
   try {
     const categories = await Suitebite.getAllCategories();
-    
+
     res.status(200).json({ success: true, categories });
   } catch (err) {
     console.error(err);
@@ -571,11 +571,11 @@ export const getCategoryById = async (req, res) => {
     const { id } = req.params;
 
     const category = await Suitebite.getCategoryById(id);
-    
+
     if (!category) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Category not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Category not found"
       });
     }
 
@@ -594,9 +594,9 @@ export const addCategory = async (req, res) => {
 
     if (!category_name) {
       console.log('DEBUG: category_name is missing or empty');
-      return res.status(400).json({ 
-        success: false, 
-        message: "Category name is required" 
+      return res.status(400).json({
+        success: false,
+        message: "Category name is required"
       });
     }
 
@@ -605,9 +605,9 @@ export const addCategory = async (req, res) => {
     // Check if category already exists
     const existingCategory = await Suitebite.getCategoryByName(category_name);
     if (existingCategory) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Category already exists" 
+      return res.status(400).json({
+        success: false,
+        message: "Category already exists"
       });
     }
 
@@ -640,8 +640,8 @@ export const addCategory = async (req, res) => {
       }
     });
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       message: "Category added successfully!",
       category: { ...categoryData, category_id: categoryId }
     });
@@ -658,9 +658,9 @@ export const updateCategory = async (req, res) => {
 
     const category = await Suitebite.getCategoryById(id);
     if (!category) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Category not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Category not found"
       });
     }
 
@@ -674,7 +674,7 @@ export const updateCategory = async (req, res) => {
           "UPDATE_CATEGORY",
           "CATEGORY",
           id,
-          { 
+          {
             category_name: category.category_name,
             changes: updateData
           }
@@ -689,9 +689,9 @@ export const updateCategory = async (req, res) => {
       }
     });
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Category updated successfully!" 
+    res.status(200).json({
+      success: true,
+      message: "Category updated successfully!"
     });
   } catch (err) {
     console.error(err);
@@ -705,9 +705,9 @@ export const deleteCategory = async (req, res) => {
 
     const category = await Suitebite.getCategoryById(id);
     if (!category) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Category not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Category not found"
       });
     }
 
@@ -733,9 +733,9 @@ export const deleteCategory = async (req, res) => {
       }
     });
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Category deleted successfully!" 
+    res.status(200).json({
+      success: true,
+      message: "Category deleted successfully!"
     });
   } catch (err) {
     console.error('Delete category error:', err);
@@ -772,7 +772,7 @@ export const getVariationOptions = async (req, res) => {
 export const getProductVariations = async (req, res) => {
   try {
     const { product_id } = req.params;
-    
+
     const variations = await Suitebite.getProductVariations(product_id);
     res.status(200).json({ success: true, variations });
   } catch (err) {
@@ -786,17 +786,17 @@ export const getProductsWithVariations = async (req, res) => {
   try {
     const { active_only = 'true', category = null } = req.query;
     const activeOnly = active_only === 'true';
-    
+
     const products = await Suitebite.getProductsWithVariations(activeOnly);
-    
+
     // Filter by category if provided
     let filteredProducts = products;
     if (category && category !== 'all') {
-      filteredProducts = products.filter(product => 
+      filteredProducts = products.filter(product =>
         product.category?.toLowerCase() === category.toLowerCase()
       );
     }
-    
+
     // Add enhanced variation metadata for frontend
     const enhancedProducts = filteredProducts.map(product => ({
       ...product,
@@ -815,9 +815,9 @@ export const getProductsWithVariations = async (req, res) => {
         max: Math.max(product.price, ...product.variations.map(v => product.price + (v.price_adjustment || 0)))
       } : { min: product.price, max: product.price }
     }));
-    
-    res.status(200).json({ 
-      success: true, 
+
+    res.status(200).json({
+      success: true,
       products: enhancedProducts,
       total_count: products.length,
       filtered_count: enhancedProducts.length
@@ -836,9 +836,9 @@ export const addVariationType = async (req, res) => {
     const { type_name, type_label } = req.body;
 
     if (!type_name || !type_label) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Type name and label are required" 
+      return res.status(400).json({
+        success: false,
+        message: "Type name and label are required"
       });
     }
 
@@ -847,17 +847,17 @@ export const addVariationType = async (req, res) => {
       type_label
     });
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       message: "Variation type created successfully!",
       variation_type_id: variationTypeId
     });
   } catch (err) {
     console.error(err);
     if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Variation type with this name already exists" 
+      return res.status(400).json({
+        success: false,
+        message: "Variation type with this name already exists"
       });
     }
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -870,18 +870,18 @@ export const addVariationOption = async (req, res) => {
     const { variation_type_id, option_value, option_label, hex_color, sort_order = 0 } = req.body;
 
     if (!variation_type_id || !option_value || !option_label) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Variation type ID, option value, and label are required" 
+      return res.status(400).json({
+        success: false,
+        message: "Variation type ID, option value, and label are required"
       });
     }
 
     // Validate variation type exists
     const variationType = await Suitebite.getVariationTypeById(variation_type_id);
     if (!variationType) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Variation type not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Variation type not found"
       });
     }
 
@@ -898,17 +898,17 @@ export const addVariationOption = async (req, res) => {
 
     const optionId = await Suitebite.addVariationOption(optionData);
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       message: "Variation option created successfully!",
       option_id: optionId
     });
   } catch (err) {
     console.error(err);
     if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Variation option with this value already exists for this type" 
+      return res.status(400).json({
+        success: false,
+        message: "Variation option with this value already exists for this type"
       });
     }
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -921,18 +921,18 @@ export const addProductVariation = async (req, res) => {
     const { product_id, variation_sku, price_adjustment = 0, options = [] } = req.body;
 
     if (!product_id) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Product ID is required" 
+      return res.status(400).json({
+        success: false,
+        message: "Product ID is required"
       });
     }
 
     // Validate product exists
     const product = await Suitebite.getProductById(product_id);
     if (!product) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Product not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Product not found"
       });
     }
 
@@ -941,9 +941,9 @@ export const addProductVariation = async (req, res) => {
       for (const optionId of options) {
         const option = await Suitebite.getVariationOptionById(optionId);
         if (!option) {
-          return res.status(404).json({ 
-            success: false, 
-            message: `Variation option ${optionId} not found` 
+          return res.status(404).json({
+            success: false,
+            message: `Variation option ${optionId} not found`
           });
         }
       }
@@ -961,17 +961,17 @@ export const addProductVariation = async (req, res) => {
 
     const variationId = await Suitebite.addProductVariation(variationData);
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       message: "Product variation created successfully!",
       variation_id: variationId
     });
   } catch (err) {
     console.error(err);
     if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Variation SKU already exists" 
+      return res.status(400).json({
+        success: false,
+        message: "Variation SKU already exists"
       });
     }
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -987,14 +987,14 @@ export const updateProductVariation = async (req, res) => {
     // Check if variation exists
     const existingVariation = await Suitebite.getProductVariationById(variation_id);
     if (!existingVariation) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Product variation not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Product variation not found"
       });
     }
 
     const updateData = {};
-    
+
     if (variation_sku !== undefined) updateData.variation_sku = variation_sku;
     if (price_adjustment !== undefined) updateData.price_adjustment = price_adjustment;
     if (is_active !== undefined) updateData.is_active = is_active;
@@ -1002,16 +1002,16 @@ export const updateProductVariation = async (req, res) => {
 
     await Suitebite.updateProductVariation(variation_id, updateData);
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Product variation updated successfully!" 
+    res.status(200).json({
+      success: true,
+      message: "Product variation updated successfully!"
     });
   } catch (err) {
     console.error(err);
     if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Variation SKU already exists" 
+      return res.status(400).json({
+        success: false,
+        message: "Variation SKU already exists"
       });
     }
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -1026,17 +1026,17 @@ export const deleteProductVariation = async (req, res) => {
     // Check if variation exists
     const existingVariation = await Suitebite.getProductVariationById(variation_id);
     if (!existingVariation) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Product variation not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Product variation not found"
       });
     }
 
     await Suitebite.deleteProductVariation(variation_id);
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Product variation deleted successfully!" 
+    res.status(200).json({
+      success: true,
+      message: "Product variation deleted successfully!"
     });
   } catch (err) {
     console.error(err);
@@ -1051,7 +1051,7 @@ export const getCart = async (req, res) => {
     const user_id = req.user.id; // Changed from req.user.user_id
 
     const cart = await Suitebite.getCart(user_id);
-    
+
     // Debug: Log cart items with variations
     if (cart && cart.cartItems) {
       console.log(`🛒 Retrieved cart for user ${user_id}: ${cart.cartItems.length} items`);
@@ -1063,7 +1063,7 @@ export const getCart = async (req, res) => {
         }
       });
     }
-    
+
     res.status(200).json({ success: true, data: cart });
   } catch (err) {
     console.error(err);
@@ -1079,15 +1079,15 @@ export const addToCart = async (req, res) => {
     // Check if product exists and is available
     const product = await Suitebite.getProductById(product_id);
     if (!product || !product.is_active) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Product not found or unavailable" 
+      return res.status(404).json({
+        success: false,
+        message: "Product not found or unavailable"
       });
     }
 
     // Handle variations in both formats (new and legacy)
     let processedVariations = variations;
-    
+
     // If variation_id is provided (legacy format), convert to new format
     if (variation_id) {
       const variation = await Suitebite.getProductVariationById(variation_id);
@@ -1095,7 +1095,7 @@ export const addToCart = async (req, res) => {
         // Get the options for this variation
         const variationWithOptions = await Suitebite.getProductVariations(product_id);
         const selectedVariation = variationWithOptions.find(v => v.variation_id === variation_id);
-        
+
         if (selectedVariation && selectedVariation.options) {
           processedVariations = selectedVariation.options.map(option => ({
             variation_type_id: option.variation_type_id,
@@ -1109,18 +1109,18 @@ export const addToCart = async (req, res) => {
     if (processedVariations.length > 0) {
       for (const variation of processedVariations) {
         if (!variation.variation_type_id || !variation.option_id) {
-          return res.status(400).json({ 
-            success: false, 
-            message: "Invalid variation data. Both variation_type_id and option_id are required." 
+          return res.status(400).json({
+            success: false,
+            message: "Invalid variation data. Both variation_type_id and option_id are required."
           });
         }
-        
+
         // Validate that the option exists and belongs to the type
         const option = await Suitebite.getVariationOptionById(variation.option_id);
         if (!option || option.variation_type_id !== variation.variation_type_id) {
-          return res.status(400).json({ 
-            success: false, 
-            message: "Invalid variation option or type mismatch" 
+          return res.status(400).json({
+            success: false,
+            message: "Invalid variation option or type mismatch"
           });
         }
       }
@@ -1131,8 +1131,8 @@ export const addToCart = async (req, res) => {
     // Debug: Log the variations that were saved
     console.log(`✅ Added to cart: Product ${product_id}, Quantity ${quantity}, Variations:`, processedVariations);
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       message: "Item added to cart successfully!",
       data: { cart_item_id: cartItemId }
     });
@@ -1148,9 +1148,9 @@ export const updateCartItem = async (req, res) => {
     const { quantity, variations = [] } = req.body;
 
     if (!quantity || quantity < 1) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Valid quantity is required" 
+      return res.status(400).json({
+        success: false,
+        message: "Valid quantity is required"
       });
     }
 
@@ -1158,9 +1158,9 @@ export const updateCartItem = async (req, res) => {
     if (variations.length > 0) {
       for (const variation of variations) {
         if (!variation.variation_type_id || !variation.option_id) {
-          return res.status(400).json({ 
-            success: false, 
-            message: "Invalid variation data" 
+          return res.status(400).json({
+            success: false,
+            message: "Invalid variation data"
           });
         }
       }
@@ -1168,9 +1168,9 @@ export const updateCartItem = async (req, res) => {
 
     await Suitebite.updateCartItem(cart_item_id, quantity, variations);
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Cart item updated successfully!" 
+    res.status(200).json({
+      success: true,
+      message: "Cart item updated successfully!"
     });
   } catch (err) {
     console.error(err);
@@ -1184,9 +1184,9 @@ export const removeFromCart = async (req, res) => {
 
     await Suitebite.removeFromCart(cart_item_id);
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Item removed from cart successfully!" 
+    res.status(200).json({
+      success: true,
+      message: "Item removed from cart successfully!"
     });
   } catch (err) {
     console.error(err);
@@ -1200,9 +1200,9 @@ export const clearCart = async (req, res) => {
 
     await Suitebite.clearCart(user_id);
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Cart cleared successfully!" 
+    res.status(200).json({
+      success: true,
+      message: "Cart cleared successfully!"
     });
   } catch (err) {
     console.error(err);
@@ -1216,7 +1216,7 @@ export const checkout = async (req, res) => {
   try {
     const user_id = req.user.id;
     const { items } = req.body;
-    
+
     console.log('Checkout request:', { user_id, items, body: req.body });
 
 
@@ -1228,29 +1228,29 @@ export const checkout = async (req, res) => {
     if (items && Array.isArray(items)) {
       // Check if these are cart items (have cart_item_id) or direct product items
       const isCartItems = items.length > 0 && items[0].cart_item_id;
-      
+
       if (isCartItems) {
         // Selected cart items checkout
         console.log('Selected cart items checkout:', items);
-        
+
         // Get the full cart to process selected items
         const cart = await Suitebite.getCart(user_id);
         if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
-          return res.status(400).json({ 
-            success: false, 
-            message: "Cart is empty" 
+          return res.status(400).json({
+            success: false,
+            message: "Cart is empty"
           });
         }
 
         // Filter cart items to only selected ones
-        const selectedCartItems = cart.cartItems.filter(cartItem => 
+        const selectedCartItems = cart.cartItems.filter(cartItem =>
           items.some(selectedItem => selectedItem.cart_item_id === cartItem.cart_item_id)
         );
 
         if (selectedCartItems.length === 0) {
-          return res.status(400).json({ 
-            success: false, 
-            message: "No valid items selected for checkout" 
+          return res.status(400).json({
+            success: false,
+            message: "No valid items selected for checkout"
           });
         }
 
@@ -1268,7 +1268,7 @@ export const checkout = async (req, res) => {
             variation_id: cartItem.variation_id || null,
             variations: cartItem.variations || null
           };
-          
+
 
           console.log('Created order item from cart:', orderItem);
           orderItems.push(orderItem);
@@ -1277,11 +1277,11 @@ export const checkout = async (req, res) => {
       } else {
         // Direct checkout from Buy Now
         console.log('Direct checkout with items:', items);
-        
+
         // Process each item and calculate total
         for (const item of items) {
           console.log('Processing item:', item);
-          
+
           const product = await Suitebite.getProductById(item.product_id);
           if (!product) {
             return res.status(400).json({
@@ -1302,7 +1302,7 @@ export const checkout = async (req, res) => {
             variation_id: item.variation_id || null,
             variation_details: item.variations ? JSON.stringify(item.variations) : null
           };
-          
+
           console.log('Created order item:', orderItem);
           orderItems.push(orderItem);
         }
@@ -1311,9 +1311,9 @@ export const checkout = async (req, res) => {
       // Full cart checkout (existing logic)
       const cart = await Suitebite.getCart(user_id);
       if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Cart is empty" 
+        return res.status(400).json({
+          success: false,
+          message: "Cart is empty"
         });
       }
 
@@ -1328,8 +1328,8 @@ export const checkout = async (req, res) => {
     if (!userHeartbits || userHeartbits.heartbits_balance < totalPoints) {
       const currentBalance = userHeartbits?.heartbits_balance || 0;
       const needed = totalPoints - currentBalance;
-      return res.status(400).json({ 
-        success: false, 
+      return res.status(400).json({
+        success: false,
         message: `Insufficient heartbits balance. You need ${needed} more heartbits to complete this purchase.`,
         current_balance: currentBalance,
         required: totalPoints,
@@ -1366,8 +1366,8 @@ export const checkout = async (req, res) => {
     }
     // For direct checkout (Buy Now), don't clear cart
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       message: "Order placed successfully!",
       data: {
         order_id: orderId,
@@ -1376,10 +1376,10 @@ export const checkout = async (req, res) => {
     });
   } catch (err) {
     console.error('Checkout error:', err);
-    
-    res.status(500).json({ 
-      success: false, 
-      message: "Checkout failed due to a server error. Please try again." 
+
+    res.status(500).json({
+      success: false,
+      message: "Checkout failed due to a server error. Please try again."
     });
   }
 };
@@ -1391,23 +1391,23 @@ export const approveOrder = async (req, res) => {
     const admin_id = req.user.id;
 
     const result = await Suitebite.approveOrder(order_id, admin_id);
-    
+
     if (result) {
-      res.status(200).json({ 
-        success: true, 
-        message: "Order approved successfully!" 
+      res.status(200).json({
+        success: true,
+        message: "Order approved successfully!"
       });
     } else {
-      res.status(400).json({ 
-        success: false, 
-        message: "Failed to approve order" 
+      res.status(400).json({
+        success: false,
+        message: "Failed to approve order"
       });
     }
   } catch (err) {
     console.error('Approve order error:', err);
-    res.status(500).json({ 
-      success: false, 
-      message: err.message || "Failed to approve order" 
+    res.status(500).json({
+      success: false,
+      message: err.message || "Failed to approve order"
     });
   }
 };
@@ -1419,23 +1419,23 @@ export const completeOrder = async (req, res) => {
     const admin_id = req.user.id;
 
     const result = await Suitebite.completeOrder(order_id, admin_id);
-    
+
     if (result) {
-      res.status(200).json({ 
-        success: true, 
-        message: "Order completed successfully!" 
+      res.status(200).json({
+        success: true,
+        message: "Order completed successfully!"
       });
     } else {
-      res.status(400).json({ 
-        success: false, 
-        message: "Failed to complete order" 
+      res.status(400).json({
+        success: false,
+        message: "Failed to complete order"
       });
     }
   } catch (err) {
     console.error('Complete order error:', err);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to complete order" 
+    res.status(500).json({
+      success: false,
+      message: "Failed to complete order"
     });
   }
 };
@@ -1446,32 +1446,32 @@ export const cancelOrder = async (req, res) => {
     const { order_id } = req.params;
     const user_id = req.user.id;
     const { reason } = req.body;
-    
+
     // Check if user is admin (handle both role and user_type fields, and different case formats)
     const userRole = req.user.role || req.user.user_type || '';
     const normalizedRole = userRole.toLowerCase().replace(/\s+/g, '_');
     const isAdmin = normalizedRole === 'admin' || normalizedRole === 'superadmin' || normalizedRole === 'super_admin';
-    
+
     console.log(`Cancel order request - order_id: ${order_id}, user_id: ${user_id}, user_type: ${req.user.user_type}, role: ${req.user.role}, userRole: ${userRole}, normalizedRole: ${normalizedRole}, isAdmin: ${isAdmin}`);
 
     const result = await Suitebite.cancelOrder(order_id, user_id, reason, isAdmin);
-    
+
     if (result) {
-      res.status(200).json({ 
-        success: true, 
-        message: "Order cancelled successfully!" 
+      res.status(200).json({
+        success: true,
+        message: "Order cancelled successfully!"
       });
     } else {
-      res.status(400).json({ 
-        success: false, 
-        message: "Failed to cancel order. Only pending orders can be cancelled by regular users, or pending/processing orders by admins." 
+      res.status(400).json({
+        success: false,
+        message: "Failed to cancel order. Only pending orders can be cancelled by regular users, or pending/processing orders by admins."
       });
     }
   } catch (err) {
     console.error('Cancel order error:', err);
-    res.status(500).json({ 
-      success: false, 
-      message: err.message || "Failed to cancel order" 
+    res.status(500).json({
+      success: false,
+      message: err.message || "Failed to cancel order"
     });
   }
 };
@@ -1482,7 +1482,7 @@ export const getOrderHistory = async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
 
     const orders = await Suitebite.getOrderHistory(user_id, page, limit);
-    
+
     res.status(200).json({ success: true, orders });
   } catch (err) {
     console.error(err);
@@ -1496,11 +1496,11 @@ export const getOrderById = async (req, res) => {
     const user_id = req.user.id; // Changed from req.user.user_id
 
     const order = await Suitebite.getOrderById(id);
-    
+
     if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Order not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
       });
     }
 
@@ -1511,9 +1511,9 @@ export const getOrderById = async (req, res) => {
 
     // Check if user owns this order (unless admin)
     if (order.user_id !== user_id && !isAdmin) {
-      return res.status(403).json({ 
-        success: false, 
-        message: "Access denied" 
+      return res.status(403).json({
+        success: false,
+        message: "Access denied"
       });
     }
 
@@ -1534,7 +1534,7 @@ export const getAllOrders = async (req, res) => {
     if (dateTo) filters.dateTo = dateTo;
 
     const orders = await Suitebite.getAllOrders(filters);
-    
+
     res.status(200).json({ success: true, orders });
   } catch (err) {
     console.error('getAllOrders error:', err);
@@ -1557,15 +1557,15 @@ export const updateOrderStatus = async (req, res) => {
 
     await Suitebite.updateOrderStatus(order_id, status, notes);
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Order status updated successfully!" 
+    res.status(200).json({
+      success: true,
+      message: "Order status updated successfully!"
     });
   } catch (err) {
     console.error('Update order status error:', err);
-    res.status(500).json({ 
-      success: false, 
-      message: err.message || "Failed to update order status" 
+    res.status(500).json({
+      success: false,
+      message: err.message || "Failed to update order status"
     });
   }
 };
@@ -1586,23 +1586,23 @@ export const deleteOrder = async (req, res) => {
     }
 
     const result = await Suitebite.deleteOrder(order_id, admin_id, reason, true); // isAdmin = true for hard delete
-    
+
     if (result) {
-      res.status(200).json({ 
-        success: true, 
-        message: "Order deleted successfully!" 
+      res.status(200).json({
+        success: true,
+        message: "Order deleted successfully!"
       });
     } else {
-      res.status(404).json({ 
-        success: false, 
-        message: "Order not found" 
+      res.status(404).json({
+        success: false,
+        message: "Order not found"
       });
     }
   } catch (err) {
     console.error('Delete order error:', err);
-    res.status(500).json({ 
-      success: false, 
-      message: err.message || "Failed to delete order" 
+    res.status(500).json({
+      success: false,
+      message: err.message || "Failed to delete order"
     });
   }
 };
@@ -1614,7 +1614,7 @@ export const getLeaderboard = async (req, res) => {
     const { type = "received", period = "all", limit = 10 } = req.query;
 
     const leaderboard = await Suitebite.getLeaderboard(type, period, limit);
-    
+
     res.status(200).json({ success: true, leaderboard });
   } catch (err) {
     console.error(err);
@@ -1627,7 +1627,7 @@ export const getMonthlyLeaderboard = async (req, res) => {
     const { month, year, type = "received", limit = 10 } = req.query;
 
     const leaderboard = await Suitebite.getMonthlyLeaderboard(month, year, type, limit);
-    
+
     res.status(200).json({ success: true, leaderboard });
   } catch (err) {
     console.error(err);
@@ -1640,27 +1640,27 @@ export const getMonthlyLeaderboard = async (req, res) => {
 export const searchUsers = async (req, res) => {
   try {
     const { q } = req.query;
-    
+
     // Return empty array for empty queries instead of error
     if (!q || q.trim().length === 0) {
-      return res.status(200).json({ 
-        success: true, 
-        users: [] 
+      return res.status(200).json({
+        success: true,
+        users: []
       });
     }
 
     if (q.length < 2) {
-      return res.status(200).json({ 
-        success: true, 
-        users: [] 
+      return res.status(200).json({
+        success: true,
+        users: []
       });
     }
 
     const users = await Suitebite.searchUsers(q);
-    
-    res.status(200).json({ 
-      success: true, 
-      users: users || [] 
+
+    res.status(200).json({
+      success: true,
+      users: users || []
     });
   } catch (err) {
     console.error(err);
@@ -1673,15 +1673,15 @@ export const getUserHeartbits = async (req, res) => {
     const user_id = req.user.id;
 
     let pointsData = await Suitebite.getUserPoints(user_id);
-    
+
     // If user doesn't have points record, initialize with 0
     if (!pointsData) {
       await Suitebite.updateUserPoints(user_id, 0); // This will create the record
       pointsData = await Suitebite.getUserPoints(user_id);
     }
-    
-    res.status(200).json({ 
-      success: true, 
+
+    res.status(200).json({
+      success: true,
       heartbits_balance: pointsData?.available_points || 0,
       total_earned: pointsData?.total_earned || 0,
       total_spent: pointsData?.total_spent || 0,
@@ -1700,9 +1700,9 @@ export const getPeersWhoCheered = async (req, res) => {
     const { limit = 10, page = 1 } = req.query;
 
     const peers = await Suitebite.getPeersWhoCheered(user_id, limit, page);
-    
-    res.status(200).json({ 
-      success: true, 
+
+    res.status(200).json({
+      success: true,
       peers: peers || []
     });
   } catch (err) {
@@ -1716,9 +1716,9 @@ export const updateUserHeartbits = async (req, res) => {
     const { user_id, heartbits, action = "add", reason } = req.body;
 
     if (!user_id || !heartbits || heartbits <= 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Valid user_id and heartbits are required" 
+      return res.status(400).json({
+        success: false,
+        message: "Valid user_id and heartbits are required"
       });
     }
 
@@ -1731,16 +1731,16 @@ export const updateUserHeartbits = async (req, res) => {
       "UPDATE_HEARTBITS",
       "USER",
       user_id,
-      { 
+      {
         action,
         heartbits_change: heartbitsToUpdate,
         reason: reason || "Manual admin update"
       }
     );
 
-    res.status(200).json({ 
-      success: true, 
-      message: `Heartbits ${action}ed successfully!` 
+    res.status(200).json({
+      success: true,
+      message: `Heartbits ${action}ed successfully!`
     });
   } catch (err) {
     console.error(err);
@@ -1754,29 +1754,29 @@ export const getMonthlyLimits = async (req, res) => {
   try {
     const user_id = req.user.id; // Changed from req.user.user_id
     const { month_year } = req.query;
-    
+
     const currentMonth = month_year || new Date().toISOString().slice(0, 7);
     const limits = await Suitebite.getMonthlyLimit(user_id, currentMonth);
-    
+
     // If no limit is set for this user, create one with default value from system config
     if (!limits) {
       // Get default limit from system configuration
       const systemConfig = await Suitebite.getSystemConfiguration();
       const defaultLimit = parseInt(systemConfig.global_monthly_limit?.value) || 1000;
-      
+
       await Suitebite.setUserMonthlyLimit(user_id, currentMonth, defaultLimit);
-      
-      res.status(200).json({ 
-        success: true, 
-        limits: { 
-          heartbits_sent: 0, 
+
+      res.status(200).json({
+        success: true,
+        limits: {
+          heartbits_sent: 0,
           heartbits_limit: defaultLimit,
-          remaining: defaultLimit 
+          remaining: defaultLimit
         }
       });
     } else {
-      res.status(200).json({ 
-        success: true, 
+      res.status(200).json({
+        success: true,
         limits: {
           heartbits_sent: limits.heartbits_sent || 0,
           heartbits_limit: limits.heartbits_limit || 1000,
@@ -1799,42 +1799,42 @@ export const getCheerPostsAdmin = async (req, res) => {
     // Input validation
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
-    
+
     if (isNaN(pageNum) || pageNum < 1) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid page number. Must be a positive integer." 
+      return res.status(400).json({
+        success: false,
+        message: "Invalid page number. Must be a positive integer."
       });
     }
-    
+
     if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid limit. Must be between 1 and 100." 
+      return res.status(400).json({
+        success: false,
+        message: "Invalid limit. Must be between 1 and 100."
       });
     }
 
     // Validate filter
     const validFilters = ['all', 'active', 'hidden', 'flagged', 'reported'];
     if (!validFilters.includes(filter)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Invalid filter. Valid filters are: ${validFilters.join(', ')}` 
+      return res.status(400).json({
+        success: false,
+        message: `Invalid filter. Valid filters are: ${validFilters.join(', ')}`
       });
     }
 
     // Validate date format if provided
     if (date_from && !Date.parse(date_from)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid date_from format. Use ISO 8601 format (YYYY-MM-DD)" 
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date_from format. Use ISO 8601 format (YYYY-MM-DD)"
       });
     }
-    
+
     if (date_to && !Date.parse(date_to)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid date_to format. Use ISO 8601 format (YYYY-MM-DD)" 
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date_to format. Use ISO 8601 format (YYYY-MM-DD)"
       });
     }
 
@@ -1842,13 +1842,13 @@ export const getCheerPostsAdmin = async (req, res) => {
     const sanitizedSearch = search ? search.trim().substring(0, 100) : '';
 
     const posts = await Suitebite.getCheerPostsAdmin(pageNum, limitNum, filter, sanitizedSearch, date_from, date_to);
-    
+
     res.status(200).json({ success: true, posts });
   } catch (err) {
     console.error('Error in getCheerPostsAdmin:', err);
-    res.status(500).json({ 
-      success: false, 
-      message: "Internal Server Error. Please try again later." 
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error. Please try again later."
     });
   }
 };
@@ -1862,18 +1862,18 @@ export const deleteCheerPost = async (req, res) => {
 
     // Validate input
     if (!id || typeof id !== 'string' || id.trim().length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid post ID provided" 
+      return res.status(400).json({
+        success: false,
+        message: "Invalid post ID provided"
       });
     }
 
     // Check if post exists (admin can see all posts including hidden ones)
     const post = await Suitebite.getCheerPostByIdAdmin(id);
     if (!post) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Cheer post not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Cheer post not found"
       });
     }
 
@@ -1898,15 +1898,15 @@ export const deleteCheerPost = async (req, res) => {
     await Suitebite.deleteCheerPost(id);
     console.log('Post deleted successfully');
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Cheer post deleted successfully" 
+    res.status(200).json({
+      success: true,
+      message: "Cheer post deleted successfully"
     });
   } catch (err) {
     console.error('Error in deleteCheerPost controller:', err);
-    res.status(500).json({ 
-      success: false, 
-      message: "Internal Server Error: " + err.message 
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error: " + err.message
     });
   }
 };
@@ -1920,18 +1920,18 @@ export const moderateCheerPost = async (req, res) => {
 
     // Validate post ID
     if (!id || typeof id !== 'string' || id.trim().length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid post ID provided" 
+      return res.status(400).json({
+        success: false,
+        message: "Invalid post ID provided"
       });
     }
 
     // Validate action
     const validActions = ['hide', 'unhide', 'delete'];
     if (!validActions.includes(action)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Invalid action. Valid actions are: ${validActions.join(', ')}` 
+      return res.status(400).json({
+        success: false,
+        message: `Invalid action. Valid actions are: ${validActions.join(', ')}`
       });
     }
 
@@ -1941,9 +1941,9 @@ export const moderateCheerPost = async (req, res) => {
     // Check if post exists (admin can see all posts including hidden ones)
     const post = await Suitebite.getCheerPostByIdAdmin(id);
     if (!post) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Cheer post not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Cheer post not found"
       });
     }
 
@@ -1965,10 +1965,10 @@ export const moderateCheerPost = async (req, res) => {
           // Don't fail the main operation if notification fails
         }
       }
-      
+
       // Delete the post and all related data
       await Suitebite.deleteCheerPost(id);
-      
+
       // Log admin action
       await Suitebite.logAdminAction(
         req.user.id,
@@ -1978,8 +1978,8 @@ export const moderateCheerPost = async (req, res) => {
         { action, reason: sanitizedReason, post_body: post.cheer_message }
       );
 
-      return res.status(200).json({ 
-        success: true, 
+      return res.status(200).json({
+        success: true,
         message: "Post deleted successfully"
       });
     }
@@ -2010,8 +2010,8 @@ export const moderateCheerPost = async (req, res) => {
         { action, reason: sanitizedReason, post_body: post.cheer_message }
       );
 
-      res.status(200).json({ 
-        success: true, 
+      res.status(200).json({
+        success: true,
         message: "Post hidden successfully"
       });
     }
@@ -2042,8 +2042,8 @@ export const moderateCheerPost = async (req, res) => {
         { action, reason: sanitizedReason || 'No reason provided', post_body: post.cheer_message }
       );
 
-      res.status(200).json({ 
-        success: true, 
+      res.status(200).json({
+        success: true,
         message: "Post unhidden successfully"
       });
     }
@@ -2059,7 +2059,7 @@ export const getUsersWithHeartbits = async (req, res) => {
     const { page = 1, limit = 50, search, sort_by = "total_heartbits" } = req.query;
 
     const users = await Suitebite.getUsersWithHeartbits(page, limit, search, sort_by);
-    
+
     res.status(200).json({ success: true, users });
   } catch (err) {
     console.error(err);
@@ -2073,14 +2073,14 @@ export const setMonthlyLimit = async (req, res) => {
     const { limit, month_year } = req.body;
 
     if (!limit || limit <= 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Valid limit is required" 
+      return res.status(400).json({
+        success: false,
+        message: "Valid limit is required"
       });
     }
 
     const currentMonth = month_year || new Date().toISOString().slice(0, 7);
-    
+
     await Suitebite.setUserMonthlyLimit(userId, currentMonth, limit);
 
     // Log admin action
@@ -2092,9 +2092,9 @@ export const setMonthlyLimit = async (req, res) => {
       { limit, month_year: currentMonth }
     );
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Monthly limit updated successfully" 
+    res.status(200).json({
+      success: true,
+      message: "Monthly limit updated successfully"
     });
   } catch (err) {
     console.error(err);
@@ -2107,7 +2107,7 @@ export const getSystemStats = async (req, res) => {
     const { period = "month" } = req.query; // week, month, quarter, year
 
     const stats = await Suitebite.getSystemStats(period);
-    
+
     res.status(200).json({ success: true, stats });
   } catch (err) {
     console.error(err);
@@ -2120,7 +2120,7 @@ export const getSystemStats = async (req, res) => {
 export const getSystemConfiguration = async (req, res) => {
   try {
     const config = await Suitebite.getSystemConfiguration();
-    
+
     res.status(200).json({ success: true, config });
   } catch (err) {
     console.error(err);
@@ -2133,9 +2133,9 @@ export const updateSystemConfiguration = async (req, res) => {
     const { config_key, config_value, description } = req.body;
 
     if (!config_key || config_value === undefined) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Config key and value are required" 
+      return res.status(400).json({
+        success: false,
+        message: "Config key and value are required"
       });
     }
 
@@ -2150,9 +2150,9 @@ export const updateSystemConfiguration = async (req, res) => {
       { config_value, description }
     );
 
-    res.status(200).json({ 
-      success: true, 
-      message: "System configuration updated successfully" 
+    res.status(200).json({
+      success: true,
+      message: "System configuration updated successfully"
     });
   } catch (err) {
     console.error(err);
@@ -2165,7 +2165,7 @@ export const getAllAdminUsers = async (req, res) => {
     const { page = 1, limit = 50, search, status } = req.query;
 
     const admins = await Suitebite.getAllAdminUsers(page, limit, search, status);
-    
+
     res.status(200).json({ success: true, admins });
   } catch (err) {
     console.error(err);
@@ -2181,16 +2181,16 @@ export const promoteToAdmin = async (req, res) => {
     // Check if user exists and is not already an admin
     const user = await Suitebite.getUserById(userId);
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "User not found" 
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
       });
     }
 
     if (user.user_type === "ADMIN" || user.user_type === "SUPER_ADMIN") {
-      return res.status(400).json({ 
-        success: false, 
-        message: "User is already an admin" 
+      return res.status(400).json({
+        success: false,
+        message: "User is already an admin"
       });
     }
 
@@ -2202,15 +2202,15 @@ export const promoteToAdmin = async (req, res) => {
       "PROMOTE_TO_ADMIN",
       "USER",
       userId,
-      { 
+      {
         previous_type: user.user_type,
         reason: reason || "Promoted by super admin"
       }
     );
 
-    res.status(200).json({ 
-      success: true, 
-      message: "User promoted to admin successfully" 
+    res.status(200).json({
+      success: true,
+      message: "User promoted to admin successfully"
     });
   } catch (err) {
     console.error(err);
@@ -2226,23 +2226,23 @@ export const demoteFromAdmin = async (req, res) => {
     // Check if user exists and is an admin (but not super admin)
     const user = await Suitebite.getUserById(userId);
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "User not found" 
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
       });
     }
 
     if (user.user_type === "SUPER_ADMIN") {
-      return res.status(403).json({ 
-        success: false, 
-        message: "Cannot demote super admin" 
+      return res.status(403).json({
+        success: false,
+        message: "Cannot demote super admin"
       });
     }
 
     if (user.user_type !== "ADMIN") {
-      return res.status(400).json({ 
-        success: false, 
-        message: "User is not an admin" 
+      return res.status(400).json({
+        success: false,
+        message: "User is not an admin"
       });
     }
 
@@ -2254,15 +2254,15 @@ export const demoteFromAdmin = async (req, res) => {
       "DEMOTE_FROM_ADMIN",
       "USER",
       userId,
-      { 
+      {
         previous_type: user.user_type,
         reason: reason || "Demoted by super admin"
       }
     );
 
-    res.status(200).json({ 
-      success: true, 
-      message: "User demoted from admin successfully" 
+    res.status(200).json({
+      success: true,
+      message: "User demoted from admin successfully"
     });
   } catch (err) {
     console.error(err);
@@ -2277,21 +2277,21 @@ export const suspendUser = async (req, res) => {
 
     const user = await Suitebite.getUserById(userId);
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "User not found" 
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
       });
     }
 
     if (user.user_type === "SUPER_ADMIN") {
-      return res.status(403).json({ 
-        success: false, 
-        message: "Cannot suspend super admin" 
+      return res.status(403).json({
+        success: false,
+        message: "Cannot suspend super admin"
       });
     }
 
-    const suspensionEnd = duration_days ? 
-      new Date(Date.now() + (duration_days * 24 * 60 * 60 * 1000)) : 
+    const suspensionEnd = duration_days ?
+      new Date(Date.now() + (duration_days * 24 * 60 * 60 * 1000)) :
       null; // Indefinite suspension
 
     await Suitebite.suspendUser(userId, reason, suspensionEnd);
@@ -2302,16 +2302,16 @@ export const suspendUser = async (req, res) => {
       "SUSPEND_USER",
       "USER",
       userId,
-      { 
+      {
         reason: reason || "No reason provided",
         duration_days,
         suspension_end: suspensionEnd
       }
     );
 
-    res.status(200).json({ 
-      success: true, 
-      message: "User suspended successfully" 
+    res.status(200).json({
+      success: true,
+      message: "User suspended successfully"
     });
   } catch (err) {
     console.error(err);
@@ -2326,9 +2326,9 @@ export const unsuspendUser = async (req, res) => {
 
     const user = await Suitebite.getUserById(userId);
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "User not found" 
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
       });
     }
 
@@ -2343,9 +2343,9 @@ export const unsuspendUser = async (req, res) => {
       { reason: reason || "Unsuspended by super admin" }
     );
 
-    res.status(200).json({ 
-      success: true, 
-      message: "User unsuspended successfully" 
+    res.status(200).json({
+      success: true,
+      message: "User unsuspended successfully"
     });
   } catch (err) {
     console.error(err);
@@ -2355,20 +2355,20 @@ export const unsuspendUser = async (req, res) => {
 
 export const getSystemAuditLogs = async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 100, 
-      date_from, 
-      date_to, 
-      action_type, 
+    const {
+      page = 1,
+      limit = 100,
+      date_from,
+      date_to,
+      action_type,
       admin_id,
-      severity = "all" 
+      severity = "all"
     } = req.query;
 
     const logs = await Suitebite.getSystemAuditLogs(
       page, limit, date_from, date_to, action_type, admin_id, severity
     );
-    
+
     res.status(200).json({ success: true, logs });
   } catch (err) {
     console.error(err);
@@ -2382,7 +2382,7 @@ export const getUserNotifications = async (req, res) => {
     const user_id = req.user.id;
 
     const notifications = await Suitebite.getUserNotifications(user_id, limit);
-    
+
     res.status(200).json({ success: true, notifications });
   } catch (err) {
     console.error(err);
@@ -2402,14 +2402,14 @@ export const markNotificationAsRead = async (req, res) => {
       .first();
 
     if (!notification) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Notification not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Notification not found"
       });
     }
 
     await Suitebite.markNotificationAsRead(notification_id);
-    
+
     res.status(200).json({ success: true, message: "Notification marked as read" });
   } catch (err) {
     console.error(err);
@@ -2419,21 +2419,21 @@ export const markNotificationAsRead = async (req, res) => {
 
 export const getAdvancedSystemAnalytics = async (req, res) => {
   try {
-    const { 
+    const {
       period = "month",
       include_trends = "true",
       include_predictions = "false"
     } = req.query;
 
     const analytics = await Suitebite.getAdvancedSystemAnalytics(
-      period, 
-      include_trends === "true", 
+      period,
+      include_trends === "true",
       include_predictions === "true"
     );
-    
+
     // Spread overview fields to the top level for easier access
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       ...analytics.overview,
       analytics
     });
@@ -2450,9 +2450,9 @@ export const performSystemMaintenance = async (req, res) => {
     const { operation, parameters = {} } = req.body;
 
     if (!operation) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Operation is required" 
+      return res.status(400).json({
+        success: false,
+        message: "Operation is required"
       });
     }
 
@@ -2467,10 +2467,10 @@ export const performSystemMaintenance = async (req, res) => {
       { operation, parameters, results }
     );
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: `System maintenance operation '${operation}' completed successfully`,
-      results 
+      results
     });
   } catch (err) {
     console.error(err);
@@ -2481,42 +2481,42 @@ export const performSystemMaintenance = async (req, res) => {
 export const triggerMonthlyReset = async (req, res) => {
   try {
     const currentMonth = new Date().toISOString().slice(0, 7);
-    
+
     // Get system configuration for global monthly limit
     const systemConfig = await Suitebite.getSystemConfiguration();
     console.log('System config:', systemConfig); // Debug log
-    
+
     // Access the global_monthly_limit value correctly
-    const defaultMonthlyLimit = systemConfig.global_monthly_limit ? 
+    const defaultMonthlyLimit = systemConfig.global_monthly_limit ?
       parseInt(systemConfig.global_monthly_limit.value) : 1000;
-    
+
     console.log('Default monthly limit:', defaultMonthlyLimit); // Debug log
-    
+
     // Get all active users (more inclusive query)
     const users = await db('sl_user_accounts')
       .select('user_id', 'first_name', 'last_name', 'user_email', 'user_type', 'is_active')
       .whereIn('user_type', ['employee', 'admin', 'superadmin']);
-    
+
     // Filter active users in code to see what's happening
     const activeUsers = users.filter(user => user.is_active === true || user.is_active === 1);
     const inactiveUsers = users.filter(user => user.is_active === false || user.is_active === 0);
-    
+
     console.log('Total users found:', users.length);
     console.log('Active users:', activeUsers.length);
     console.log('Inactive users:', inactiveUsers.length);
     console.log('Inactive users details:', inactiveUsers.map(u => ({ name: `${u.first_name} ${u.last_name}`, type: u.user_type, active: u.is_active })));
-    
+
     // Use all users regardless of active status for monthly reset
     const usersToProcess = users;
-    
+
     console.log('Found users:', users.length); // Debug log
     console.log('Users found:', users); // Debug log - show actual users
-    
+
     // Debug: Check all users in database
     const allUsers = await db('sl_user_accounts').select('user_id', 'first_name', 'last_name', 'user_email', 'user_type', 'is_active');
     console.log('All users in database:', allUsers.length);
     console.log('All users:', allUsers);
-    
+
     // Debug: Check specific user types
     const employees = allUsers.filter(u => u.user_type === 'employee');
     const admins = allUsers.filter(u => u.user_type === 'admin');
@@ -2524,18 +2524,18 @@ export const triggerMonthlyReset = async (req, res) => {
     console.log('Employees:', employees.length);
     console.log('Admins:', admins.length);
     console.log('Super Admins:', superadmins.length);
-    
+
     let resetCount = 0;
     let allowanceGiven = 0;
-    
+
     for (const user of usersToProcess) {
       try {
         // Reset monthly limits for the new month
         await Suitebite.resetMonthlyLimit(user.user_id, currentMonth);
-        
+
         // Give monthly heartbits allowance (updates sl_user_points table)
         await Suitebite.updateUserHeartbits(user.user_id, defaultMonthlyLimit);
-        
+
         // Create transaction record for monthly allowance
         await db('sl_heartbits_transactions').insert({
           user_id: user.user_id,
@@ -2552,10 +2552,10 @@ export const triggerMonthlyReset = async (req, res) => {
             monthly_cheer_used: 0,
             last_monthly_reset: new Date()
           });
-        
+
         resetCount++;
         allowanceGiven += defaultMonthlyLimit;
-        
+
       } catch (error) {
         console.error(`Error processing user ${user.user_id} (${user.first_name} ${user.last_name}):`, error);
       }
@@ -2567,7 +2567,7 @@ export const triggerMonthlyReset = async (req, res) => {
       "SYSTEM_MAINTENANCE",
       "SYSTEM",
       null,
-      { 
+      {
         month: currentMonth,
         users_processed: resetCount,
         total_allowance_given: allowanceGiven,
@@ -2575,8 +2575,8 @@ export const triggerMonthlyReset = async (req, res) => {
       }
     );
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: `Monthly reset and allowance process completed successfully`,
       results: {
         users_processed: resetCount,
@@ -2593,26 +2593,26 @@ export const triggerMonthlyReset = async (req, res) => {
 
 export const exportSystemData = async (req, res) => {
   try {
-    const { 
-      data_type, 
-      format = "json", 
-      date_from, 
+    const {
+      data_type,
+      format = "json",
+      date_from,
       date_to,
-      include_pii = "false" 
+      include_pii = "false"
     } = req.query;
 
     if (!["cheers", "users", "orders", "analytics", "audit_logs"].includes(data_type)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid data type for export" 
+      return res.status(400).json({
+        success: false,
+        message: "Invalid data type for export"
       });
     }
 
     const exportData = await Suitebite.exportSystemData(
-      data_type, 
-      format, 
-      date_from, 
-      date_to, 
+      data_type,
+      format,
+      date_from,
+      date_to,
       include_pii === "true"
     );
 
@@ -2625,8 +2625,8 @@ export const exportSystemData = async (req, res) => {
       { format, date_from, date_to, include_pii }
     );
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: "Data export completed successfully",
       data: exportData
     });
@@ -2643,16 +2643,16 @@ export const bulkUpdateHeartbits = async (req, res) => {
     const { updates } = req.body;
 
     if (!Array.isArray(updates) || updates.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Updates array is required and cannot be empty" 
+      return res.status(400).json({
+        success: false,
+        message: "Updates array is required and cannot be empty"
       });
     }
 
     const results = [];
     for (const update of updates) {
       const { user_id, heartbits, reason } = update;
-      
+
       if (!user_id || typeof heartbits !== 'number') {
         results.push({ user_id, success: false, error: "Invalid user_id or heartbits" });
         continue;
@@ -2660,7 +2660,7 @@ export const bulkUpdateHeartbits = async (req, res) => {
 
       try {
         await Suitebite.updateUserHeartbits(user_id, heartbits);
-        
+
         // Log admin action
         await Suitebite.logAdminAction(
           req.user.id, // Changed from req.user.user_id
@@ -2680,10 +2680,10 @@ export const bulkUpdateHeartbits = async (req, res) => {
     const successCount = results.filter(r => r.success).length;
     const failureCount = results.length - successCount;
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: `Bulk update completed. ${successCount} successful, ${failureCount} failed.`,
-      results 
+      results
     });
   } catch (err) {
     console.error(err);
@@ -2697,17 +2697,17 @@ export const resetUserMonthlyStats = async (req, res) => {
     const { month_year } = req.body;
 
     if (!month_year || !/^\d{4}-\d{2}$/.test(month_year)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "month_year is required in YYYY-MM format" 
+      return res.status(400).json({
+        success: false,
+        message: "month_year is required in YYYY-MM format"
       });
     }
 
     const user = await Suitebite.getUserById(userId);
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "User not found" 
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
       });
     }
 
@@ -2723,9 +2723,9 @@ export const resetUserMonthlyStats = async (req, res) => {
       { month_year }
     );
 
-    res.status(200).json({ 
-      success: true, 
-      message: "User monthly stats reset successfully" 
+    res.status(200).json({
+      success: true,
+      message: "User monthly stats reset successfully"
     });
   } catch (err) {
     console.error(err);
@@ -2740,18 +2740,18 @@ export const initializeAllUsersHeartbits = async (req, res) => {
     const { heartbits_amount = 1000 } = req.body;
 
     if (heartbits_amount < 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Heartbits amount must be non-negative" 
+      return res.status(400).json({
+        success: false,
+        message: "Heartbits amount must be non-negative"
       });
     }
 
     // Get all active users without heartbits records
     const usersNeedingInit = await Suitebite.getUsersWithoutHeartbits();
-    
+
     if (usersNeedingInit.length === 0) {
-      return res.status(200).json({ 
-        success: true, 
+      return res.status(200).json({
+        success: true,
         message: "All users already have heartbits records",
         users_initialized: 0
       });
@@ -2762,14 +2762,14 @@ export const initializeAllUsersHeartbits = async (req, res) => {
       try {
         // Initialize user with heartbits
         await Suitebite.updateUserHeartbits(user.user_id, heartbits_amount);
-        
+
         // Log admin action
         await Suitebite.logAdminAction(
           req.user.id,
           "INITIALIZE_HEARTBITS",
           "USER",
           user.user_id,
-          { 
+          {
             initial_amount: heartbits_amount,
             user_name: `${user.first_name} ${user.last_name}`,
             user_email: user.user_email
@@ -2799,8 +2799,8 @@ export const initializeAllUsersHeartbits = async (req, res) => {
     const successCount = results.filter(r => r.success).length;
     const failureCount = results.length - successCount;
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: `Initialized heartbits for ${successCount} users (${failureCount} failures)`,
       users_initialized: successCount,
       total_users_processed: results.length,
@@ -2847,9 +2847,9 @@ export const deleteVariationOption = async (req, res) => {
 export const getProductOrderUsage = async (req, res) => {
   try {
     const { product_id } = req.params;
-    
+
     const usage = await Suitebite.getProductOrderUsage(product_id);
-    
+
     res.status(200).json({ success: true, usage });
   } catch (err) {
     console.error(err);
@@ -2862,9 +2862,9 @@ export const getProductOrderUsage = async (req, res) => {
 export const getProductImages = async (req, res) => {
   try {
     const { productId } = req.params;
-    
+
     const images = await Suitebite.getProductImages(productId);
-    
+
     res.status(200).json({ success: true, images });
   } catch (err) {
     console.error(err);
@@ -2875,33 +2875,33 @@ export const getProductImages = async (req, res) => {
 export const addProductImage = async (req, res) => {
   try {
     const { productId } = req.params;
-    const { 
-      image_url, 
-      thumbnail_url, 
-      medium_url, 
-      large_url, 
-      public_id, 
+    const {
+      image_url,
+      thumbnail_url,
+      medium_url,
+      large_url,
+      public_id,
       alt_text,
       sort_order,
       is_primary = false,
-      is_active = true 
+      is_active = true
     } = req.body;
 
 
 
     if (!image_url) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Image URL is required" 
+      return res.status(400).json({
+        success: false,
+        message: "Image URL is required"
       });
     }
 
     // Validate product exists
     const product = await Suitebite.getProductById(productId);
     if (!product) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Product not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Product not found"
       });
     }
 
@@ -2923,10 +2923,10 @@ export const addProductImage = async (req, res) => {
     // Update product's images_json
     await Suitebite.updateProductImagesJson(productId);
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       message: "Product image added successfully!",
-      imageId 
+      imageId
     });
   } catch (err) {
     console.error('🔍 Backend - addProductImage error:', err);
@@ -2941,9 +2941,9 @@ export const updateProductImage = async (req, res) => {
 
     const image = await Suitebite.getProductImageById(imageId);
     if (!image) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Product image not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Product image not found"
       });
     }
 
@@ -2952,9 +2952,9 @@ export const updateProductImage = async (req, res) => {
     // Update product's images_json
     await Suitebite.updateProductImagesJson(image.product_id);
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Product image updated successfully!" 
+    res.status(200).json({
+      success: true,
+      message: "Product image updated successfully!"
     });
   } catch (err) {
     console.error(err);
@@ -2965,33 +2965,33 @@ export const updateProductImage = async (req, res) => {
 export const deleteProductImage = async (req, res) => {
   try {
 
-    
+
     const { imageId } = req.params;
 
 
     const image = await Suitebite.getProductImageById(imageId);
-    
-    
+
+
     if (!image) {
-      
-      return res.status(404).json({ 
-        success: false, 
-        message: "Product image not found" 
+
+      return res.status(404).json({
+        success: false,
+        message: "Product image not found"
       });
     }
 
-    
+
     const deleteResult = await Suitebite.deleteProductImage(imageId);
-    
+
 
     // Update product's images_json
-    
-    await Suitebite.updateProductImagesJson(image.product_id);
-    
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Product image deleted successfully!" 
+    await Suitebite.updateProductImagesJson(image.product_id);
+
+
+    res.status(200).json({
+      success: true,
+      message: "Product image deleted successfully!"
     });
   } catch (err) {
     console.error('🔍 Backend - Error in deleteProductImage:', err);
@@ -3005,17 +3005,17 @@ export const reorderProductImages = async (req, res) => {
     const { imageIds } = req.body;
 
     if (!imageIds || !Array.isArray(imageIds)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Image IDs array is required" 
+      return res.status(400).json({
+        success: false,
+        message: "Image IDs array is required"
       });
     }
 
     await Suitebite.reorderProductImages(productId, imageIds);
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Product images reordered successfully!" 
+    res.status(200).json({
+      success: true,
+      message: "Product images reordered successfully!"
     });
   } catch (err) {
     console.error(err);
@@ -3029,17 +3029,17 @@ export const setPrimaryImage = async (req, res) => {
 
     const image = await Suitebite.getProductImageById(imageId);
     if (!image) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Product image not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Product image not found"
       });
     }
 
     await Suitebite.setPrimaryImage(image.product_id, imageId);
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Primary image set successfully!" 
+    res.status(200).json({
+      success: true,
+      message: "Primary image set successfully!"
     });
   } catch (err) {
     console.error(err);
@@ -3092,25 +3092,25 @@ export const deleteOwnOrder = async (req, res) => {
 
 
     const result = await Suitebite.deleteOrder(order_id, user_id, reason, false); // isAdmin = false for soft delete
-    
+
     if (result) {
-  
-      res.status(200).json({ 
-        success: true, 
-        message: "Order deleted successfully!" 
+
+      res.status(200).json({
+        success: true,
+        message: "Order deleted successfully!"
       });
     } else {
       console.log('❌ Soft delete failed for order:', order_id);
-      res.status(404).json({ 
-        success: false, 
-        message: "Order not found" 
+      res.status(404).json({
+        success: false,
+        message: "Order not found"
       });
     }
   } catch (err) {
     console.error('❌ Delete own order error:', err);
-    res.status(500).json({ 
-      success: false, 
-      message: err.message || "Failed to delete order" 
+    res.status(500).json({
+      success: false,
+      message: err.message || "Failed to delete order"
     });
   }
 };
