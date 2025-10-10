@@ -18,7 +18,6 @@ export const getThreeLatestEpisodes = async (req, res) => {
 export const getPlaylists = async (req, res) => {
   try {
     const playlists = await SpotifyEmbed.getPlaylists();
-
     res.status(200).json({ success: true, playlists });
   } catch (err) {
     console.error("Error fetching playlists:", err.message);
@@ -33,7 +32,13 @@ export const getEmbeds = async (req, res) => {
   try {
     const { embedType } = req.query;
     const episodes = await SpotifyEmbed.getAllEmbeds(embedType);
-    res.status(200).json({ success: true, data: episodes });
+    
+    res.status(200).json({ 
+      success: true, 
+      data: episodes,
+      episodes: episodes, // Add this for backward compatibility
+      count: episodes.length 
+    });
   } catch (err) {
     console.error("Error fetching episodes:", err.message);
     res.status(500).json({
@@ -132,7 +137,7 @@ export const updateEpisode = async (req, res) => {
     res.status(200).json({
       success: true,
       message: `${embedType} updated successfully`,
-      data: updateEpisode,
+      data: updatedEpisode, // Fixed typo: was updateEpisode, now updatedEpisode
     });
   } catch (err) {
     console.error("Error updating episode:", err);
