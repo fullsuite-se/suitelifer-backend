@@ -89,7 +89,7 @@ export const uploadAndSaveImages = async (req, res) => {
       });
     });
 
-    const imageUrls = await Promise.all(uploadPromises);
+    const imageUrls = await Promise.all(uploadPromises)
 
     try {
       const tableMap = {

@@ -11,7 +11,7 @@ export const Image = {
   },
   addEmployeeBlogImages: async (blogId, images) => {
     if (!Array.isArray(images) || images.length === 0) {
-      throw new Error("No images to insert");
+      throw new Error("No images to insert here");
     }
 
     const imageRecords = images.map((url) => ({
@@ -19,7 +19,7 @@ export const Image = {
       image_url: url,
       eblog_id: blogId,
     }));
-
+    
     return db(eBlogTable).insert(imageRecords);
   },
 
