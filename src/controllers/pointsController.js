@@ -12,7 +12,7 @@ export const getPointsBalance = async (req, res) => {
 
     // Check and reset monthly heartbits if needed
     const userPoints = await Points.checkAndResetMonthlyHeartbits(user_id);
-    
+
     // Calculate heartbits remaining
     const heartbitsRemaining = userPoints.monthlyHeartbits - userPoints.monthlyHeartbitsUsed;
 
@@ -27,14 +27,14 @@ export const getPointsBalance = async (req, res) => {
         currentBalance: userPoints.availablePoints, // For frontend compatibility
         totalEarned: userPoints.totalEarned,
         totalSpent: userPoints.totalSpent,
-        
+
         // Heartbits system
         monthlyHeartbits: userPoints.monthlyHeartbits, // Total allocation (100)
         monthlyHeartbitsUsed: userPoints.monthlyHeartbitsUsed, // Used this month
         heartbitsRemaining, // Available to give
         monthlyReceivedHeartbits, // Received this month
         lastMonthlyReset: userPoints.lastMonthlyReset,
-        
+
         // For compatibility with existing frontend
         monthlyCheerLimit: userPoints.monthlyHeartbits,
         monthlyCheerUsed: userPoints.monthlyHeartbitsUsed,
@@ -56,8 +56,8 @@ export const getTransactionHistory = async (req, res) => {
     const { limit = 20, offset = 0, type } = req.query;
 
     const transactions = await Points.getUserTransactions(
-      user_id, 
-      parseInt(limit), 
+      user_id,
+      parseInt(limit),
       parseInt(offset),
       type
     );
@@ -87,10 +87,10 @@ export const cheerUser = async (req, res) => {
   try {
     const { id: user_id } = req.user;
     const { to_user_id, recipientId, points, amount, message } = req.body;
-    
+
     // Support both parameter names for compatibility - prioritize amount over points
     const targetUserId = to_user_id || recipientId;
-    
+
     // Parse the heartbits amount, ensuring it's a valid number
     let heartbitsToSend;
     if (amount !== undefined && amount !== null && amount !== '') {
@@ -102,7 +102,7 @@ export const cheerUser = async (req, res) => {
     } else {
       heartbitsToSend = 10; // Default fallback
     }
-    
+
     // Validate that it's a valid number
     if (isNaN(heartbitsToSend)) {
       return res.status(400).json({
@@ -140,7 +140,7 @@ export const cheerUser = async (req, res) => {
 
     // Reset monthly heartbits if needed
     await Points.checkAndResetMonthlyHeartbits(user_id);
-    
+
     // Get updated points after potential reset
     senderPoints = await Points.getUserPoints(user_id);
 
@@ -177,10 +177,11 @@ export const cheerUser = async (req, res) => {
       to_user_id: targetUserId,
       type: "given",
       amount: heartbitsToSend,
-      description: `Cheered ${heartbitsToSend} heartbits`,
+      description: `Cheered ${heartbitsToSend} ${heartbitsToSend < 2 ? "heartbit" : "heartbits"}`,
       message,
       metadata: JSON.stringify({ cheer_id: cheerId, type: "cheer" })
     });
+
 
     await Points.createTransaction({
       transaction_id: uuidv7(),
@@ -188,10 +189,11 @@ export const cheerUser = async (req, res) => {
       to_user_id: targetUserId,
       type: "received",
       amount: heartbitsToSend,
-      description: `Received ${heartbitsToSend} heartbits from peer`,
+      description: `Received ${heartbitsToSend} ${heartbitsToSend < 2 ? "heartbit" : "heartbits"}`,
       message,
       metadata: JSON.stringify({ cheer_id: cheerId, type: "cheer" })
     });
+
 
     // Create cheer record
     await Points.createCheer({
@@ -209,17 +211,17 @@ export const cheerUser = async (req, res) => {
     // Get user names for audit logging
     let senderName = 'Unknown User';
     let recipientName = 'Unknown User';
-    
+
     try {
       const [sender, recipient] = await Promise.all([
         User.getUser(user_id),
         User.getUser(targetUserId)
       ]);
-      
+
       if (sender) {
         senderName = `${sender.first_name} ${sender.last_name}`.trim();
       }
-      
+
       if (recipient) {
         recipientName = `${recipient.first_name} ${recipient.last_name}`.trim();
       }
@@ -236,7 +238,7 @@ export const cheerUser = async (req, res) => {
         description: `${senderName} sent ${heartbitsToSend} heartbits to ${recipientName}${message ? ` with message: "${message}"` : ''}`,
         date: now()
       };
-      
+
       await AuditLog.addLog(auditData);
     } catch (auditError) {
       console.error("Error logging audit entry:", auditError);
@@ -256,27 +258,27 @@ export const cheerUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Error sending cheer:", error);
-    
+
     // Log failed cheer attempt to audit logs
     try {
       const { id: user_id } = req.user;
       const { to_user_id, recipientId, points, amount, message } = req.body;
       const targetUserId = to_user_id || recipientId;
-      
+
       // Get user names for failed audit logging
       let senderName = 'Unknown User';
       let recipientName = 'Unknown User';
-      
+
       try {
         const [sender, recipient] = await Promise.all([
           User.getUser(user_id),
           targetUserId ? User.getUser(targetUserId) : null
         ]);
-        
+
         if (sender) {
           senderName = `${sender.first_name} ${sender.last_name}`.trim();
         }
-        
+
         if (recipient) {
           recipientName = `${recipient.first_name} ${recipient.last_name}`.trim();
         }
@@ -284,20 +286,20 @@ export const cheerUser = async (req, res) => {
         console.error("Error getting user names for failed audit log:", nameError);
         // Continue with default names if user lookup fails
       }
-      
+
       const failedAuditData = {
         user_id: user_id,
         action: "UPDATE",
         description: `${senderName} failed to send ${amount || points || 'unknown'} heartbits to ${recipientName || 'unknown user'}. Error: ${error.message}`,
         date: now()
       };
-      
+
       await AuditLog.addLog(failedAuditData);
     } catch (auditError) {
       console.error("Error logging failed audit entry:", auditError);
       // Don't fail the main request if audit logging fails
     }
-    
+
     res.status(500).json({
       success: false,
       message: "Internal Server Error"
@@ -334,7 +336,7 @@ export const getAllUserPoints = async (req, res) => {
 
     const userPoints = await Points.getAllUserPoints(
       parseInt(limit),
-      parseInt(offset), 
+      parseInt(offset),
       search
     );
 
@@ -378,13 +380,13 @@ export const addPointsToUser = async (req, res) => {
     // Get admin user details for audit log
     let adminUser = null;
     let targetUser = null;
-    
+
     try {
       adminUser = await User.getUser(admin_user_id);
     } catch (error) {
       console.error("Error getting admin user:", error);
     }
-    
+
     try {
       targetUser = await User.getUser(user_id);
     } catch (error) {
@@ -419,7 +421,7 @@ export const addPointsToUser = async (req, res) => {
     try {
       const adminName = adminUser ? `${adminUser.first_name} ${adminUser.last_name}` : `Admin ${admin_user_id}`;
       const targetUserName = targetUser ? `${targetUser.first_name} ${targetUser.last_name}` : `User ${user_id}`;
-      
+
       await AuditLog.addLog({
         user_id: admin_user_id,
         action: "UPDATE",
@@ -471,13 +473,13 @@ export const deductPointsFromUser = async (req, res) => {
     // Get admin user details for audit log
     let adminUser = null;
     let targetUser = null;
-    
+
     try {
       adminUser = await User.getUser(admin_user_id);
     } catch (error) {
       console.error("Error getting admin user:", error);
     }
-    
+
     try {
       targetUser = await User.getUser(user_id);
     } catch (error) {
@@ -520,7 +522,7 @@ export const deductPointsFromUser = async (req, res) => {
     try {
       const adminName = adminUser ? `${adminUser.first_name} ${adminUser.last_name}` : `Admin ${admin_user_id}`;
       const targetUserName = targetUser ? `${targetUser.first_name} ${targetUser.last_name}` : `User ${user_id}`;
-      
+
       await AuditLog.addLog({
         user_id: admin_user_id,
         action: "UPDATE",
@@ -575,7 +577,7 @@ export const getCheerFeed = async (req, res) => {
   try {
     const { page = 1, limit = 20, offset = 0, from, to } = req.query;
     const user_id = req.user.id; // Get current user ID
-    
+
     // Use offset if provided, otherwise calculate from page
     const calculatedOffset = offset ? parseInt(offset) : (parseInt(page) - 1) * parseInt(limit);
     const calculatedLimit = parseInt(limit);
@@ -626,7 +628,7 @@ export const addCheerComment = async (req, res) => {
     }
 
     const newComment = await Points.addCheerComment(cheer_id, user_id, comment.trim());
-    
+
     res.json({
       success: true,
       data: newComment,
@@ -706,9 +708,9 @@ export const searchUsers = async (req, res) => {
       .select("user_id", "first_name", "last_name", "user_email", "profile_pic as avatar")
       .where("user_id", "!=", user_id)
       .where("is_active", true)
-      .where(function() {
+      .where(function () {
         this.whereRaw("LOWER(CONCAT(first_name, ' ', last_name)) LIKE ?", [`%${query.toLowerCase()}%`])
-            .orWhereRaw("LOWER(user_email) LIKE ?", [`%${query.toLowerCase()}%`]);
+          .orWhereRaw("LOWER(user_email) LIKE ?", [`%${query.toLowerCase()}%`]);
       })
       .limit(parseInt(limit));
 
@@ -756,8 +758,8 @@ export const getReceivedCheers = async (req, res) => {
     const { limit = 20, offset = 0 } = req.query;
 
     const receivedCheers = await Points.getReceivedCheers(
-      user_id, 
-      parseInt(limit), 
+      user_id,
+      parseInt(limit),
       parseInt(offset)
     );
 
@@ -784,7 +786,7 @@ export const getLeaderboardWithPeriod = async (req, res) => {
 
 
     const leaderboardData = await Points.getOptimizedLeaderboard(period, user_id, useCache === 'true');
-    
+
 
 
     if (!leaderboardData || !Array.isArray(leaderboardData.leaderboard)) {
@@ -862,9 +864,9 @@ export const getLeaderboardWithPeriod = async (req, res) => {
 export const updateLeaderboardCache = async (req, res) => {
   try {
     const { period = 'weekly' } = req.query;
-    
+
     const result = await Points.updateLeaderboardCache(period);
-    
+
     if (result.success) {
       res.status(200).json({
         success: true,
@@ -891,12 +893,12 @@ export const updateLeaderboardCache = async (req, res) => {
 export const getLeaderboardPerformance = async (req, res) => {
   try {
     const { period = 'weekly' } = req.query;
-    
+
     // Test query performance
     const startTime = Date.now();
     const testData = await Points.getOptimizedLeaderboard(period, null, 1, 50);
     const queryTime = Date.now() - startTime;
-    
+
     // Get database size info
     const dbSize = await db.raw(`
       SELECT 
@@ -908,7 +910,7 @@ export const getLeaderboardPerformance = async (req, res) => {
         AND table_name IN ('sl_transactions', 'sl_user_accounts', 'sl_cheers')
       ORDER BY (data_length + index_length) DESC
     `);
-    
+
     res.status(200).json({
       success: true,
       data: {

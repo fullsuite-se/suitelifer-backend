@@ -35,9 +35,9 @@ export const submitMood = async (req, res) => {
 export const getTodayMood = async (req, res) => {
   try {
     const user_id = req.user.id;
-    
+
     const todayMood = await Mood.getTodayMood(user_id);
-    
+
     return res.status(200).json({
       success: true,
       data: todayMood
@@ -58,9 +58,9 @@ export const getMoodHistory = async (req, res) => {
   try {
     const user_id = req.user.id;
     const limit = parseInt(req.query.limit) || 30;
-    
+
     const moodHistory = await Mood.getMoodHistory(user_id, limit);
-    
+
     return res.status(200).json({
       success: true,
       data: moodHistory
@@ -80,9 +80,9 @@ export const getMoodHistory = async (req, res) => {
 export const getMoodStats = async (req, res) => {
   try {
     const user_id = req.user.id;
-    
+
     const stats = await Mood.getMoodStats(user_id);
-    
+
     return res.status(200).json({
       success: true,
       data: stats
@@ -102,9 +102,9 @@ export const getMoodStats = async (req, res) => {
 export const getWeeklyStats = async (req, res) => {
   try {
     const user_id = req.user.id;
-    
+
     const weeklyStats = await Mood.getWeeklyStats(user_id);
-    
+
     return res.status(200).json({
       success: true,
       data: weeklyStats
@@ -124,9 +124,9 @@ export const getWeeklyStats = async (req, res) => {
 export const getMonthlyStats = async (req, res) => {
   try {
     const user_id = req.user.id;
-    
+
     const monthlyStats = await Mood.getMonthlyStats(user_id);
-    
+
     return res.status(200).json({
       success: true,
       data: monthlyStats
@@ -146,9 +146,9 @@ export const getMonthlyStats = async (req, res) => {
 export const getYearlyStats = async (req, res) => {
   try {
     const user_id = req.user.id;
-    
+
     const yearlyStats = await Mood.getYearlyStats(user_id);
-    
+
     return res.status(200).json({
       success: true,
       data: yearlyStats
@@ -168,7 +168,7 @@ export const getYearlyStats = async (req, res) => {
 export const getAllMoodData = async (req, res) => {
   try {
     const user_id = req.user.id;
-    
+
     // Fetch all data in parallel
     const [
       todayMood,
@@ -185,7 +185,7 @@ export const getAllMoodData = async (req, res) => {
       Mood.getMonthlyStats(user_id),
       Mood.getYearlyStats(user_id)
     ]);
-    
+
     return res.status(200).json({
       success: true,
       data: {
@@ -213,9 +213,9 @@ export const getMoodDistribution = async (req, res) => {
   try {
     const user_id = req.user.id;
     const days = parseInt(req.query.days) || 30;
-    
+
     const distribution = await Mood.getMoodDistribution(user_id, days);
-    
+
     return res.status(200).json({
       success: true,
       data: distribution
@@ -236,9 +236,9 @@ export const getMoodTrends = async (req, res) => {
   try {
     const user_id = req.user.id;
     const days = parseInt(req.query.days) || 30;
-    
+
     const trends = await Mood.getMoodTrends(user_id, days);
-    
+
     return res.status(200).json({
       success: true,
       data: trends
@@ -259,16 +259,16 @@ export const deleteMoodEntry = async (req, res) => {
   try {
     const { id } = req.params;
     const user_id = req.user.id;
-    
+
     const deleted = await Mood.deleteMoodEntry(id, user_id);
-    
+
     if (deleted === 0) {
       return res.status(404).json({
         success: false,
         message: "Mood entry not found or unauthorized"
       });
     }
-    
+
     return res.status(200).json({
       success: true,
       message: "Mood entry deleted successfully"

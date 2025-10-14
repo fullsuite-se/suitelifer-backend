@@ -22,7 +22,7 @@ users.forEach((user, index) => {
   const email = user.email || `user${index + 1}@fullsuite.ph`;
   const profilePic = user.profilePic ? `'${user.profilePic}'` : 'NULL';
   const middleName = user.middleName ? `'${user.middleName}'` : 'NULL';
-  
+
   console.log(`INSERT INTO sl_user_accounts (user_id, user_email, user_password, user_type, first_name, middle_name, last_name, profile_pic, is_verified, is_active, created_at) VALUES (`);
   console.log(`  '${userId}',`);
   console.log(`  '${email}',`);
