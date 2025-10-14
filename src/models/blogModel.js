@@ -16,7 +16,6 @@ export const Blogs = {
         `${tableEmployee}.eblog_id`,
         `${tableEmployeeImages}.eblog_id`
       )
-      // Currently added
       .leftJoin(
         tableEmployeeLikes,
         `${tableEmployee}.eblog_id`,
@@ -88,10 +87,10 @@ export const Blogs = {
         `${tableEmployee}.created_by`,
         `${tableEmployeeInfos}.user_id`
       )
-      .where({
-        eblog_id
-      })
-      .first(
+      .where(
+        `${tableEmployee}.created_by`, eblog_id
+      )
+      .select(
         `${tableEmployee}.eblog_id as eblogId`,
         "title",
         "description",

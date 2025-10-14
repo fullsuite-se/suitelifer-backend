@@ -6,7 +6,8 @@ import {
   editEmployeeBlog,
   likeEmployeeBlog,
   isBlogLiked,
-  showBlogComments
+  showBlogComments,
+  getEmployeeBlogsById
 } from "../controllers/blogController.js";
 
 import verifyToken from "../middlewares/verifyToken.js";
@@ -15,11 +16,7 @@ const router = express.Router();
 
 router.get("/all-employee-blog", verifyToken, getAllEmployeeBlogs);
 
-router.get("/employee-blog/:id", verifyToken, getAllEmployeeBlogs);
-
-// Fetch Comment 
-
-router.get("/show-comments/:id", verifyToken, showBlogComments)
+router.get("/employee-blog", verifyToken, getEmployeeBlogsById);
 
 router.post("/add-employee-blog", verifyToken, addEmployeeBlog);
 
@@ -31,6 +28,10 @@ router.post("/delete-employee-blog", deleteEmployeeBlog);
 
 router.get('/:eblogId/is-liked', verifyToken, isBlogLiked)
 router.post("/:eblogId/like", verifyToken, likeEmployeeBlog)
+
+// Fetch Comment 
+
+router.get("/show-comments/:id", verifyToken, showBlogComments)
 
 
 export default router;

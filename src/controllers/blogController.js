@@ -4,7 +4,7 @@ import { v7 as uuidv7 } from "uuid";
 
 export const addEmployeeBlog = async (req, res) => {
   const data = req.body;
-  const userId = "01963893-fb5f-73bc-8291-01a4cd400dca";
+  const userId =req.user.id;
 
   const blog = {
     eblog_id: uuidv7(),
@@ -51,7 +51,7 @@ export const editEmployeeBlog = async (req, res) => {
 
 export const getAllEmployeeBlogs = async (req, res) => {
   try {
-    const blogs = await Blogs.getAllEmployeeBlogs();
+    const blogs = await Blogs.getAllEmployeeBlogs(); 
     res.status(200).json(blogs);
   } catch (err) {
     console.log("Unable to fetch Employee Blogs", err);
@@ -61,11 +61,12 @@ export const getAllEmployeeBlogs = async (req, res) => {
 
 export const getEmployeeBlogsById = async (req, res) => {
   try {
-    const { id } = req.params
+    
+    const userId = req.user.id;
 
-    const blog = await Blogs.getEmployeeBlogById(id);
+    const blog = await Blogs.getEmployeeBlogById(userId);
     res.status(200).json(blog);
-    console.log('Hello this is from controller')
+
   } catch (err) {
     console.log("Unable to fetch Employee Blogs", err);
     res.status(500).json({ error: "Internal Server Error" });
