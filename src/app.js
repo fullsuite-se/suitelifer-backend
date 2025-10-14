@@ -39,6 +39,7 @@ const allowedOrigins = [
   process.env.FRONTEND_URL, // Current frontend URL from env
   process.env.VITE_FRONTEND_URL, // Frontend URL matching VITE naming convention
   process.env.LIVE_URL, // Live URL from env
+  process.env.HRIS_VITE_API_BASE_URL,
   // "https://suitelifer-frontend-mu.vercel.app", // Legacy frontend
   "http://localhost:5173", // Frontend development server
   "http://localhost:5174", // Alternative frontend port

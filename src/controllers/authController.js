@@ -10,7 +10,7 @@ import { compactDecrypt, CompactEncrypt, importPKCS8, importSPKI } from "jose";
 import { verifyRecaptchaToken } from "../utils/verifyRecaptchaToken.js";
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email } = req.body;
 
   const user = await Auth.authenticate(email);
 
@@ -18,11 +18,11 @@ export const login = async (req, res) => {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
-  const isMatch = await bcrypt.compare(password, user.user_password);
+  // const isMatch = await bcrypt.compare(password, user.user_password);
 
-  if (!isMatch) {
-    return res.status(401).json({ message: "Invalid credentials" });
-  }
+  // if (!isMatch) {
+  //   return res.status(401).json({ message: "Invalid credentials" });
+  // }
 
   if (!user.is_active) {
     return res.status(403).json({
@@ -31,22 +31,22 @@ export const login = async (req, res) => {
     });
   }
 
-  if (!user.is_verified) {
-    // Verify Verification Attempt
-    const { attempt } = await Auth.getVerificationCodeAttempt(user.user_id);
-    if (attempt >= 3) {
-      return res.status(403).json({
-        isAttemptExceeded: true,
-      });
-    }
-    return res.status(403).json({
-      message:
-        "Account not yet verified. Please check your email for the verification link.",
-      isNotVerified: true,
-      userId: user.user_id,
-      email: user.user_email,
-    });
-  }
+  // if (!user.is_verified) {
+  //   // Verify Verification Attempt
+  //   const { attempt } = await Auth.getVerificationCodeAttempt(user.user_id);
+  //   if (attempt >= 3) {
+  //     return res.status(403).json({
+  //       isAttemptExceeded: true,
+  //     });
+  //   }
+  //   return res.status(403).json({
+  //     message:
+  //       "Account not yet verified. Please check your email for the verification link.",
+  //     isNotVerified: true,
+  //     userId: user.user_id,
+  //     email: user.user_email,
+  //   });
+  // }
 
   const accessToken = jwt.sign(
     {
@@ -55,6 +55,8 @@ export const login = async (req, res) => {
       id: user.user_id,
       first_name: user.first_name,
       last_name: user.last_name,
+      profile_pic: user.profile_pic,
+
     },
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: "1h" } // Change this to 1h for production
@@ -67,6 +69,8 @@ export const login = async (req, res) => {
       id: user.user_id,
       first_name: user.first_name,
       last_name: user.last_name,
+      profile_pic: user.profile_pic,
+
     },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: "30d" } // Change this to 30d for production
@@ -86,6 +90,8 @@ export const login = async (req, res) => {
 
   res.json({ accessToken });
 };
+
+
 export const logout = (req, res) => {
   res.cookie("accessToken", "", {
     httpOnly: true,
@@ -106,7 +112,7 @@ export const logout = (req, res) => {
   res.json({ message: "Logged out successfully", isLoggedOut: true });
 };
 export const register = async (req, res) => {
-  const { firstName, middleName, lastName, workEmail, password } = req.body;
+  const { firstName, middleName, lastName, workEmail, userId, isVerified, isActive } = req.body;
 
   try {
     // Disallow registration if the email is associated with another account
@@ -118,17 +124,19 @@ export const register = async (req, res) => {
       });
     }
 
-    const userId = uuidv7();
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // const userId = uuidv7();
+    // const hashedPassword = await bcrypt.hash(password, 10);
 
     const data = {
       user_id: userId,
       user_email: workEmail,
-      user_password: hashedPassword,
+      // user_password: hashedPassword,
       first_name: firstName,
       middle_name: middleName,
       last_name: lastName,
       created_at: db.fn.now(),
+      is_verified: isVerified,
+      is_active: isActive,
     };
 
     await Auth.registerUser(data);
@@ -300,15 +308,14 @@ export const sendInquiryEmail = async (req, res) => {
       html: `
         <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9;">
 <h2 style="color: #0097b2; font-size: 24px; margin-bottom: 20px;">
- ${
-   type === "podcast"
-     ? "New Podcast Inquiry"
-     : type === "internship"
-     ? "New Internship Job Inquiry"
-     : type === "full-time"
-     ? "New Full-Time Job Inquiry"
-     : "New Inquiry"
- }
+ ${type === "podcast"
+          ? "New Podcast Inquiry"
+          : type === "internship"
+            ? "New Internship Job Inquiry"
+            : type === "full-time"
+              ? "New Full-Time Job Inquiry"
+              : "New Inquiry"
+        }
 </h2>
 
   
@@ -336,18 +343,16 @@ export const sendInquiryEmail = async (req, res) => {
    <p style="font-size: 14px; color: #777;">
   This inquiry was made through the submission form on 
   <a 
-          href="${
-            type === "podcast"
-              ? "https://suitelifer.com/podcast#inquiry"
-              : "https://suitelifer.com/contact"
-          }" 
+          href="${type === "podcast"
+          ? "https://suitelifer.com/podcast#inquiry"
+          : "https://suitelifer.com/contact"
+        }" 
           target="_blank" 
           style="color: #0097b2; text-decoration: none;">
-          ${
-            type === "podcast"
-              ? "Suitelifer’s podcast page"
-              : "Suitelifer’s contact page"
-          }
+          ${type === "podcast"
+          ? "Suitelifer’s podcast page"
+          : "Suitelifer’s contact page"
+        }
         </a>.
 </p>
   </div>
@@ -469,6 +474,7 @@ export const refreshToken = async (req, res) => {
           id: decoded.id,
           first_name: decoded.first_name,
           last_name: decoded.last_name,
+          profile_pic: decoded.profile_pic,
         },
         process.env.ACCESS_TOKEN_SECRET,
         { expiresIn: "1h" }
