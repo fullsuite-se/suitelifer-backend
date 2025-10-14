@@ -55,7 +55,8 @@ export const Blogs = {
   },
 
   deleteEmployeeBlog: async (eblog_id) => {
-    return await db(tableEmployee).where({ eblog_id }).del();
+    db(tableEmployeeImages).where({eblog_id}).del().then( ()=> db(tableEmployee).where({ eblog_id }).del())
+    return
   },
 
   addEmployeeBlog: async (blog) => {

@@ -20,9 +20,9 @@ router.get("/employee-blog", verifyToken, getEmployeeBlogsById);
 
 router.post("/add-employee-blog", verifyToken, addEmployeeBlog);
 
-router.post("/edit-employee-blog", editEmployeeBlog);
+router.put("/edit-employee-blog", editEmployeeBlog);
 
-router.post("/delete-employee-blog", deleteEmployeeBlog);
+router.delete("/delete-employee-blog/:eblogId", deleteEmployeeBlog);
 
 // Like
 

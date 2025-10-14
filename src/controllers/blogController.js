@@ -74,15 +74,17 @@ export const getEmployeeBlogsById = async (req, res) => {
 };
 
 export const deleteEmployeeBlog = async (req, res) => {
-  console.log("Unable to delete Employee Blog", error);
-  const { eblog_id } = req.body;
+  console.log("Unable to delete Employee Blog");
+  const { eblogId } = req.params;
 
-  if (!eblog_id) {
+  console.log(eblogId)
+
+  if (!eblogId) {
     return res.status(400).json({ error: "Missing blog ID" });
   }
 
   try {
-    await Blogs.deleteEmployeeBlog(eblog_id);
+    await Blogs.deleteEmployeeBlog(eblogId);
     res
       .status(200)
       .json({ success: true, message: "Blog deleted successfully!" });
