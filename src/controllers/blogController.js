@@ -4,7 +4,7 @@ import { v7 as uuidv7 } from "uuid";
 
 export const addEmployeeBlog = async (req, res) => {
   const data = req.body;
-  const userId = "0dbde766-f898-11ef-a725-0af0d960a833";
+  const userId =req.user.id;
 
   const blog = {
     eblog_id: uuidv7(),
@@ -51,7 +51,7 @@ export const editEmployeeBlog = async (req, res) => {
 
 export const getAllEmployeeBlogs = async (req, res) => {
   try {
-    const blogs = await Blogs.getAllEmployeeBlogs();
+    const blogs = await Blogs.getAllEmployeeBlogs(); 
     res.status(200).json(blogs);
   } catch (err) {
     console.log("Unable to fetch Employee Blogs", err);
@@ -59,21 +59,94 @@ export const getAllEmployeeBlogs = async (req, res) => {
   }
 };
 
-export const deleteEmployeeBlog = async (req, res) => {
-  console.log("Unable to delete Employee Blog", error);
-  const { eblog_id } = req.body;
+export const getEmployeeBlogsById = async (req, res) => {
+  try {
+    
+    const userId = req.user.id;
 
-  if (!eblog_id) {
+    const blog = await Blogs.getEmployeeBlogById(userId);
+    res.status(200).json(blog);
+
+  } catch (err) {
+    console.log("Unable to fetch Employee Blogs", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const deleteEmployeeBlog = async (req, res) => {
+  console.log("Unable to delete Employee Blog");
+  const { eblogId } = req.params;
+
+  console.log(eblogId)
+
+  if (!eblogId) {
     return res.status(400).json({ error: "Missing blog ID" });
   }
 
   try {
-    await Blogs.deleteEmployeeBlog(eblog_id);
+    await Blogs.deleteEmployeeBlog(eblogId);
     res
       .status(200)
       .json({ success: true, message: "Blog deleted successfully!" });
   } catch (err) {
     console.error("DELETE BLOG ERROR:", err);
     res.status(500).json({ error: "Failed to delete blog" });
+  }
+};
+
+// Comment 
+
+export const showBlogComments = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const comments = await Blogs.getAllComments(id);
+
+    return res.status(200).json(comments)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({error: 'Failed to fetch comments'})
+  }
+}
+
+
+// Like
+
+export const isBlogLiked = async (req, res) => {
+  const { eblogId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const existingLike = await Blogs.isExistingLike(eblogId, userId);
+    res.status(200).json({ liked: !!existingLike });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to check like status" });
+  }
+};
+
+
+export const likeEmployeeBlog = async (req, res) => {
+  const { eblogId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const existingLike = await Blogs.isExistingLike(eblogId, userId);
+
+    if (existingLike) {
+      await Blogs.deleteLike(existingLike.like_id);
+      return res.status(200).json({ success: true, liked: false });
+    } else {
+      await Blogs.insertLike({
+        like_id: uuidv7(),
+        eblog_id: eblogId,
+        user_id: userId,
+        created_at: new Date(),
+      });
+      return res.status(201).json({ success: true, liked: true });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Something went wrong" });
   }
 };

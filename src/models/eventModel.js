@@ -8,9 +8,11 @@ export const Event = {
       .select(
         "event_id AS eventId",
         "title",
+        "category",
         "description",
         "date_start AS start",
         "date_end AS end",
+        "gdrive_link AS gdriveLink",
         "sl_events.created_at AS createdAt",
         db.raw(`
           CONCAT(
@@ -30,9 +32,11 @@ export const Event = {
       .select(
         "event_id AS eventId",
         "title",
+        "category",
         "description",
         "date_start AS start",
         "date_end AS end",
+        "gdrive_link AS gdriveLink",
         "sl_events.created_at AS createdAt",
         db.raw(
           `CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy`
@@ -52,9 +56,11 @@ export const Event = {
       .select(
         "event_id AS eventId",
         "title",
+        "category",
         "description",
         "date_start AS start",
         "date_end AS end",
+        "gdrive_link AS gdriveLink",
         "sl_events.created_at AS createdAt",
         db.raw(
           `CONCAT(sl_user_accounts.first_name, ' ', LEFT(sl_user_accounts.middle_name, 1), '. ', sl_user_accounts.last_name) AS createdBy`
