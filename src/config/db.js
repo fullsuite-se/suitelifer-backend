@@ -18,3 +18,13 @@ export const pool = mysql.createPool({
 });
 
 export const db = knex(knexconfig);
+
+
+
+db.raw("SELECT 1")
+  .then(() => {
+    console.log(`Database CONNECTED successfully: ${DB_DATABASE} @ ${DB_HOST}`);
+  })
+  .catch((err) => {
+    console.error("Database connection FAILED:", err.message);
+  });
