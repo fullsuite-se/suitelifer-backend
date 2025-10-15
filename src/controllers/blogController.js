@@ -62,9 +62,23 @@ export const getAllEmployeeBlogs = async (req, res) => {
 export const getEmployeeBlogsById = async (req, res) => {
   try {
     
+    const { id } = req.params;
+
+    const blog = await Blogs.getEmployeeBlogsById(id);
+    res.status(200).json(blog);
+
+  } catch (err) {
+    console.log("Unable to fetch Employee Blogs", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const getEmployeeBlogsByUserId = async (req, res) => {
+  try {
+    
     const userId = req.user.id;
 
-    const blog = await Blogs.getEmployeeBlogById(userId);
+    const blog = await Blogs.getEmployeeBlogByUserId(userId);
     res.status(200).json(blog);
 
   } catch (err) {
@@ -107,6 +121,35 @@ export const showBlogComments = async (req, res) => {
     console.error(err)
     res.status(500).json({error: 'Failed to fetch comments'})
   }
+}
+
+export const addEblogComment = async(req,res) => {
+
+  try {
+
+    const { eblogId, comment } = req.body
+    const userId = req.user?.id
+
+    if (!eblogId || !comment) {
+      return res.status(400).json({ error: "Missing required fields." });
+    }
+
+    const data = {
+      comment_id: uuidv7(),
+      comment: comment,
+      content_id: eblogId,
+      created_at: now(),
+      created_by: userId,
+    }
+
+    await Blogs.addEblogComment(data)
+
+    res.status(201).json({success: true, message: 'Comment added successfully!'})
+  } catch (error) {
+    console.error("ADD COMMENT ERROR:", error);
+    res.status(500).json({ error: "Failed to add comment." });
+  }
+
 }
 
 
