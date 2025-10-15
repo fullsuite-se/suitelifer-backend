@@ -60,8 +60,20 @@ export const Blogs = {
   },
 
   deleteEmployeeBlog: async (eblog_id) => {
-    db(tableEmployeeImages).where({eblog_id}).del().then( ()=> db(tableEmployee).where({ eblog_id }).del())
-    return
+    try {
+      await db(tableEmployeeComments).where({ content_id: eblog_id }).del();
+
+      await db(tableEmployeeImages).where({ eblog_id }).del();
+
+      await db(tableEmployeeLikes).where({ eblog_id }).del();
+
+      await db(tableEmployee).where({ eblog_id }).del();
+
+      return { success: true, message: "Blog and related data deleted successfully" };
+    } catch (error) {
+      console.error("Error deleting employee blog:", error);
+      throw error;
+    }
   },
 
   addEmployeeBlog: async (blog) => {
