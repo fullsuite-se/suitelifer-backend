@@ -52,8 +52,7 @@ export const Blogs = {
       `${tableEmployeeInfos}.profile_pic as userPic`
     )
     .groupBy(`${tableEmployee}.eblog_id`);
-}
-,
+},
 
   editEmployeeBlog: async (eblog_id, is_shown) => {
     return await db(tableEmployee).where({ eblog_id }).update({ is_shown });

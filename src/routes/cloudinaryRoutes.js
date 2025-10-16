@@ -7,7 +7,8 @@ import {
   uploadMultipleProductImages,
   deleteProductImage,
   getOptimizedImageUrl,
-  deleteBlogImage
+  deleteBlogImage,
+  deleteEmployeeBlogImages
 } from "../controllers/cloudinaryController.js";
 import verifyToken from "../middlewares/verifyToken.js";
 
@@ -62,10 +63,17 @@ router.delete(
   deleteBlogImage
 );
 
+router.delete(
+  "/delete-image-employee-blog/:folderId",
+  verifyToken,
+  deleteEmployeeBlogImages
+)
+
 // Get optimized image URL
 router.get(
   "/images/:publicId/optimize",
   getOptimizedImageUrl
 );
+
 
 export default router;
