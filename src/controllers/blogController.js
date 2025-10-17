@@ -51,13 +51,25 @@ export const editEmployeeBlog = async (req, res) => {
 
 export const getAllEmployeeBlogs = async (req, res) => {
   try {
-    const blogs = await Blogs.getAllEmployeeBlogs(); 
-    res.status(200).json(blogs);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const blogs = await Blogs.getAllEmployeeBlogs(limit, offset);
+    const total = await Blogs.countEmployeeBlogs();
+
+    res.status(200).json({
+      blogs,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (err) {
     console.log("Unable to fetch Employee Blogs", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 export const getEmployeeBlogsById = async (req, res) => {
   try {

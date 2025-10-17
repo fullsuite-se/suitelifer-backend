@@ -241,7 +241,8 @@ export const Points = {
         db.raw("CONCAT(sl_user_accounts.first_name, ' ', sl_user_accounts.last_name) AS userName"),
         "sl_user_accounts.user_email AS email",
         "sl_user_accounts.profile_pic AS avatar",
-        "sl_user_accounts.user_type"
+        "sl_user_accounts.user_type",
+        "sl_user_accounts.is_active as isActive"
       )
       .innerJoin("sl_user_accounts", "sl_user_points.user_id", "sl_user_accounts.user_id")
       .orderBy("total_earned", "desc")

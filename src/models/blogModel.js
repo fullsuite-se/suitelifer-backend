@@ -8,7 +8,7 @@ const tableEmployeeComments = "sl_eblog_comments"
 
 export const Blogs = {
   // Employee
-  getAllEmployeeBlogs: async () => {
+getAllEmployeeBlogs: async (limit = 10, offset = 0) => {
   const commentsSubquery = db(tableEmployeeComments)
     .select('content_id')
     .count('* as commentCount')
@@ -31,11 +31,7 @@ export const Blogs = {
     .leftJoin(likesSubquery, `${tableEmployee}.eblog_id`, 'like_summary.eblog_id')
     .leftJoin(commentsSubquery, `${tableEmployee}.eblog_id`, 'comment_summary.content_id')
     .leftJoin(imagesSubquery, `${tableEmployee}.eblog_id`, 'image_summary.eblog_id')
-    .innerJoin(
-      tableEmployeeInfos,
-      `${tableEmployee}.created_by`,
-      `${tableEmployeeInfos}.user_id`
-    )
+    .innerJoin(tableEmployeeInfos, `${tableEmployee}.created_by`, `${tableEmployeeInfos}.user_id`)
     .select(
       `${tableEmployee}.eblog_id as eblogId`,
       'title',
@@ -51,7 +47,14 @@ export const Blogs = {
       `${tableEmployeeInfos}.middle_name as middleName`,
       `${tableEmployeeInfos}.profile_pic as userPic`
     )
-    .groupBy(`${tableEmployee}.eblog_id`);
+    .orderBy(`${tableEmployee}.created_at`, 'desc')
+    .limit(limit)
+    .offset(offset);
+},
+
+countEmployeeBlogs: async () => {
+  const [{ count }] = await db(tableEmployee).count('* as count');
+  return parseInt(count);
 },
 
   editEmployeeBlog: async (eblog_id, is_shown) => {
