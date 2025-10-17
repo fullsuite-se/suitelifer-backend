@@ -24,7 +24,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-const DB_PORT = process.env.DB_PORT;
 const DB_HOST = process.env.DB_HOST;
 const DB_PORT = process.env.DB_PORT;
 const DB_USER = process.env.DB_USER;
@@ -42,7 +41,7 @@ export const knexconfig = {
     database: DB_DATABASE,
     ssl: { 
       rejectUnauthorized: true,
-      ca: DB_CA
+      // ca: DB_CA
     },
     connectTimeout: 60000,
   },
@@ -57,3 +56,11 @@ export const knexconfig = {
     createRetryIntervalMillis: 200
   },
 };
+
+
+
+
+
+
+
+
