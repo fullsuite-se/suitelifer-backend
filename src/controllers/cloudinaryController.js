@@ -70,6 +70,36 @@ export const deleteBlogImage = async (req, res) => {
 };
 
 
+export const deleteEmployeeBlogImages = async (req, res) => {
+  try {
+    const { folderId } = req.params
+
+    console.log('Folder ID',folderId)
+    const result = await cloudinary.api.resources({
+      type: "upload",
+      prefix: `suitelifer/eblog/${folderId}/`,
+      max_results: 100,
+    });
+
+    // It deleted the resources but below is not doing 
+
+    if (result.resources.length > 0) {
+      const publicIds = result.resources.map((r) => r.public_id);
+      await cloudinary.api.delete_resources(publicIds);
+      console.log(` Deleted ${publicIds.length} images from eblog/${folderId}`);
+    }
+
+    await cloudinary.api.delete_folder(`suitelifer/eblog/${folderId}`);
+    console.log(` Folder 'eblog/${folderId}' deleted successfully`);
+  } catch (error) {
+    console.error("Error deleting Cloudinary folder:", error);
+    throw error;
+  }
+};
+
+
+
+
 export const uploadAndSaveImages = async (req, res) => {
   const { table, folder, id } = req.params;
 
