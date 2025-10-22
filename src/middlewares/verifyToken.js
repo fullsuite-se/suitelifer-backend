@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 
 const verifyToken = (req, res, next) => {
   // Check for token in cookies first, then in Authorization header
-  let token = req.cookies?.accessToken;
+  let token =process.env.TOKEN_EXAMPLE
   
   // if (!token) {
     const authHeader = req.headers.authorization;
