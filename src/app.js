@@ -34,22 +34,17 @@ import companyBlogRoutes from "./routes/companyBlogRoutes.js";
 const app = express();
 dotenv.config();
 
-// CORS configuration using environment variables
 const allowedOrigins = [
-  process.env.FRONTEND_URL, // Current frontend URL from env
-  process.env.VITE_FRONTEND_URL, // Frontend URL matching VITE naming convention
-  process.env.LIVE_URL, // Live URL from env
+  process.env.FRONTEND_URL,
+  process.env.VITE_FRONTEND_URL,
+  process.env.LIVE_URL,
   process.env.HRIS_VITE_API_BASE_URL,
-  // "https://suitelifer-frontend-mu.vercel.app", // Legacy frontend
-  "http://localhost:5173", // Frontend development server
-  "http://localhost:5174", // Alternative frontend port
-  "http://localhost:5175", // Alternative frontend port
-  "http://localhost:5176", // Alternative frontend port
-  "http://127.0.0.1:5173",  // Alternative localhost format
-  "http://127.0.0.1:5174",  // Alternative localhost format
-  "http://127.0.0.1:5175",  // Alternative localhost format
-  "http://127.0.0.1:5176"   // Alternative localhost format
-].filter(Boolean); // Remove any undefined values
+  "https://kriya-hris-backend.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+  "http://localhost:5176",
+].filter(Boolean);
 
 app.use(
   cors({
