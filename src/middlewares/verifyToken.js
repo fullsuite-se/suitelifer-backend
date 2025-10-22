@@ -4,16 +4,16 @@ const verifyToken = (req, res, next) => {
   // Check for token in cookies first, then in Authorization header
   let token = req.cookies?.accessToken;
   
-  if (!token) {
+  // if (!token) {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.substring(7); // Remove 'Bearer ' prefix
     }
-  }
+  // }
 
-  if (!token) {
-    return res.status(403).json({ message: "Access Denied" });
-  }
+  // if (!token) {
+  //   return res.status(403).json({ message: "Access Denied" });
+  // }
 
   try {
     // Try both possible JWT secrets for backwards compatibility
