@@ -16,7 +16,7 @@ import { recaptcha } from "../middlewares/recaptcha.js";
 
 const router = express.Router();
 
-router.post("/login", recaptcha, login); // Temporarily removed recaptcha for testing
+router.post("/login", login); // Temporarily removed recaptcha for testing
 
 router.post("/logout", logout);
 
