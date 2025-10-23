@@ -39,6 +39,7 @@ const allowedOrigins = [
   process.env.VITE_FRONTEND_URL,
   process.env.LIVE_URL,
   process.env.HRIS_VITE_API_BASE_URL,
+  process.env.HRIS_VITE_FRONTEND_BASE_URL,
   "https://kriya-hris-backend.vercel.app",
   "http://localhost:5173",
   "http://localhost:5174",

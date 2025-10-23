@@ -20,7 +20,7 @@ router.post("/login", login); // Temporarily removed recaptcha for testing
 
 router.post("/logout", logout);
 
-router.post("/register", recaptcha, register);
+router.post("/register", register);// Temporarily removed recaptcha for testing
 
 router.post("/send-account-verification-link", sendAccountVerificationLink);
 
