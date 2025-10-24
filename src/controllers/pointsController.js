@@ -332,21 +332,15 @@ export const getLeaderboard = async (req, res) => {
 // Admin: Get all user points
 export const getAllUserPoints = async (req, res) => {
   try {
-    const { limit = 50, offset = 0, search } = req.query;
+    const { search } = req.query;
 
     const userPoints = await Points.getAllUserPoints(
-      parseInt(limit),
-      parseInt(offset),
       search
     );
 
     res.status(200).json({
       success: true,
       data: userPoints,
-      pagination: {
-        limit: parseInt(limit),
-        offset: parseInt(offset)
-      }
     });
   } catch (error) {
     console.error("Error fetching all user points:", error);

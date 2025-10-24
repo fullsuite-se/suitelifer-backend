@@ -230,7 +230,7 @@ export const Points = {
 
   // Admin functions
   // TODO
-  getAllUserPoints: async (limit = 50, offset = 0, search = null) => {
+  getAllUserPoints: async (search = null) => {
 
   let query = db("sl_user_accounts as u")
     .leftJoin("sl_user_points as p", "u.user_id", "p.user_id")
@@ -248,8 +248,6 @@ export const Points = {
       "u.is_active AS isActive"
     )
     .orderBy("p.total_earned", "desc")
-    .limit(limit)
-    .offset(offset);
 
   // Search filter
   if (search) {
