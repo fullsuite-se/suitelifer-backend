@@ -229,36 +229,41 @@ export const Points = {
   },
 
   // Admin functions
+  // TODO
   getAllUserPoints: async (limit = 50, offset = 0, search = null) => {
-    let query = userPointsTable()
-      .select(
-        "sl_user_points.user_id",
-        "sl_user_points.available_points",
-        "sl_user_points.total_earned",
-        "sl_user_points.total_spent",
-        "sl_user_points.monthly_cheer_limit",
-        "sl_user_points.monthly_cheer_used",
-        db.raw("CONCAT(sl_user_accounts.first_name, ' ', sl_user_accounts.last_name) AS userName"),
-        "sl_user_accounts.user_email AS email",
-        "sl_user_accounts.profile_pic AS avatar",
-        "sl_user_accounts.user_type",
-        "sl_user_accounts.is_active as isActive"
-      )
-      .innerJoin("sl_user_accounts", "sl_user_points.user_id", "sl_user_accounts.user_id")
-      .orderBy("total_earned", "desc")
-      .limit(limit)
-      .offset(offset);
 
-    if (search) {
-      query = query.where(function() {
-        this.whereILike("sl_user_accounts.first_name", `%${search}%`)
-            .orWhereILike("sl_user_accounts.last_name", `%${search}%`)
-            .orWhereILike("sl_user_accounts.user_email", `%${search}%`);
-      });
-    }
+  let query = db("sl_user_accounts as u")
+    .leftJoin("sl_user_points as p", "u.user_id", "p.user_id")
+    .select(
+      "u.user_id",
+      db.raw("COALESCE(p.available_points, 0) AS available_points"),
+      db.raw("COALESCE(p.total_earned, 0) AS total_earned"),
+      db.raw("COALESCE(p.total_spent, 0) AS total_spent"),
+      db.raw("COALESCE(p.monthly_cheer_limit, 0) AS monthly_cheer_limit"),
+      db.raw("COALESCE(p.monthly_cheer_used, 0) AS monthly_cheer_used"),
+      db.raw("CONCAT(u.first_name, ' ', u.last_name) AS userName"),
+      "u.user_email AS email",
+      "u.profile_pic AS avatar",
+      "u.user_type",
+      "u.is_active AS isActive"
+    )
+    .orderBy("p.total_earned", "desc")
+    .limit(limit)
+    .offset(offset);
 
-    return await query;
-  },
+  // Search filter
+  if (search) {
+    query = query.where(function () {
+      this.whereILike("u.first_name", `%${search}%`)
+        .orWhereILike("u.last_name", `%${search}%`)
+        .orWhereILike("u.user_email", `%${search}%`);
+    });
+  }
+
+  const results = await query;
+  return results;
+},
+
 
   // Analytics
   getPointsAnalytics: async (days = 30) => {
