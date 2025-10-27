@@ -288,4 +288,55 @@ async function searchUsers(req, res) {
   res.json({ success: true, data: users });
 }
 
+export const isIdAvailable = async (req, res) => {
+  try {
+    const { user_id } = req.params;
+
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        message: "user_id is required",
+      });
+    }
+    const available = await User.isIdAvailable(user_id);
+
+    return res.status(200).json({
+      success: true,
+      available,
+    });
+  } catch (error) {
+    console.error("Error checking user ID availability:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+
+export const isEmailAvailable = async (req, res) => {
+  try {
+    const { user_email } = req.params;
+
+    if (!user_email) {
+      return res.status(400).json({
+        success: false,
+        message: "user_email is required",
+      });
+    }
+    const available = await User.isEmailAvailable(user_email);
+
+    return res.status(200).json({
+      success: true,
+      available,
+    });
+  } catch (error) {
+    console.error("Error checking user email availability:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
 export { searchUsers };

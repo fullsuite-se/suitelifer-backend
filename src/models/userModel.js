@@ -97,4 +97,15 @@ export const User = {
   //     .where({ user_id: userId })
   //     .update({ user_password: newPassword });
   // },
+
+  isIdAvailable: async (user_id) => {
+    const result = await db(userAccounts).where({ user_id }).first();
+    return !result;
+  },
+
+  isEmailAvailable: async (user_email) => {
+    const result = await db(userAccounts).where({ user_email }).first();
+    return !result;
+  }
+
 };
