@@ -140,7 +140,7 @@ const migration = async () => {
         to_user_id: post.peer_id,
         type: "given",
         amount: post.heartbits_given || 1,
-        description: `Cheered ${post.heartbits_given || 1} points`,
+        description: `cheered ${post.heartbits_given || 1} points`,
         message: post.cheer_message || "",
         metadata: JSON.stringify({
           type: "cheer",
@@ -157,7 +157,7 @@ const migration = async () => {
         to_user_id: post.peer_id,
         type: "received",
         amount: post.heartbits_given || 1,
-        description: `Received ${post.heartbits_given || 1} points from cheer`,
+        description: `received ${post.heartbits_given || 1} points from cheer`,
         message: post.cheer_message || "",
         metadata: JSON.stringify({
           type: "cheer",

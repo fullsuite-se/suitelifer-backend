@@ -32,7 +32,7 @@ export const getPointsBalance = async (req, res) => {
         monthlyHeartbits: userPoints.monthlyHeartbits, // Total allocation (100)
         monthlyHeartbitsUsed: userPoints.monthlyHeartbitsUsed, // Used this month
         heartbitsRemaining, // Available to give
-        monthlyReceivedHeartbits, // Received this month
+        monthlyReceivedHeartbits, // received this month
         lastMonthlyReset: userPoints.lastMonthlyReset,
 
         // For compatibility with existing frontend
@@ -177,7 +177,7 @@ export const cheerUser = async (req, res) => {
       to_user_id: targetUserId,
       type: "given",
       amount: heartbitsToSend,
-      description: `Cheered ${heartbitsToSend} ${heartbitsToSend < 2 ? "heartbit" : "heartbits"}`,
+      description: `cheered ${heartbitsToSend} ${heartbitsToSend < 2 ? "heartbit" : "heartbits"}`,
       message,
       metadata: JSON.stringify({ cheer_id: cheerId, type: "cheer" })
     });
@@ -189,7 +189,7 @@ export const cheerUser = async (req, res) => {
       to_user_id: targetUserId,
       type: "received",
       amount: heartbitsToSend,
-      description: `Received ${heartbitsToSend} ${heartbitsToSend < 2 ? "heartbit" : "heartbits"}`,
+      description: `received ${heartbitsToSend} ${heartbitsToSend < 2 ? "heartbit" : "heartbits"}`,
       message,
       metadata: JSON.stringify({ cheer_id: cheerId, type: "cheer" })
     });
@@ -406,7 +406,7 @@ export const addPointsToUser = async (req, res) => {
       to_user_id: user_id,
       type: "admin_grant",
       amount: points,
-      description: `Received ${points} heartbits from Admin`,
+      description: `received ${points} heartbits from Admin`,
       message: reason,
       metadata: JSON.stringify({ admin_action: true, admin_user_id })
     });
