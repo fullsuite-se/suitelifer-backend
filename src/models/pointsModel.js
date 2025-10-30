@@ -46,7 +46,7 @@ export const Points = {
     return await userPointsTable()
       .select(
         "available_points AS availablePoints", // Spendable points (from received cheers)
-        "total_earned AS totalEarned", 
+        "total_earned AS totalEarned",
         "total_spent AS totalSpent",
         "monthly_cheer_limit AS monthlyHeartbits", // Monthly heartbits allocation (100)
         "monthly_cheer_used AS monthlyHeartbitsUsed", // Heartbits used this month
@@ -69,7 +69,7 @@ export const Points = {
       created_at: now,
       updated_at: now
     };
-    
+
     await userPointsTable().insert(pointsData);
     return pointsData;
   },
@@ -102,7 +102,7 @@ export const Points = {
         .update({
           metadata: db.raw("JSON_SET(COALESCE(metadata, '{}'), '$.dismissed', true, '$.dismissed_at', ?)", [new Date().toISOString()])
         });
-      
+
       return result > 0;
     } catch (error) {
       console.error('Error marking moderation as dismissed:', error);
@@ -117,7 +117,7 @@ export const Points = {
       .select(
         "sl_transactions.transaction_id AS transactionId",
         "sl_transactions.from_user_id AS fromUserId",
-        "sl_transactions.to_user_id AS toUserId", 
+        "sl_transactions.to_user_id AS toUserId",
         "sl_transactions.type",
         "sl_transactions.amount",
         "sl_transactions.description",
@@ -145,10 +145,10 @@ export const Points = {
       )
       .leftJoin('sl_user_accounts as from_user', 'sl_transactions.from_user_id', 'from_user.user_id')
       .leftJoin('sl_user_accounts as to_user', 'sl_transactions.to_user_id', 'to_user.user_id')
-      .where(function() {
+      .where(function () {
         // Show transactions where user is involved
         this.where("sl_transactions.from_user_id", user_id)
-            .orWhere("sl_transactions.to_user_id", user_id);
+          .orWhere("sl_transactions.to_user_id", user_id);
       })
       .orderBy("sl_transactions.created_at", "desc")
       .limit(limit)
@@ -163,9 +163,9 @@ export const Points = {
 
   getTransactionCount: async (user_id, type = null) => {
     let query = transactionsTable()
-      .where(function() {
+      .where(function () {
         this.where("from_user_id", user_id)
-            .orWhere("to_user_id", user_id);
+          .orWhere("to_user_id", user_id);
       })
       .count("* as count");
 
@@ -201,9 +201,9 @@ export const Points = {
         db.raw("CONCAT(from_user.first_name, ' ', from_user.last_name) AS fromUserName"),
         db.raw("CONCAT(to_user.first_name, ' ', to_user.last_name) AS toUserName")
       )
-      .where(function() {
+      .where(function () {
         this.where("from_user_id", user_id)
-            .orWhere("to_user_id", user_id);
+          .orWhere("to_user_id", user_id);
       })
       .orderBy("sl_cheers.created_at", "desc")
       .limit(limit)
@@ -232,35 +232,35 @@ export const Points = {
   // TODO
   getAllUserPoints: async (search = null) => {
 
-  let query = db("sl_user_accounts as u")
-    .leftJoin("sl_user_points as p", "u.user_id", "p.user_id")
-    .select(
-      "u.user_id",
-      db.raw("COALESCE(p.available_points, 0) AS available_points"),
-      db.raw("COALESCE(p.total_earned, 0) AS total_earned"),
-      db.raw("COALESCE(p.total_spent, 0) AS total_spent"),
-      db.raw("COALESCE(p.monthly_cheer_limit, 0) AS monthly_cheer_limit"),
-      db.raw("COALESCE(p.monthly_cheer_used, 0) AS monthly_cheer_used"),
-      db.raw("CONCAT(u.first_name, ' ', u.last_name) AS userName"),
-      "u.user_email AS email",
-      "u.profile_pic AS avatar",
-      "u.user_type",
-      "u.is_active AS isActive"
-    )
-    .orderBy("p.total_earned", "desc")
+    let query = db("sl_user_accounts as u")
+      .leftJoin("sl_user_points as p", "u.user_id", "p.user_id")
+      .select(
+        "u.user_id",
+        db.raw("COALESCE(p.available_points, 0) AS available_points"),
+        db.raw("COALESCE(p.total_earned, 0) AS total_earned"),
+        db.raw("COALESCE(p.total_spent, 0) AS total_spent"),
+        db.raw("COALESCE(p.monthly_cheer_limit, 0) AS monthly_cheer_limit"),
+        db.raw("COALESCE(p.monthly_cheer_used, 0) AS monthly_cheer_used"),
+        db.raw("CONCAT(u.first_name, ' ', u.last_name) AS userName"),
+        "u.user_email AS email",
+        "u.profile_pic AS avatar",
+        "u.user_type",
+        "u.is_active AS isActive"
+      )
+      .orderBy("p.total_earned", "desc")
 
-  // Search filter
-  if (search) {
-    query = query.where(function () {
-      this.whereILike("u.first_name", `%${search}%`)
-        .orWhereILike("u.last_name", `%${search}%`)
-        .orWhereILike("u.user_email", `%${search}%`);
-    });
-  }
+    // Search filter
+    if (search) {
+      query = query.where(function () {
+        this.whereILike("u.first_name", `%${search}%`)
+          .orWhereILike("u.last_name", `%${search}%`)
+          .orWhereILike("u.user_email", `%${search}%`);
+      });
+    }
 
-  const results = await query;
-  return results;
-},
+    const results = await query;
+    return results;
+  },
 
 
   // Analytics
@@ -292,21 +292,21 @@ export const Points = {
     const now = new Date();
     const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastReset = new Date(userPoints.lastMonthlyReset);
-    
+
     // Check if we need to reset monthly heartbits
     if (currentMonth > lastReset) {
       await Points.updateUserPoints(user_id, {
         monthly_cheer_used: 0, // Reset heartbits used to 0
         last_monthly_reset: currentMonth
       });
-      
+
       return {
         ...userPoints,
         monthlyHeartbitsUsed: 0,
         lastMonthlyReset: currentMonth
       };
     }
-    
+
     return userPoints;
   },
 
@@ -323,7 +323,7 @@ export const Points = {
 
   useHeartbits: async (user_id, amount) => {
     const userPoints = await Points.checkAndResetMonthlyHeartbits(user_id);
-    
+
     if (userPoints.monthlyHeartbitsUsed + amount > userPoints.monthlyHeartbits) {
       throw new Error(`Insufficient heartbits. You have ${userPoints.monthlyHeartbits - userPoints.monthlyHeartbitsUsed} heartbits remaining.`);
     }
@@ -340,7 +340,7 @@ export const Points = {
 
   addPointsFromCheer: async (user_id, amount) => {
     const userPoints = await Points.getUserPoints(user_id) || await Points.createUserPoints(user_id);
-    
+
     await Points.updateUserPoints(user_id, {
       available_points: userPoints.availablePoints + amount,
       total_earned: userPoints.totalEarned + amount
@@ -360,7 +360,7 @@ export const Points = {
       comment,
       created_at: new Date()
     };
-    
+
     const [id] = await cheerCommentsTable().insert(commentData);
     return { id, ...commentData };
   },
@@ -419,7 +419,7 @@ export const Points = {
       await cheerLikesTable()
         .where({ cheer_id, user_id })
         .del();
-      
+
       return { liked: false };
     } else {
       // Add like
@@ -430,7 +430,7 @@ export const Points = {
           created_at: new Date(),
           updated_at: new Date()
         });
-      
+
       return { liked: true };
     }
   },
@@ -440,7 +440,7 @@ export const Points = {
       .join("sl_user_accounts", "sl_cheer_likes.user_id", "sl_user_accounts.user_id")
       .select(
         "sl_user_accounts.user_id as id",
-        "sl_user_accounts.first_name", 
+        "sl_user_accounts.first_name",
         "sl_user_accounts.last_name",
         "sl_user_accounts.profile_pic as avatar"
       )
@@ -459,8 +459,8 @@ export const Points = {
 
   // Simplified Cheer Feed - get all recent cheers
   getCheerFeed: async (limit = 20, offset = 0, user_id = null, from = null, to = null) => {
-  
-    
+
+
     // Simple query to get all cheers with user details
     let query = cheersTable()
       .join("sl_user_accounts as from_user", "sl_cheers.from_user_id", "from_user.user_id")
@@ -490,7 +490,7 @@ export const Points = {
     const selectFields = [
       "sl_cheers.*",
       "from_user.first_name as from_first_name",
-      "from_user.last_name as from_last_name", 
+      "from_user.last_name as from_last_name",
       "from_user.profile_pic as from_avatar",
       "to_user.first_name as to_first_name",
       "to_user.last_name as to_last_name",
@@ -503,15 +503,15 @@ export const Points = {
     }
 
     const cheers = await query.select(selectFields);
-    
+
 
 
     // Get comment and like counts for all cheers
     const allCheerIds = cheers.map(c => c.cheer_id);
-    
+
     let commentCounts = [];
     let likeCounts = [];
-    
+
     if (allCheerIds.length > 0) {
       commentCounts = await db("sl_cheer_comments")
         .select("cheer_id")
@@ -534,7 +534,7 @@ export const Points = {
     const result = cheers.map((cheer, index) => {
       const userLikedValue = user_id ? Boolean(cheer.user_liked) : false;
       const userHeartedValue = user_id ? Boolean(cheer.user_liked) : false;
-      
+
       return {
         _id: cheer.cheer_id,
         cheer_id: cheer.cheer_id,
@@ -558,7 +558,7 @@ export const Points = {
         userHearted: userHeartedValue
       };
     });
-    
+
     return result;
   },
 
@@ -572,7 +572,7 @@ export const Points = {
       .first();
 
     const receivedStats = await transactionsTable()
-      .count('* as totalReceived') 
+      .count('* as totalReceived')
       .sum('amount as pointsReceived')
       .where('to_user_id', user_id)
       .whereIn('type', ['received', 'earned'])
@@ -622,7 +622,7 @@ export const Points = {
   getOptimizedLeaderboard: async (period = 'weekly', currentUserId = null, page = 1, limit = 20) => {
     const startDate = Points.getPeriodStartDate(period);
     const offset = (page - 1) * limit;
-    
+
     // Use subquery to pre-filter and aggregate transactions efficiently
     const userTotalsSubquery = db('sl_transactions')
       .select('to_user_id')
@@ -681,7 +681,7 @@ export const Points = {
 
         if (userTotalPoints > 0) {
           // Count how many users have more points than current user
-          const higherUsers = await db('sl_transactions')
+          let higherUsers = await db('sl_transactions')
             .join('sl_user_accounts', 'sl_transactions.to_user_id', 'sl_user_accounts.user_id')
             .select('sl_user_accounts.user_id')
             .sum('sl_transactions.amount as totalPoints')
@@ -692,7 +692,7 @@ export const Points = {
             .having('totalPoints', '>', userTotalPoints)
             .count('* as count')
             .first();
-
+          if (!higherUsers) higherUsers = { count: 0 };
           const userRank = (parseInt(higherUsers.count) || 0) + 1;
 
           // Get user info
@@ -751,7 +751,7 @@ export const Points = {
 
       // Get fresh data
       const data = await Points.getOptimizedLeaderboard(period, currentUserId, 1, 50);
-      
+
       // Cache the result
       if (global.redis) {
         await global.redis.setex(cacheKey, cacheTTL, JSON.stringify(data));
@@ -862,7 +862,7 @@ export const Points = {
   // Get current user position efficiently
   getCurrentUserPosition: async (currentUserId, period) => {
     const startDate = Points.getPeriodStartDate(period);
-    
+
     try {
       // Get user's total points for the period
       const userPoints = await db('sl_transactions')
