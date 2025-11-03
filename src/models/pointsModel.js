@@ -241,7 +241,8 @@ export const Points = {
         db.raw("COALESCE(p.total_spent, 0) AS total_spent"),
         db.raw("COALESCE(p.monthly_cheer_limit, 0) AS monthly_cheer_limit"),
         db.raw("COALESCE(p.monthly_cheer_used, 0) AS monthly_cheer_used"),
-        db.raw("CONCAT(u.first_name, ' ', u.last_name) AS userName"),
+        "u.first_name",
+        "u.last_name",
         "u.user_email AS email",
         "u.profile_pic AS avatar",
         "u.user_type",
@@ -628,8 +629,8 @@ export const Points = {
       .select('to_user_id')
       .sum('amount as totalPoints')
       .count('* as transactionCount')
-      .whereIn('type', ['received', 'earned'])
-      .whereNotIn('type', ['admin_grant', 'admin_added'])
+      .whereIn('type', ['received', 'earned', 'admin_grant', 'admin_added'])
+      // .whereNotIn('type', ['admin_grant', 'admin_added'])
       .where('created_at', '>=', startDate)
       .groupBy('to_user_id')
       .having('totalPoints', '>', 0) // Only include users with points
