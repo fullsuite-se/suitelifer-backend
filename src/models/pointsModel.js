@@ -576,7 +576,7 @@ export const Points = {
       .count('* as totalReceived')
       .sum('amount as pointsReceived')
       .where('to_user_id', user_id)
-      .whereIn('type', ['received', 'earned'])
+      .whereIn('type', ['received', 'earned', 'admin_grant', 'admin_added'])
       .first();
 
     return {
@@ -620,9 +620,8 @@ export const Points = {
   },
 
   // Optimized leaderboard for large datasets
-  getOptimizedLeaderboard: async (period = 'weekly', currentUserId = null, page = 1, limit = 20) => {
+  getOptimizedLeaderboard: async (period = 'weekly', currentUserId = null) => {
     const startDate = Points.getPeriodStartDate(period);
-    const offset = (page - 1) * limit;
 
     // Use subquery to pre-filter and aggregate transactions efficiently
     const userTotalsSubquery = db('sl_transactions')
@@ -630,14 +629,13 @@ export const Points = {
       .sum('amount as totalPoints')
       .count('* as transactionCount')
       .whereIn('type', ['received', 'earned', 'admin_grant', 'admin_added'])
-      // .whereNotIn('type', ['admin_grant', 'admin_added'])
       .where('created_at', '>=', startDate)
       .groupBy('to_user_id')
-      .having('totalPoints', '>', 0) // Only include users with points
+      .having('totalPoints', '>', 0)
       .orderBy('totalPoints', 'desc')
       .as('user_totals');
 
-    // Main query with optimized joins
+    // Main query (no pagination)
     const leaderboard = await db('sl_user_accounts')
       .join(userTotalsSubquery, 'sl_user_accounts.user_id', 'user_totals.to_user_id')
       .select(
@@ -651,9 +649,7 @@ export const Points = {
         'user_totals.transactionCount'
       )
       .where('sl_user_accounts.is_active', true)
-      .orderBy('user_totals.totalPoints', 'desc')
-      .limit(limit)
-      .offset(offset);
+      .orderBy('user_totals.totalPoints', 'desc');
 
     const processedLeaderboard = leaderboard.map((entry, index) => ({
       _id: entry._id,
@@ -663,7 +659,7 @@ export const Points = {
       avatar: entry.avatar,
       totalPoints: parseInt(entry.totalPoints) || 0,
       transactionCount: parseInt(entry.transactionCount) || 0,
-      rank: offset + index + 1
+      rank: index + 1
     }));
 
     // Get current user's position if provided
@@ -686,13 +682,14 @@ export const Points = {
             .join('sl_user_accounts', 'sl_transactions.to_user_id', 'sl_user_accounts.user_id')
             .select('sl_user_accounts.user_id')
             .sum('sl_transactions.amount as totalPoints')
-            .whereIn('sl_transactions.type', ['received', 'earned'])
+            .whereIn('sl_transactions.type', ['received', 'earned', 'admin_grant', 'admin_added'])
             .where('sl_transactions.created_at', '>=', startDate)
             .where('sl_user_accounts.is_active', true)
             .groupBy('sl_user_accounts.user_id')
             .having('totalPoints', '>', userTotalPoints)
             .count('* as count')
             .first();
+
           if (!higherUsers) higherUsers = { count: 0 };
           const userRank = (parseInt(higherUsers.count) || 0) + 1;
 
@@ -716,20 +713,15 @@ export const Points = {
         }
       } catch (error) {
         console.warn('Could not calculate current user rank:', error.message);
-        // Continue without current user info
       }
     }
 
     return {
       leaderboard: processedLeaderboard,
-      currentUser,
-      pagination: {
-        page,
-        limit,
-        hasMore: processedLeaderboard.length === limit
-      }
+      currentUser
     };
   },
+
 
   // Cached leaderboard with Redis support
   getCachedLeaderboard: async (period = 'weekly', currentUserId = null) => {
@@ -793,7 +785,7 @@ export const Points = {
           'sl_user_accounts.user_id',
           db.raw('SUM(sl_transactions.amount) as total_points')
         )
-        .whereIn('sl_transactions.type', ['received', 'earned'])
+        .whereIn('sl_transactions.type', ['received', 'earned', 'admin_grant', 'admin_added'])
         .where('sl_transactions.created_at', '>=', startDate)
         .where('sl_user_accounts.is_active', true)
         .groupBy('sl_user_accounts.user_id')
@@ -869,7 +861,7 @@ export const Points = {
       const userPoints = await db('sl_transactions')
         .sum('amount as totalPoints')
         .where('to_user_id', currentUserId)
-        .whereIn('type', ['received', 'earned'])
+        .whereIn('type', ['received', 'earned', 'admin_grant', 'admin_added'])
         .where('created_at', '>=', startDate)
         .first();
 
@@ -881,7 +873,7 @@ export const Points = {
           .join('sl_user_accounts', 'sl_transactions.to_user_id', 'sl_user_accounts.user_id')
           .select('sl_user_accounts.user_id')
           .sum('sl_transactions.amount as totalPoints')
-          .whereIn('sl_transactions.type', ['received', 'earned'])
+          .whereIn('sl_transactions.type', ['received', 'earned', 'admin_grant', 'admin_added'])
           .where('sl_transactions.created_at', '>=', startDate)
           .where('sl_user_accounts.is_active', true)
           .groupBy('sl_user_accounts.user_id')
