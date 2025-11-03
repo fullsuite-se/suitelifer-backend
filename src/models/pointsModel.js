@@ -674,7 +674,7 @@ export const Points = {
         const userPoints = await db('sl_transactions')
           .sum('amount as totalPoints')
           .where('to_user_id', currentUserId)
-          .whereIn('type', ['received', 'earned'])
+          .whereIn('type', ['received', 'earned', 'admin_grant', 'admin_added'])
           .where('created_at', '>=', startDate)
           .first();
 
