@@ -182,7 +182,8 @@ export const Points = {
   createCheer: async (cheerData) => {
     return await cheersTable().insert({
       ...cheerData,
-      created_at: atThisMoment
+      created_at: atThisMoment,
+      updated_at: atThisMoment
     });
   },
 
