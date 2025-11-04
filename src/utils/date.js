@@ -1,7 +1,14 @@
 export const now = () => {
   const date = new Date();
-  return date;
+
+  const options = { timeZone: 'Asia/Manila' };
+  const philippinesTime = new Date(
+    date.toLocaleString('en-US', options)
+  );
+
+  return philippinesTime;
 };
+
 
 export const formatToMySQL = (date) => {
     return new Date(date).toISOString().slice(0, 19).replace("T", " ");
