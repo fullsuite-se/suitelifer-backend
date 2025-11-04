@@ -1,6 +1,7 @@
 import mysql from 'mysql2/promise';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
+import { now } from '../utils/date';
 
 dotenv.config();
 
@@ -56,8 +57,8 @@ async function createAdminUser() {
       is_verified: true,
       heartbits_balance: 0,
       monthly_heartbits_limit: 1000,
-      created_at: new Date(),
-      updated_at: new Date()
+      created_at: now(),
+      updated_at: now()
     };
 
     const [insertResult] = await conn.execute(`

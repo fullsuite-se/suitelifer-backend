@@ -1,4 +1,5 @@
 import { db } from "../config/db.js";
+import { now } from "../utils/date.js";
 
 const moodTable = "sl_mood_logs";
 const userTable = "sl_user_accounts";
@@ -10,8 +11,8 @@ export const Mood = {
       user_id,
       mood_level,
       notes: note,
-      created_at: new Date(),
-      updated_at: new Date()
+      created_at: now(),
+      updated_at: now()
     };
     const [id] = await db(moodTable).insert(moodEntry);
     return { id, ...moodEntry };
@@ -19,7 +20,7 @@ export const Mood = {
 
   // Get today's mood for a user
   getTodayMood: async (user_id) => {
-    const today = new Date();
+    const today = now();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
@@ -64,7 +65,7 @@ export const Mood = {
 
   // Get weekly mood statistics
   getWeeklyStats: async (user_id) => {
-    const oneWeekAgo = new Date();
+    const oneWeekAgo = now();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
     const result = await db(moodTable)
@@ -83,7 +84,7 @@ export const Mood = {
 
   // Get monthly mood statistics
   getMonthlyStats: async (user_id) => {
-    const oneMonthAgo = new Date();
+    const oneMonthAgo = now();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
     const result = await db(moodTable)
@@ -102,7 +103,7 @@ export const Mood = {
 
   // Get yearly mood statistics
   getYearlyStats: async (user_id) => {
-    const oneYearAgo = new Date();
+    const oneYearAgo = now();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
     const result = await db(moodTable)
@@ -126,7 +127,7 @@ export const Mood = {
       .update({
         mood_level,
         notes,
-        updated_at: new Date()
+        updated_at: now()
       });
 
     return updated;
@@ -141,7 +142,7 @@ export const Mood = {
 
   // Get mood distribution for charts
   getMoodDistribution: async (user_id, days = 30) => {
-    const dateLimit = new Date();
+    const dateLimit = now();
     dateLimit.setDate(dateLimit.getDate() - days);
 
     const result = await db(moodTable)
@@ -159,7 +160,7 @@ export const Mood = {
 
   // Get mood trends over time
   getMoodTrends: async (user_id, days = 30) => {
-    const dateLimit = new Date();
+    const dateLimit = now();
     dateLimit.setDate(dateLimit.getDate() - days);
 
     const result = await db(moodTable)

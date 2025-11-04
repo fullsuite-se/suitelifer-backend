@@ -1,13 +1,14 @@
 import { db } from "../config/db.js";
 import fs from "fs";
 import path from "path";
+import { now } from "../utils/date.js";
 
 const backupData = async () => {
   console.log("📦 Starting backup of cheer data...");
   
   try {
     const backupData = {
-      timestamp: new Date().toISOString(),
+      timestamp: now().toISOString(),
       cheer_posts: [],
       cheer_comments: [],
       cheer_likes: [],
@@ -53,7 +54,7 @@ const backupData = async () => {
     }
     
     // Save backup to file
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const timestamp = now().toISOString().replace(/[:.]/g, "-");
     const backupFile = path.join(backupDir, `cheer_backup_${timestamp}.json`);
     
     fs.writeFileSync(backupFile, JSON.stringify(backupData, null, 2));

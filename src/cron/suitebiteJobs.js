@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { Suitebite } from '../models/suitebiteModel.js';
 import { db } from '../config/db.js';
+import { now } from '../utils/date.js';
 
 /**
  * Suitebite automated cron jobs for system maintenance and data processing
@@ -32,8 +33,8 @@ export const startSuitebiteJobs = () => {
             .where('order_id', order.order_id)
             .update({
               status: 'completed',
-              processed_at: new Date(),
-              completed_at: new Date(),
+              processed_at: now(),
+              completed_at: now(),
               notes: 'Auto-completed after pending period'
             });
 
@@ -71,12 +72,12 @@ export const startSuitebiteJobs = () => {
   cron.schedule('1 0 1 * *', async () => {
     console.log('Resetting monthly heartbits limits and giving monthly allowance...');
     try {
-      const currentMonth = new Date().toISOString().slice(0, 7);
+      const currentMonth = now().toISOString().slice(0, 7);
       
       // Get system configuration for default monthly limit
       const systemConfig = await Suitebite.getSystemConfiguration();
       const defaultMonthlyLimit = systemConfig.default_monthly_limit ? 
-        parseInt(systemConfig.default_monthly_limit.value) : 1000;
+        parseInt(systemConfig.default_monthly_limit.value) : 100;
       
       // Get all active users
       const users = await db('sl_user_accounts')
@@ -102,7 +103,7 @@ export const startSuitebiteJobs = () => {
             points_amount: defaultMonthlyLimit,
             reference_type: 'admin_adjustment',
             description: `Monthly heartbits allowance for ${currentMonth}`,
-            created_at: new Date()
+            created_at: now()
           });
           
           resetCount++;
@@ -146,7 +147,7 @@ export const startSuitebiteJobs = () => {
   cron.schedule('0 1 * * *', async () => {
     console.log('Updating daily analytics...');
     try {
-      const yesterday = new Date();
+      const yesterday = now();
       yesterday.setDate(yesterday.getDate() - 1);
       const statDate = yesterday.toISOString().split('T')[0];
 
@@ -193,7 +194,7 @@ export const startSuitebiteJobs = () => {
   cron.schedule('0 2 * * 0', async () => {
     console.log('Updating user monthly statistics...');
     try {
-      const currentMonth = new Date().toISOString().slice(0, 7);
+      const currentMonth = now().toISOString().slice(0, 7);
       
       // Get all active users
       const users = await db('sl_user_accounts')
@@ -286,7 +287,7 @@ export const startSuitebiteJobs = () => {
 
       // Cleanup expired system notifications
       const expiredNotifications = await db('sl_system_notifications')
-        .where('expires_at', '<', new Date())
+        .where('expires_at', '<', now())
         .where('expires_at', 'is not', null)
         .update({ is_active: false });
 
@@ -395,7 +396,7 @@ export const startSuitebiteJobs = () => {
         .first();
 
       if (lastBackup) {
-        const hoursSinceBackup = (new Date() - new Date(lastBackup.performed_at)) / (1000 * 60 * 60);
+        const hoursSinceBackup = (now() - new Date(lastBackup.performed_at)) / (1000 * 60 * 60);
         if (hoursSinceBackup < backupFrequencyHours) {
           return; // Skip backup if not yet time
         }
@@ -410,7 +411,7 @@ export const startSuitebiteJobs = () => {
         {
           operation: 'database_backup',
           backup_type: 'automated',
-          initiated_at: new Date()
+          initiated_at: now()
         }
       );
 

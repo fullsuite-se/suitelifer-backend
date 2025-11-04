@@ -2,6 +2,7 @@ import { Suitebite, productsTable, orderItemsTable, ordersTable, cartItemsTable 
 import { db } from "../config/db.js";
 import { v7 as uuidv7 } from "uuid";
 import HeartbitsUtils from "../utils/heartbitsUtils.js";
+import { now } from "../utils/date.js";
 
 // ========== CHEER POST ENDPOINTS ==========
 
@@ -59,8 +60,8 @@ export const createCheerPost = async (req, res) => {
       points: heartbits_given,
       message: post_body || "",
       is_admin_grant,
-      created_at: new Date(),
-      updated_at: new Date()
+      created_at: now(),
+      updated_at:now()
     };
 
     await Suitebite.createCheer(cheerData);
@@ -80,13 +81,13 @@ export const createCheerPost = async (req, res) => {
         description: `cheered ${heartbits_given} points`,
         message: post_body || "",
         metadata: JSON.stringify({ type: "cheer", cheer_id: cheerData.cheer_id }),
-        created_at: new Date(),
-        updated_at: new Date()
+        created_at: now(),
+        updated_at: now()
       });
       // Update points for sender
       await Suitebite.updateUserPoints(from_user_id, -heartbits_given);
       // Update monthly limit for the sender
-      const currentMonth = new Date().toISOString().slice(0, 7);
+      const currentMonth = now().toISOString().slice(0, 7);
       await Suitebite.updateMonthlyLimit(from_user_id, currentMonth, heartbits_given);
     }
 
@@ -100,8 +101,8 @@ export const createCheerPost = async (req, res) => {
       description: sendAsAdmin ? `received ${heartbits_given} points from Admin` : `received ${heartbits_given} points from cheer`,
       message: post_body || "",
       metadata: JSON.stringify({ type: "cheer", cheer_id: cheerData.cheer_id, is_admin_grant }),
-      created_at: new Date(),
-      updated_at: new Date()
+      created_at: now(),
+      updated_at: now()
     });
     // Update points for receiver
     await Suitebite.updateUserPoints(to_user_id, heartbits_given);
@@ -219,7 +220,7 @@ export const addCheerComment = async (req, res) => {
       commenter_id,
       cheer_comment,
       additional_heartbits,
-      commented_at: new Date()
+      commented_at: now()
     };
 
     await Suitebite.addCheerComment(commentData);
@@ -1755,7 +1756,7 @@ export const getMonthlyLimits = async (req, res) => {
     const user_id = req.user.id; // Changed from req.user.user_id
     const { month_year } = req.query;
 
-    const currentMonth = month_year || new Date().toISOString().slice(0, 7);
+    const currentMonth = month_year || now().toISOString().slice(0, 7);
     const limits = await Suitebite.getMonthlyLimit(user_id, currentMonth);
 
     // If no limit is set for this user, create one with default value from system config
@@ -2079,7 +2080,7 @@ export const setMonthlyLimit = async (req, res) => {
       });
     }
 
-    const currentMonth = month_year || new Date().toISOString().slice(0, 7);
+    const currentMonth = month_year || now().toISOString().slice(0, 7);
 
     await Suitebite.setUserMonthlyLimit(userId, currentMonth, limit);
 
@@ -2480,7 +2481,7 @@ export const performSystemMaintenance = async (req, res) => {
 
 export const triggerMonthlyReset = async (req, res) => {
   try {
-    const currentMonth = new Date().toISOString().slice(0, 7);
+    const currentMonth = now().toISOString().slice(0, 7);
 
     // Get system configuration for global monthly limit
     const systemConfig = await Suitebite.getSystemConfiguration();
@@ -2542,7 +2543,7 @@ export const triggerMonthlyReset = async (req, res) => {
           transaction_type: 'monthly_allowance',
           points_amount: defaultMonthlyLimit,
           description: `Manual monthly heartbits allowance for ${currentMonth}`,
-          created_at: new Date()
+          created_at: now()
         });
 
         // Reset monthly cheer usage for the user (in sl_user_points table)
@@ -2550,7 +2551,7 @@ export const triggerMonthlyReset = async (req, res) => {
           .where('user_id', user.user_id)
           .update({
             monthly_cheer_used: 0,
-            last_monthly_reset: new Date()
+            last_monthly_reset: now()
           });
 
         resetCount++;

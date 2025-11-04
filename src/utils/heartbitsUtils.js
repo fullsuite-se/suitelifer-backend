@@ -1,4 +1,5 @@
 import { Suitebite } from "../models/suitebiteModel.js";
+import { now } from "./date.js";
 
 /**
  * Utility functions for heartbits calculations and validations
@@ -74,7 +75,7 @@ export const HeartbitsUtils = {
    */
   checkMonthlyLimit: async (userId, amount) => {
     try {
-      const currentMonth = new Date().toISOString().slice(0, 7);
+      const currentMonth = now().toISOString().slice(0, 7);
       const limits = await Suitebite.getMonthlyLimit(userId, currentMonth);
       
       // Get default limit if no limit set
@@ -133,7 +134,7 @@ export const HeartbitsUtils = {
   getUserStats: async (userId) => {
     try {
       const userHeartbits = await Suitebite.getUserHeartbits(userId);
-      const currentMonth = new Date().toISOString().slice(0, 7);
+      const currentMonth = now().toISOString().slice(0, 7);
       const monthlyLimit = await Suitebite.getMonthlyLimit(userId, currentMonth);
       
       if (!userHeartbits) {

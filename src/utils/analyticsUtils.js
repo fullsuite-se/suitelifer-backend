@@ -1,3 +1,5 @@
+import { now } from "./date";
+
 /**
  * Utility functions for analytics calculations and data processing
  */
@@ -201,10 +203,10 @@ export const AnalyticsUtils = {
    */
   generatePeriodLabels: (period, count = 30) => {
     const labels = [];
-    const now = new Date();
+    const atThisMoment = now();
 
     for (let i = count - 1; i >= 0; i--) {
-      const date = new Date(now);
+      const date = new Date(atThisMoment);
       
       switch (period) {
         case 'day':

@@ -196,7 +196,7 @@ export const likeEmployeeBlog = async (req, res) => {
         like_id: uuidv7(),
         eblog_id: eblogId,
         user_id: userId,
-        created_at: new Date(),
+        created_at: now(),
       });
       return res.status(201).json({ success: true, liked: true });
     }

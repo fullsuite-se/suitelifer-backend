@@ -1,8 +1,9 @@
 import axios from "axios";
 import { toSlug } from "../utils/slugUrl.js";
+import { now } from "../utils/date.js";
 
 const generateCareerUrls = async () => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = now().toISOString().split("T")[0];
 
   let urls = [
     `<url>

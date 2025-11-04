@@ -1,29 +1,30 @@
 import { db } from "../config/db.js";
+import { now } from "../utils/date.js";
 
 const userPointsTable = () => db("sl_user_points");
 const transactionsTable = () => db("sl_transactions");
 const cheersTable = () => db("sl_cheers");
 const cheerCommentsTable = () => db("sl_cheer_comments");
 const cheerLikesTable = () => db("sl_cheer_likes");
-
+const atThisMoment = now();
 export const Points = {
   // Helper function to get period start date
   getPeriodStartDate: (period) => {
-    const now = new Date();
+
     let startDate;
     switch (period) {
       case 'weekly': {
         // Set to most recent Monday (start of week)
-        const day = now.getDay(); // 0 (Sun) - 6 (Sat)
+        const day = atThisMoment.getDay(); // 0 (Sun) - 6 (Sat)
         const diff = (day === 0 ? 6 : day - 1); // If Sunday, go back 6 days; else, day-1
-        startDate = new Date(now);
+        startDate = new Date(atThisMoment);
         startDate.setHours(0, 0, 0, 0);
-        startDate.setDate(now.getDate() - diff);
+        startDate.setDate(atThisMoment.getDate() - diff);
         break;
       }
       case 'monthly': {
         // Set to first day of current month
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        startDate = new Date(atThisMoment.getFullYear(), atThisMoment.getMonth(), 1, 0, 0, 0, 0);
         break;
       }
       case 'all':
@@ -32,11 +33,11 @@ export const Points = {
         break;
       default:
         // Default to weekly logic
-        const day = now.getDay();
+        const day = atThisMoment.getDay();
         const diff = (day === 0 ? 6 : day - 1);
-        startDate = new Date(now);
+        startDate = new Date(atThisMoment);
         startDate.setHours(0, 0, 0, 0);
-        startDate.setDate(now.getDate() - diff);
+        startDate.setDate(atThisMoment.getDate() - diff);
     }
     return startDate;
   },
@@ -57,7 +58,7 @@ export const Points = {
   },
 
   createUserPoints: async (user_id) => {
-    const now = new Date();
+
     const pointsData = {
       user_id,
       available_points: 0, // No welcome bonus - points come from cheers
@@ -65,9 +66,9 @@ export const Points = {
       total_spent: 0,
       monthly_cheer_limit: 100, // 100 heartbits per month
       monthly_cheer_used: 0, // No heartbits used yet
-      last_monthly_reset: new Date(now.getFullYear(), now.getMonth(), 1),
-      created_at: now,
-      updated_at: now
+      last_monthly_reset: new Date(atThisMoment.getFullYear(), atThisMoment.getMonth(), 1),
+      created_at: atThisMoment,
+      updated_at: atThisMoment
     };
 
     await userPointsTable().insert(pointsData);
@@ -79,7 +80,7 @@ export const Points = {
       .where({ user_id })
       .update({
         ...updates,
-        updated_at: new Date()
+        updated_at: atThisMoment
       });
   },
 
@@ -87,7 +88,7 @@ export const Points = {
   createTransaction: async (transactionData) => {
     return await transactionsTable().insert({
       ...transactionData,
-      created_at: new Date()
+      created_at: atThisMoment
     });
   },
 
@@ -100,7 +101,7 @@ export const Points = {
         .where("to_user_id", user_id)
         .where("type", "moderation")
         .update({
-          metadata: db.raw("JSON_SET(COALESCE(metadata, '{}'), '$.dismissed', true, '$.dismissed_at', ?)", [new Date().toISOString()])
+          metadata: db.raw("JSON_SET(COALESCE(metadata, '{}'), '$.dismissed', true, '$.dismissed_at', ?)", [atThisMoment.toISOString()])
         });
 
       return result > 0;
@@ -181,7 +182,7 @@ export const Points = {
   createCheer: async (cheerData) => {
     return await cheersTable().insert({
       ...cheerData,
-      created_at: new Date()
+      created_at: atThisMoment
     });
   },
 
@@ -266,7 +267,7 @@ export const Points = {
 
   // Analytics
   getPointsAnalytics: async (days = 30) => {
-    const startDate = new Date();
+    const startDate = atThisMoment;
     startDate.setDate(startDate.getDate() - days);
 
     const dailyStats = await transactionsTable()
@@ -290,8 +291,7 @@ export const Points = {
       return await Points.createUserPoints(user_id);
     }
 
-    const now = new Date();
-    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonth = new Date(atThisMoment.getFullYear(), atThisMoment.getMonth(), 1);
     const lastReset = new Date(userPoints.lastMonthlyReset);
 
     // Check if we need to reset monthly heartbits
@@ -359,7 +359,7 @@ export const Points = {
       cheer_id,
       user_id,
       comment,
-      created_at: new Date()
+      created_at:atThisMoment
     };
 
     const [id] = await cheerCommentsTable().insert(commentData);
@@ -371,7 +371,7 @@ export const Points = {
       .where({ id: comment_id, user_id })
       .update({
         comment,
-        updated_at: new Date()
+        updated_at: atThisMoment
       });
   },
 
@@ -428,8 +428,8 @@ export const Points = {
         .insert({
           cheer_id,
           user_id,
-          created_at: new Date(),
-          updated_at: new Date()
+          created_at: atThisMoment,
+          updated_at:atThisMoment
         });
 
       return { liked: true };
@@ -799,7 +799,7 @@ export const Points = {
         user_id: user.user_id,
         total_points: parseInt(user.total_points),
         rank_position: index + 1,
-        last_updated: new Date()
+        last_updated: atThisMoment,
       }));
 
       if (cacheData.length > 0) {
@@ -910,9 +910,9 @@ export const Points = {
 
   // Get heartbits received this month
   getMonthlyReceivedHeartbits: async (user_id) => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const startOfMonth = new Date(atThisMoment.getFullYear(), atThisMoment.getMonth(), 1);
+    const endOfMonth = new Date(atThisMoment.getFullYear(), atThisMoment.getMonth() + 1, 0, 23, 59, 59, 999);
 
     const result = await transactionsTable()
       .where({

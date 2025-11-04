@@ -1,5 +1,6 @@
 import { Mood } from "../models/moodModel.js";
 import { db } from "../config/db.js";
+import { now } from "../utils/date.js";
 
 // Test version of submitMood that accepts user_id in request body
 export const testSubmitMood = async (req, res) => {
@@ -36,7 +37,7 @@ export const testSubmitMood = async (req, res) => {
           id: todayMood.id,
           mood_level,
           notes,
-          updated_at: new Date()
+          updated_at: now()
         }
       });
     } else {

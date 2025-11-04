@@ -1,5 +1,6 @@
 import { db } from "../config/db.js";
 import { v7 as uuidv7 } from "uuid";
+import { now } from "../utils/date.js";
 
 const migration = async () => {
   console.log("🚀 Starting migration to new cheer schema...");
@@ -195,7 +196,7 @@ const migration = async () => {
           total_spent: heartbit.total_heartbits_spent || 0,
           monthly_cheer_limit: 100,
           monthly_cheer_used: 0,
-          last_monthly_reset: new Date().toISOString().slice(0, 7) + "-01 00:00:00",
+          last_monthly_reset: now().toISOString().slice(0, 7) + "-01 00:00:00",
           created_at: heartbit.created_at,
           updated_at: heartbit.updated_at
         });

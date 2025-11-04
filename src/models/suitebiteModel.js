@@ -1,5 +1,6 @@
 import { db } from "../config/db.js";
 import { v7 as uuidv7 } from "uuid";
+import { now } from "../utils/date.js";
 
 // Table references based on the new Suitebite schema
 const usersTable = () => db("sl_user_accounts");
@@ -489,7 +490,7 @@ export const Suitebite = {
     return await productsTable()
       .where("product_id", product_id)
       .update({
-        deleted_at: new Date(),
+        deleted_at: now(),
         is_active: 0 // Also mark as inactive
       });
   },
@@ -707,7 +708,7 @@ export const Suitebite = {
     if (!cart) {
       const [cartId] = await cartsTable().insert({
         user_id,
-        created_at: new Date()
+        created_at: now()
       });
       cart = { cart_id: cartId };
     }
@@ -846,7 +847,7 @@ export const Suitebite = {
     const [orderId] = await ordersTable().insert({
       user_id,
       total_points,
-      ordered_at: new Date(),
+      ordered_at: now(),
       status: 'pending'
     });
 
@@ -1173,9 +1174,9 @@ export const Suitebite = {
     const updateData = { status };
     
     if (status === 'completed') {
-      updateData.completed_at = new Date();
+      updateData.completed_at = now();
     } else if (status === 'processed') {
-      updateData.processed_at = new Date();
+      updateData.processed_at = now();
     }
     
     if (notes) {
@@ -1203,7 +1204,7 @@ export const Suitebite = {
       .where("order_id", order_id)
       .update({
         status: 'processing',
-        processed_at: new Date()
+        processed_at: now()
       });
 
     // Log admin action
@@ -1214,7 +1215,7 @@ export const Suitebite = {
         target_type: "ORDER",
         target_id: order_id,
         details: JSON.stringify({ previous_status: "pending" }),
-        performed_at: new Date()
+        performed_at: now()
       });
     } catch (logError) {
       console.warn('Failed to log admin action:', logError);
@@ -1239,7 +1240,7 @@ export const Suitebite = {
       .where("order_id", order_id)
       .update({
         status: 'completed',
-        completed_at: new Date()
+        completed_at: now()
       });
 
     // Log admin action
@@ -1250,7 +1251,7 @@ export const Suitebite = {
         target_type: "ORDER",
         target_id: order_id,
         details: JSON.stringify({ previous_status: "processing" }),
-        performed_at: new Date()
+        performed_at: now()
       });
     } catch (logError) {
       console.warn('Failed to log admin action:', logError);
@@ -1292,7 +1293,7 @@ export const Suitebite = {
     // Update order status to cancelled
     const updateData = {
       status: 'cancelled',
-      cancelled_at: new Date()
+      cancelled_at: now()
     };
 
     if (reason) {
@@ -1317,7 +1318,7 @@ export const Suitebite = {
             total_points: order.total_points,
             user_id: order.user_id
           }),
-          performed_at: new Date()
+          performed_at: now()
         });
       } catch (logError) {
         console.error('Failed to log admin action for order cancellation:', logError);
@@ -1340,8 +1341,8 @@ export const Suitebite = {
           reference_id: order_id,
           action: 'cancellation_refund'
         }),
-        created_at: new Date(),
-        updated_at: new Date()
+        created_at: now(),
+        updated_at: now()
       });
 
       // Update user's points balance (refund affects available_points and reduces total_spent)
@@ -1404,7 +1405,7 @@ export const Suitebite = {
               user_id: order.user_id,
               delete_type: "HARD_DELETE"
             }),
-            performed_at: new Date()
+            performed_at: now()
           });
         } catch (logError) {
           console.warn('Failed to log admin action:', logError);
@@ -1421,7 +1422,7 @@ export const Suitebite = {
         await ordersTable()
           .where("order_id", order_id)
           .update({
-            deleted_at: new Date()
+            deleted_at: now()
           });
 
         return true;
@@ -1801,7 +1802,7 @@ export const Suitebite = {
       target_type,
       target_id: String(target_id),
       details: details ? JSON.stringify(details) : null,
-      performed_at: new Date()
+      performed_at: now()
     });
   },
 
@@ -2028,15 +2029,15 @@ export const Suitebite = {
         .update({
           config_value: JSON.stringify(config_value),
           config_description: description,
-          updated_at: new Date()
+          updated_at: now()
         });
     } else {
       return await db('sl_system_config').insert({
         config_key,
         config_value: JSON.stringify(config_value),
         config_description: description,
-        created_at: new Date(),
-        updated_at: new Date()
+        created_at: now(),
+        updated_at: now()
       });
     }
   },
@@ -2071,7 +2072,7 @@ export const Suitebite = {
     if (status === "active") {
       query = query.where('sl_user_accounts.is_active', true).whereNull('sl_user_heartbits.suspended_until');
     } else if (status === "suspended") {
-      query = query.where('sl_user_heartbits.suspended_until', '>', new Date());
+      query = query.where('sl_user_heartbits.suspended_until', '>', now());
     } else if (status === "inactive") {
       query = query.where('sl_user_accounts.is_active', false);
     }
@@ -2107,8 +2108,8 @@ export const Suitebite = {
         suspended_until: suspension_end,
         suspension_reason: reason,
         is_suspended: true,
-        suspended_at: new Date(),
-        updated_at: new Date()
+        suspended_at: now(),
+        updated_at: now()
       });
 
     // Log suspension in admin actions table
@@ -2117,7 +2118,7 @@ export const Suitebite = {
       action_type: 'SUSPEND_USER',
       target_user_id: userId,
       description: `User suspended: ${reason}`,
-      performed_at: new Date()
+      performed_at: now()
     });
   },
 
@@ -2130,7 +2131,7 @@ export const Suitebite = {
         suspension_reason: null,
         is_suspended: false,
         suspended_at: null,
-        updated_at: new Date()
+        updated_at: now()
       });
 
     // Log unsuspension in admin actions table
@@ -2139,7 +2140,7 @@ export const Suitebite = {
       action_type: 'UNSUSPEND_USER',
       target_user_id: userId,
       description: 'User unsuspended',
-      performed_at: new Date()
+      performed_at: now()
     });
   },
 
@@ -2331,7 +2332,7 @@ export const Suitebite = {
         break;
 
       case "reset_monthly_limits":
-        const currentMonth = new Date().toISOString().slice(0, 7);
+        const currentMonth = now().toISOString().slice(0, 7);
         const [limitsReset] = await monthlyLimitsTable()
           .where("month_year", currentMonth)
           .update({ heartbits_sent: 0 });
@@ -2897,7 +2898,7 @@ export const Suitebite = {
 
       const updateData = {
         moderated_by: admin_id,
-        moderated_at: new Date()
+        moderated_at: now()
       };
 
       switch (action) {
@@ -2982,7 +2983,7 @@ export const Suitebite = {
           post_content: post_content?.substring(0, 100) + (post_content?.length > 100 ? '...' : ''),
           admin_action: true
         }),
-        created_at: new Date()
+        created_at: now()
       });
       
       return result;
@@ -3028,7 +3029,7 @@ export const Suitebite = {
           reason,
           post_content: post_content?.substring(0, 200) + (post_content?.length > 200 ? '...' : '')
         }),
-        created_at: new Date()
+        created_at: now()
       });
       
       return result;
