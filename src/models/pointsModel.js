@@ -88,7 +88,8 @@ export const Points = {
   createTransaction: async (transactionData) => {
     return await transactionsTable().insert({
       ...transactionData,
-      created_at: atThisMoment
+      created_at: atThisMoment,
+      updated_at: atThisMoment
     });
   },
 
