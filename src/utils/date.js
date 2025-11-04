@@ -1,13 +1,8 @@
+
 export const now = () => {
-  const date = new Date();
-
-  const options = { timeZone: 'Asia/Manila' };
-  const philippinesTime = new Date(
-    date.toLocaleString('en-US', options)
-  );
-
-  return philippinesTime;
+  return new Date(Date.now());
 };
+
 
 
 export const formatToMySQL = (date) => {
