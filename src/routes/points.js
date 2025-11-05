@@ -24,6 +24,7 @@ import {
 } from '../controllers/pointsController.js';
 import verifyToken from '../middlewares/verifyToken.js';
 import verifyAdmin from '../middlewares/verifyAdmin.js';
+import { sendCheerMessage } from '../controllers/slackController.js';
 
 const router = express.Router();
 
@@ -44,6 +45,9 @@ router.post('/cheer', (req, res, next) => {
   console.log('🚀 CHEER ROUTE HIT - Request body:', JSON.stringify(req.body, null, 2));
   next();
 }, cheerUser);
+
+// slack notif
+router.post('/slack-cheer', sendCheerMessage);
 
 // Get points leaderboard - OPTIMIZED VERSION
 router.get('/leaderboard', getLeaderboardWithPeriod);
