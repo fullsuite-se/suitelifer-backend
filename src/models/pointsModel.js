@@ -86,11 +86,8 @@ export const Points = {
 
   // Transactions
   createTransaction: async (transactionData) => {
-    return await transactionsTable().insert({
-      ...transactionData,
-      created_at: atThisMoment,
-      updated_at: atThisMoment
-    });
+   return await transactionsTable().insert(transactionData);
+
   },
 
   // Mark moderation notification as dismissed
@@ -181,11 +178,7 @@ export const Points = {
 
   // Cheers/Peer Recognition
   createCheer: async (cheerData) => {
-    return await cheersTable().insert({
-      ...cheerData,
-      created_at: atThisMoment,
-      updated_at: atThisMoment
-    });
+    return await cheersTable().insert(cheerData);
   },
 
   getUserCheers: async (user_id, limit = 20, offset = 0) => {

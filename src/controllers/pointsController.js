@@ -86,7 +86,10 @@ export const getTransactionHistory = async (req, res) => {
 export const cheerUser = async (req, res) => {
   try {
     const { id: user_id } = req.user;
-    const { to_user_id, recipientId, points, amount, message } = req.body;
+    const { to_user_id, recipientId, points, amount, message, created_at } = req.body;
+
+    const utcDate = new Date(created_at).toISOString().slice(0, 19).replace("T", " ");
+
 
     // Support both parameter names for compatibility - prioritize amount over points
     const targetUserId = to_user_id || recipientId;
@@ -179,7 +182,9 @@ export const cheerUser = async (req, res) => {
       amount: heartbitsToSend,
       description: `cheered ${heartbitsToSend} ${heartbitsToSend < 2 ? "heartbit" : "heartbits"}`,
       message,
-      metadata: JSON.stringify({ cheer_id: cheerId, type: "cheer" })
+      metadata: JSON.stringify({ cheer_id: cheerId, type: "cheer" }),
+      created_at: utcDate,
+      updated_at: utcDate
     });
 
 
@@ -191,7 +196,10 @@ export const cheerUser = async (req, res) => {
       amount: heartbitsToSend,
       description: `received ${heartbitsToSend} ${heartbitsToSend < 2 ? "heartbit" : "heartbits"}`,
       message,
-      metadata: JSON.stringify({ cheer_id: cheerId, type: "cheer" })
+      metadata: JSON.stringify({ cheer_id: cheerId, type: "cheer" }),
+     created_at: utcDate,
+      updated_at: utcDate
+
     });
 
 
@@ -201,7 +209,9 @@ export const cheerUser = async (req, res) => {
       from_user_id: user_id,
       to_user_id: targetUserId,
       points: heartbitsToSend,
-      message
+      message,
+     created_at: utcDate,
+      updated_at: utcDate
     });
 
     // Get updated heartbits remaining for response
@@ -236,7 +246,7 @@ export const cheerUser = async (req, res) => {
         user_id: user_id,
         action: "CREATE",
         description: `${senderName} sent ${heartbitsToSend} heartbits to ${recipientName}${message ? ` with message: "${message}"` : ''}`,
-        date: now()
+        date: created_at,
       };
 
       await AuditLog.addLog(auditData);
