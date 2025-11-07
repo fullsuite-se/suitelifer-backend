@@ -302,7 +302,7 @@ export const cheerUser = async (req, res) => {
 
       const failedAuditData = {
         user_id: user_id,
-        action: "UPDATE",
+        action: "ERROR",
         description: `${senderName} failed to send ${amount || points || 'unknown'} heartbits to ${recipientName || 'unknown user'}. Error: ${error.message}`,
         date: utcDate,
       };
