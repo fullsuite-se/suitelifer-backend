@@ -245,7 +245,7 @@ export const cheerUser = async (req, res) => {
       const auditData = {
         user_id: user_id,
         action: "CREATE",
-        description: `${senderName} sent ${heartbitsToSend} heartbits to ${recipientName}${message ? ` with message: "${message}"` : ''}`,
+        description: `${senderName} sent ${heartbitsToSend?.toLocaleString() || "-"} heartbit${heartbitsToSend < 2 ? "" : "s"} to ${recipientName}.`,
         date: utcDate,
       };
 
