@@ -197,7 +197,7 @@ export const cheerUser = async (req, res) => {
       description: `received ${heartbitsToSend} ${heartbitsToSend < 2 ? "heartbit" : "heartbits"}`,
       message,
       metadata: JSON.stringify({ cheer_id: cheerId, type: "cheer" }),
-     created_at: utcDate,
+      created_at: utcDate,
       updated_at: utcDate
 
     });
@@ -210,7 +210,7 @@ export const cheerUser = async (req, res) => {
       to_user_id: targetUserId,
       points: heartbitsToSend,
       message,
-     created_at: utcDate,
+      created_at: utcDate,
       updated_at: utcDate
     });
 
@@ -246,7 +246,7 @@ export const cheerUser = async (req, res) => {
         user_id: user_id,
         action: "CREATE",
         description: `${senderName} sent ${heartbitsToSend} heartbits to ${recipientName}${message ? ` with message: "${message}"` : ''}`,
-        date: created_at,
+        date: utcDate,
       };
 
       await AuditLog.addLog(auditData);
@@ -272,8 +272,11 @@ export const cheerUser = async (req, res) => {
     // Log failed cheer attempt to audit logs
     try {
       const { id: user_id } = req.user;
-      const { to_user_id, recipientId, points, amount, message } = req.body;
+      const { to_user_id, recipientId, points, amount, message, created_at } = req.body;
       const targetUserId = to_user_id || recipientId;
+
+
+      const utcDate = new Date(created_at).toISOString().slice(0, 19).replace("T", " ");
 
       // Get user names for failed audit logging
       let senderName = 'Unknown User';
@@ -301,7 +304,7 @@ export const cheerUser = async (req, res) => {
         user_id: user_id,
         action: "UPDATE",
         description: `${senderName} failed to send ${amount || points || 'unknown'} heartbits to ${recipientName || 'unknown user'}. Error: ${error.message}`,
-        date: now()
+        date: utcDate,
       };
 
       await AuditLog.addLog(failedAuditData);
