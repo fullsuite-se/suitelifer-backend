@@ -43,7 +43,7 @@ export const User = {
 
 
   updatePersonalDetails: async (user_id, updatedData) => {
-    const allowedFields = ['first_name', 'middle_name', 'last_name', 'extension_name', 'profile_pic'];
+    const allowedFields = ['first_name', 'middle_name', 'last_name', 'extension_name', 'profile_pic', 'user_email'];
 
     const filteredData = {};
 
