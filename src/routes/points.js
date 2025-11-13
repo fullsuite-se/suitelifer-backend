@@ -24,7 +24,7 @@ import {
 } from '../controllers/pointsController.js';
 import verifyToken from '../middlewares/verifyToken.js';
 import verifyAdmin from '../middlewares/verifyAdmin.js';
-import { sendCheerMessage } from '../controllers/slackController.js';
+import { sendFeedbackToSlack, sendCheerMessage } from '../controllers/slackController.js';
 
 const router = express.Router();
 
@@ -48,6 +48,7 @@ router.post('/cheer', (req, res, next) => {
 
 // slack notif
 router.post('/slack-cheer', sendCheerMessage);
+router.post('/slack-feedback', sendFeedbackToSlack);
 
 // Get points leaderboard - OPTIMIZED VERSION
 router.get('/leaderboard', getLeaderboardWithPeriod);

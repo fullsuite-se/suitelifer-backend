@@ -245,3 +245,80 @@ export const sendCheerMessage = async (req, res) => {
         });
     }
 };
+
+
+export const sendFeedbackToSlack = async (req, res) => {
+    try {
+        const { sender_id, message, feedbackType } = req.body;
+
+        if (!sender_id || !message || !feedbackType) {
+            return res.status(400).json({
+                success: false,
+                message: "sender_id, feedbackType, and message are required",
+            });
+        }
+
+        const sender = await User.getUser(sender_id);
+        if (!sender) {
+            return res.status(404).json({
+                success: false,
+                message: "Sender not found",
+            });
+        }
+
+        const slackUser = sender.user_email ? await getSlackUserByEmail(sender.user_email) : null;
+        const senderMention = slackUser ? `<@${slackUser.id}>` : `${sender.first_name} ${sender.last_name}`;
+
+        const messageBlocks = [
+            {
+                type: "header",
+                text: { type: "plain_text", text: "📩 New Feedback", emoji: true },
+            },
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: `*From:* ${senderMention}\n*Email:* ${sender.user_email || "N/A"}\n*Type:* ${feedbackType}`
+                },
+            },
+            { type: "divider" },
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: `*Message:*\n\n>${message.trim()}`,
+                },
+            },
+            { type: "divider" },
+            {
+                type: "context",
+                elements: [
+                    {
+                        type: "mrkdwn",
+                        text: `Submitted: ${new Date().toLocaleString("en-PH", { timeZone: "Asia/Manila" })}`,
+                    },
+                ],
+            },
+        ];
+
+        await app.client.chat.postMessage({
+            token: process.env.SLACK_BOT_TOKEN,
+            channel: process.env.SLACK_CHANNEL_ASK_HR,
+            text: `New ${feedbackType.toLowerCase()} from ${sender.first_name} ${sender.last_name}: ${message.substring(0, 80)}...`,
+            blocks: messageBlocks,
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Your feedback has been sent successfully.",
+        });
+    } catch (error) {
+        console.error("Error sending feedback:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message,
+        });
+    }
+};
+
