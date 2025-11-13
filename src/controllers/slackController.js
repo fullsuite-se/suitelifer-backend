@@ -303,7 +303,7 @@ export const sendFeedbackToSlack = async (req, res) => {
 
         await app.client.chat.postMessage({
             token: process.env.SLACK_BOT_TOKEN,
-            channel: process.env.SLACK_CHANNEL_ASK_HR,
+            channel: process.env.SLACK_CHANNEL_FEEDBACK,
             text: `New ${feedbackType.toLowerCase()} from ${sender.first_name} ${sender.last_name}: ${message.substring(0, 80)}...`,
             blocks: messageBlocks,
         });
