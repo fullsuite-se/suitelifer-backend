@@ -13,57 +13,57 @@ export const startSuitebiteJobs = () => {
   // 1. PROCESS PENDING ORDERS (Every hour)
   // Auto-complete orders that have been pending for too long
   // ==========================================
-  cron.schedule('0 * * * *', async () => {
+  // cron.schedule('0 * * * *', async () => {
   
-    try {
-      // Get system configuration for auto-complete days
-      const systemConfig = await Suitebite.getSystemConfiguration();
-      const autoCompleteDays = parseInt(systemConfig.order_auto_complete_days?.value) || 7;
+  //   try {
+  //     // Get system configuration for auto-complete days
+  //     const systemConfig = await Suitebite.getSystemConfiguration();
+  //     const autoCompleteDays = parseInt(systemConfig.order_auto_complete_days?.value) || 7;
       
-      // Find orders that should be auto-completed
-      const pendingOrders = await db('sl_orders')
-        .where('status', 'pending')
-        .where('ordered_at', '<', db.raw(`DATE_SUB(NOW(), INTERVAL ${autoCompleteDays} DAY)`));
+  //     // Find orders that should be auto-completed
+  //     const pendingOrders = await db('sl_orders')
+  //       .where('status', 'pending')
+  //       .where('ordered_at', '<', db.raw(`DATE_SUB(NOW(), INTERVAL ${autoCompleteDays} DAY)`));
 
-      let processedCount = 0;
-      for (const order of pendingOrders) {
-        try {
-          // Update order status to completed
-          await db('sl_orders')
-            .where('order_id', order.order_id)
-            .update({
-              status: 'completed',
-              processed_at: now(),
-              completed_at: now(),
-              notes: 'Auto-completed after pending period'
-            });
+  //     let processedCount = 0;
+  //     for (const order of pendingOrders) {
+  //       try {
+  //         // Update order status to completed
+  //         await db('sl_orders')
+  //           .where('order_id', order.order_id)
+  //           .update({
+  //             status: 'completed',
+  //             processed_at: now(),
+  //             completed_at: now(),
+  //             notes: 'Auto-completed after pending period'
+  //           });
 
-          // Log admin action for auto-completion
-          await Suitebite.logAdminAction(
-            1, // System user ID
-            'PROCESS_ORDER',
-            'ORDER',
-            order.order_id,
-            { 
-              action: 'auto_complete', 
-              reason: `Auto-completed after ${autoCompleteDays} days`,
-              original_status: 'pending'
-            }
-          );
+  //         // Log admin action for auto-completion
+  //         await Suitebite.logAdminAction(
+  //           1, // System user ID
+  //           'PROCESS_ORDER',
+  //           'ORDER',
+  //           order.order_id,
+  //           { 
+  //             action: 'auto_complete', 
+  //             reason: `Auto-completed after ${autoCompleteDays} days`,
+  //             original_status: 'pending'
+  //           }
+  //         );
 
-          processedCount++;
-        } catch (error) {
-          console.error(`Error processing order ${order.order_id}:`, error);
-        }
-      }
+  //         processedCount++;
+  //       } catch (error) {
+  //         console.error(`Error processing order ${order.order_id}:`, error);
+  //       }
+  //     }
 
-      if (processedCount > 0) {
-        console.log(`Auto-completed ${processedCount} pending orders`);
-      }
-    } catch (error) {
-      console.error('Error in pending orders processor:', error);
-    }
-  });
+  //     if (processedCount > 0) {
+  //       console.log(`Auto-completed ${processedCount} pending orders`);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error in pending orders processor:', error);
+  //   }
+  // });
 
   // ==========================================
   // 2. RESET MONTHLY LIMITS (1st of each month at 00:01)
