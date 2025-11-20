@@ -269,6 +269,12 @@ export const sendFeedbackToSlack = async (req, res) => {
         const slackUser = sender.user_email ? await getSlackUserByEmail(sender.user_email) : null;
         const senderMention = slackUser ? `<@${slackUser.id}>` : `${sender.first_name} ${sender.last_name}`;
 
+        const formattedMessage = message
+            .trim()
+            .split("\n")
+            .map(line => `> ${line}`)
+            .join("\n");
+
         const messageBlocks = [
             {
                 type: "header",
@@ -286,7 +292,7 @@ export const sendFeedbackToSlack = async (req, res) => {
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: `*Message:*\n\n>${message.trim()}`,
+                    text: `*Message:*\n\n${formattedMessage}`,
                 },
             },
             { type: "divider" },
